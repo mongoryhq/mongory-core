@@ -1,0 +1,5 @@
+
+src/mongory.o
+
+test_mongory
+mongory.a
