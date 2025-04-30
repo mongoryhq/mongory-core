@@ -1,6 +1,6 @@
 # Mongory-core
 
-A simple C library example.
+Mongory matcher core C library .
 
 ## Build
 
@@ -11,5 +11,5 @@ make
 ## Test
 
 ```sh
-./test_mongory
+make test
 ```
