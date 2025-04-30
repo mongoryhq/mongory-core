@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Iinclude -Wall -Wextra -std=c99
-SRC = src/mongory.c
+SRC = $(wildcard src/*.c)
 OBJ = $(SRC:.c=.o)
 TEST = test/test_mongory.c
 

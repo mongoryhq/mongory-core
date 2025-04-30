@@ -1,5 +1,6 @@
 
-src/mongory.o
+.vscode
+*.o
+*.a
 
 test_mongory
-mongory.a
