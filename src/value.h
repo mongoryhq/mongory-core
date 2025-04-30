@@ -2,12 +2,12 @@
 #include "array.h"
 
 #define MONGORY_TYPE_TABLE(_) \
-    _(TYPE_BOOL,   1, "Bool",   b) \
-    _(TYPE_INT,    2, "Int",    i) \
-    _(TYPE_DOUBLE, 3, "Double", d) \
-    _(TYPE_STRING, 4, "String", s) \
-    _(TYPE_ARRAY,  5, "Array",  a) \
-    _(TYPE_TABLE,  6, "Table",  t)
+    _(MONGORY_TYPE_BOOL,   10, "Bool",   b) \
+    _(MONGORY_TYPE_INT,    11, "Int",    i) \
+    _(MONGORY_TYPE_DOUBLE, 12, "Double", d) \
+    _(MONGORY_TYPE_STRING, 13, "String", s) \
+    _(MONGORY_TYPE_ARRAY,  14, "Array",  a) \
+    _(MONGORY_TYPE_TABLE,  15, "Table",  t)
 
 #define MONGORY_ENUM_MAGIC 103
 
@@ -20,16 +20,17 @@ typedef enum {
 } mongory_type;
 
 typedef struct mongory_value {
-  mongory_type *type;
+  mongory_type type;
   union {
     int b; // bool
     int i;
     double d;
-    const char *s;
+    char *s;
     mongory_array *a;
     mongory_table *t;
-  };
+  } data;
 } mongory_value;
 
-const char* type_to_string(mongory_type type);
-const void* mongory_value_extract(mongory_value *value);
+char* mongory_type_to_string(mongory_type type);
+void* mongory_value_extract(mongory_value *value);
+mongory_value* mongory_value_wrap_s(char *string);
