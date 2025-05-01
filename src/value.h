@@ -1,3 +1,15 @@
+#ifndef MONGORY_VALUE
+#define MONGORY_VALUE
+#include <stdbool.h>
+
+struct mongory_value;
+typedef struct mongory_value mongory_value;
+enum mongory_type;
+typedef enum mongory_type mongory_type;
+char* mongory_type_to_string(mongory_type type);
+void* mongory_value_extract(mongory_value *value);
+mongory_value* mongory_value_wrap_s(char *string);
+
 #include "table.h"
 #include "array.h"
 
@@ -11,26 +23,24 @@
 
 #define MONGORY_ENUM_MAGIC 103
 
-typedef enum {
+enum mongory_type {
   TYPE_NULL = 0,
 #define DEFINE_ENUM(name, num, str, field) name = num * MONGORY_ENUM_MAGIC,
   MONGORY_TYPE_TABLE(DEFINE_ENUM)
 #undef DEFINE_ENUM
   TYPE_UNSUPPORTED = 999 * MONGORY_ENUM_MAGIC
-} mongory_type;
+};
 
-typedef struct mongory_value {
+struct mongory_value {
   mongory_type type;
   union {
-    int b; // bool
+    bool b;
     int i;
     double d;
     char *s;
     mongory_array *a;
     mongory_table *t;
   } data;
-} mongory_value;
+};
 
-char* mongory_type_to_string(mongory_type type);
-void* mongory_value_extract(mongory_value *value);
-mongory_value* mongory_value_wrap_s(char *string);
+#endif
