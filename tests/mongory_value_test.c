@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <mongory.h>
+#include <mongory-core.h>
 
 int main() {
   mongory_value *value = mongory_value_wrap_s("Hello");
