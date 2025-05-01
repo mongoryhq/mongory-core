@@ -2,13 +2,16 @@ CC = gcc
 CFLAGS = -Iinclude -Wall -Wextra -std=c99
 SRC = $(wildcard src/*.c)
 OBJ = $(SRC:.c=.o)
+CORE = mongory-core.a
 
-TEST_SRC = $(wildcard tests/*.c)
-TEST_OBJ = $(patsubst tests/%.c,test_runner/%,$(TEST_SRC))
+TEST_SRC_FOLDER = tests
+TEST_SRC = $(wildcard $(TEST_SRC_FOLDER)/*.c)
+TEST_OBJ_FOLDER = test_runner
+TEST_OBJ = $(patsubst $(TEST_SRC_FOLDER)/%.c,$(TEST_OBJ_FOLDER)/%,$(TEST_SRC))
 
-all: mongory.a
+all: $(CORE)
 
-mongory.a: $(OBJ)
+$(CORE): $(OBJ)
 	ar rcs $@ $^
 
 src/%.o: src/%.c
@@ -21,12 +24,12 @@ test: $(TEST_OBJ)
 		echo "Test done."; \
 	done
 
-test_runner:
-	mkdir -p test_runner
+$(TEST_OBJ_FOLDER):
+	mkdir -p $(TEST_OBJ_FOLDER)
 
-test_runner/%: tests/%.c mongory.a test_runner
-	$(CC) $(CFLAGS) -o $@ $< mongory.a
+$(TEST_OBJ_FOLDER)/%: $(TEST_SRC_FOLDER)/%.c $(CORE) $(TEST_OBJ_FOLDER)
+	$(CC) $(CFLAGS) -o $@ $< $(CORE)
 
 clean:
-	rm -f $(OBJ) $(TEST_OBJ) mongory.a
-	rm -rf test_runner
+	rm -f $(OBJ) $(TEST_OBJ) $(CORE)
+	rm -rf $(TEST_OBJ_FOLDER)
