@@ -8,7 +8,7 @@
 char* mongory_type_to_string(mongory_value *value) {
   switch (value->type) {
 #define CASE_GEN(name, num, str, field) case name: return str;
-  MONGORY_TYPE_TABLE(CASE_GEN)
+  MONGORY_TYPE_MACRO(CASE_GEN)
 #undef CASE_GEN
   default:
       return "UnknownType";
@@ -18,16 +18,55 @@ char* mongory_type_to_string(mongory_value *value) {
 void* mongory_value_extract(mongory_value *value) {
   switch (value->type) {
 #define EXTRACT_CASE(name, num, str, field) case name: return (void *)&value->data.field;
-  MONGORY_TYPE_TABLE(EXTRACT_CASE)
+  MONGORY_TYPE_MACRO(EXTRACT_CASE)
 #undef EXTRACT_CASE
   default:
       return NULL;
   }
 }
 
-mongory_value* mongory_value_wrap_s(char *string) {
-  mongory_value *value = malloc(sizeof(mongory_value));
+mongory_value* mongory_value_new(mongory_memory_pool *pool) {
+  return pool->alloc(pool, sizeof(mongory_value));
+}
+
+mongory_value* mongory_value_wrap_b(mongory_memory_pool *pool, bool b) {
+  mongory_value *value = mongory_value_new(pool);
+  value->type = MONGORY_TYPE_BOOL;
+  value->data.b = b;
+  return value;
+};
+
+mongory_value* mongory_value_wrap_i(mongory_memory_pool *pool, int i) {
+  mongory_value *value = mongory_value_new(pool);
+  value->type = MONGORY_TYPE_INT;
+  value->data.i = i;
+  return value;
+};
+
+mongory_value* mongory_value_wrap_d(mongory_memory_pool *pool, double d) {
+  mongory_value *value = mongory_value_new(pool);
+  value->type = MONGORY_TYPE_DOUBLE;
+  value->data.d = d;
+  return value;
+};
+
+mongory_value* mongory_value_wrap_s(mongory_memory_pool *pool, char *s) {
+  mongory_value *value = mongory_value_new(pool);
   value->type = MONGORY_TYPE_STRING;
-  value->data.s = string;
+  value->data.s = s;
+  return value;
+};
+
+mongory_value* mongory_value_wrap_a(mongory_memory_pool *pool, void *a) {
+  mongory_value *value = mongory_value_new(pool);
+  value->type = MONGORY_TYPE_ARRAY;
+  value->data.a = (mongory_array *)a;
+  return value;
+};
+
+mongory_value* mongory_value_wrap_t(mongory_memory_pool *pool, void *t) {
+  mongory_value *value = mongory_value_new(pool);
+  value->type = MONGORY_TYPE_TABLE;
+  value->data.t = (mongory_table *)t;
   return value;
 };
