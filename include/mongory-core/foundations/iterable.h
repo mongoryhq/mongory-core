@@ -19,16 +19,6 @@ mongory_iterable* mongory_iterable_new(mongory_memory_pool *pool);
 bool mongory_iterable_push(mongory_iterable *iter, mongory_memory_pool *pool, void *item);
 void* mongory_iterable_get(mongory_iterable *iter, size_t index);
 bool mongory_iterable_set(mongory_iterable *iter, mongory_memory_pool *pool, size_t index, void *item);
-
-inline bool mongory_iterable_each(mongory_iterable *self, void *acc, mongory_iterable_callback_func func) {
-  for (size_t i = 0; i < self->count; i++) {
-    void *item = self->items[i];
-    if (!func(item, acc)) {
-      return false;
-    }
-  }
-
-  return true;
-};
+bool mongory_iterable_each(mongory_iterable *self, void *acc, mongory_iterable_callback_func func);
 
 #endif

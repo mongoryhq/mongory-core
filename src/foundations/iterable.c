@@ -18,7 +18,18 @@ mongory_iterable* mongory_iterable_new(mongory_memory_pool *pool) {
   return iter;
 }
 
-inline bool mongory_iterable_grow_if_needed(mongory_iterable *iter, mongory_memory_pool *pool, size_t size) {
+bool mongory_iterable_each(mongory_iterable *self, void *acc, mongory_iterable_callback_func func) {
+  for (size_t i = 0; i < self->count; i++) {
+    void *item = self->items[i];
+    if (!func(item, acc)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+static inline bool mongory_iterable_grow_if_needed(mongory_iterable *iter, mongory_memory_pool *pool, size_t size) {
   if (size < iter->capacity) {
     return true;
   }
