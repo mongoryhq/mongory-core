@@ -1,10 +1,6 @@
-#include "private.h"
+#include "internal/iterable.h"
 #include "value.h"
 #include "table.h"
-
-struct mongory_table {
-  mongory_iterable base;
-};
 
 typedef struct mongory_table_node {
   char *key;
@@ -13,7 +9,7 @@ typedef struct mongory_table_node {
 } mongory_table_node;
 
 typedef struct mongory_table_each_context {
-  mongory_table_callback_func *callback;
+  mongory_table_callback_func callback;
   void *acc;
 } mongory_table_each_context;
 
@@ -34,5 +30,5 @@ bool mongory_table_each(mongory_table *self, void *acc, mongory_table_callback_f
     .acc = acc,
     .callback = func
   };
-  return mongory_iterable_each(&self->base, &ctx, mongory_table_traverse_node_chain);
+  return mongory_iterable_each((mongory_iterable *)self->base, &ctx, mongory_table_traverse_node_chain);
 }

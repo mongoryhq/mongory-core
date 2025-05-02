@@ -18,4 +18,26 @@ mongory_value* mongory_value_wrap_s(char *string);
   _(MONGORY_TYPE_ARRAY,  14, "Array",  a) \
   _(MONGORY_TYPE_TABLE,  15, "Table",  t)
 
+#define MONGORY_ENUM_MAGIC 103
+
+enum mongory_type {
+  MONGORY_TYPE_NULL = 0,
+#define DEFINE_ENUM(name, num, str, field) name = num * MONGORY_ENUM_MAGIC,
+  MONGORY_TYPE_TABLE(DEFINE_ENUM)
+#undef DEFINE_ENUM
+  MONGORY_TYPE_UNSUPPORTED = 999 * MONGORY_ENUM_MAGIC
+};
+
+struct mongory_value {
+  mongory_type type;
+  union {
+    bool b;
+    int i;
+    double d;
+    char *s;
+    void *a; // mongory_array
+    void *t; // mongory_table
+  } data;
+};
+
 #endif
