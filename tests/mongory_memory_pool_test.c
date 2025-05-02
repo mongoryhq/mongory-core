@@ -2,7 +2,7 @@
 #include <setjmp.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <mongory-core/internal.h>
+#include <mongory-core/foundations/memory_pool.h>
 
 static jmp_buf jmp;
 

@@ -1,8 +1,8 @@
 #include <stddef.h>
 #include <stdlib.h>
-#include "value.h"
-#include "table.h"
-#include "array.h"
+#include <mongory-core/foundations/value.h>
+#include <mongory-core/foundations/table.h>
+#include <mongory-core/foundations/array.h>
 
 char* mongory_type_to_string(mongory_value *value) {
   switch (value->type) {
