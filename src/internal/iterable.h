@@ -12,7 +12,6 @@ struct mongory_iterable {
   size_t capacity;
   size_t count;
   void **items;
-  mongory_iterable_func each;
 };
 
 inline bool mongory_iterable_each(mongory_iterable *self, void *acc, mongory_iterable_callback_func func) {
