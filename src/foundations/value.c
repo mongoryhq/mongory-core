@@ -1,5 +1,6 @@
 #include <stddef.h>
 #include <stdlib.h>
+#include <mongory-core/foundations/memory_pool.h>
 #include <mongory-core/foundations/value.h>
 #include <mongory-core/foundations/table.h>
 #include <mongory-core/foundations/array.h>
