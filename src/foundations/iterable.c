@@ -53,9 +53,7 @@ static inline bool mongory_iterable_grow_if_needed(mongory_iterable *iter, mongo
 }
 
 bool mongory_iterable_push(mongory_iterable *iter, mongory_memory_pool *pool, void *item) {
-  if (!mongory_iterable_grow_if_needed(iter, pool, iter->count)) {
-    return false;
-  }
+  mongory_iterable_grow_if_needed(iter, pool, iter->count);
 
   iter->items[iter->count++] = item;
   return true;
@@ -69,9 +67,7 @@ void* mongory_iterable_get(mongory_iterable *iter, size_t index) {
 }
 
 bool mongory_iterable_set(mongory_iterable *iter, mongory_memory_pool *pool, size_t index, void *item) {
-  if (!mongory_iterable_grow_if_needed(iter, pool, index + 1)) {
-    return false;
-  }
+  mongory_iterable_grow_if_needed(iter, pool, index + 1);
 
   if (index >= iter->count) {
     for (size_t i = iter->count; i < index; ++i) {
