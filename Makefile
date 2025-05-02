@@ -1,6 +1,6 @@
 COMMAND = gcc -Iinclude -Wall -Wextra -std=c99
 SRC_FOLDER = src
-SRC = $(wildcard $(SRC_FOLDER)/*.c)
+SRC = $(wildcard $(SRC_FOLDER)/**/*.c)
 OBJ = $(SRC:.c=.o)
 CORE = mongory-core.a
 
@@ -25,7 +25,7 @@ clean:
 $(CORE): $(OBJ)
 	ar rcs $@ $^
 
-$(SRC_FOLDER)/%.o: $(SRC_FOLDER)/%.c
+$(SRC_FOLDER)/**/%.o: $(SRC_FOLDER)/**/%.c
 	$(COMMAND) -c -o $@ $<
 
 $(TEST_OBJ_FOLDER):
