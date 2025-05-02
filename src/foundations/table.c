@@ -1,6 +1,6 @@
-#include "internal/iterable.h"
-#include "value.h"
-#include "table.h"
+#include <mongory-core/foundations/iterable.h>
+#include <mongory-core/foundations/value.h>
+#include <mongory-core/foundations/table.h>
 
 typedef struct mongory_table_node {
   char *key;
