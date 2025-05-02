@@ -4,7 +4,7 @@
 #include <mongory-core/foundations/memory_pool.h>
 
 bool mongory_array_each(mongory_array *self, void *acc, mongory_array_callback_func func) {
-  return mongory_iterable_each((mongory_iterable *)self->base, acc, func);
+  return mongory_iterable_each((mongory_iterable *)self->base, acc, (mongory_iterable_callback_func)func);
 }
 
 bool mongory_array_push(mongory_array *self, mongory_memory_pool *pool, mongory_value *value) {
