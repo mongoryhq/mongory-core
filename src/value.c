@@ -1,10 +1,34 @@
 #include <stddef.h>
 #include <stdlib.h>
-#include "value.h"
 #include "private.h"
+#include "value.h"
+#include "table.h"
+#include "array.h"
 
-char* mongory_type_to_string(mongory_type type) {
-  switch (type) {
+#define MONGORY_ENUM_MAGIC 103
+
+enum mongory_type {
+  MONGORY_TYPE_NULL = 0,
+#define DEFINE_ENUM(name, num, str, field) name = num * MONGORY_ENUM_MAGIC,
+  MONGORY_TYPE_TABLE(DEFINE_ENUM)
+#undef DEFINE_ENUM
+  MONGORY_TYPE_UNSUPPORTED = 999 * MONGORY_ENUM_MAGIC
+};
+
+struct mongory_value {
+  mongory_type type;
+  union {
+    bool b;
+    int i;
+    double d;
+    char *s;
+    mongory_array *a;
+    mongory_table *t;
+  } data;
+};
+
+char* mongory_type_to_string(mongory_value *value) {
+  switch (value->type) {
 #define CASE_GEN(name, num, str, field) case name: return str;
   MONGORY_TYPE_TABLE(CASE_GEN)
 #undef CASE_GEN
