@@ -57,16 +57,16 @@ mongory_value* mongory_value_wrap_s(mongory_memory_pool *pool, char *s) {
   return value;
 };
 
-mongory_value* mongory_value_wrap_a(mongory_memory_pool *pool, void *a) {
+mongory_value* mongory_value_wrap_a(mongory_memory_pool *pool, struct mongory_array *a) {
   mongory_value *value = mongory_value_new(pool);
   value->type = MONGORY_TYPE_ARRAY;
-  value->data.a = (mongory_array *)a;
+  value->data.a = a;
   return value;
 };
 
-mongory_value* mongory_value_wrap_t(mongory_memory_pool *pool, void *t) {
+mongory_value* mongory_value_wrap_t(mongory_memory_pool *pool, struct mongory_table *t) {
   mongory_value *value = mongory_value_new(pool);
   value->type = MONGORY_TYPE_TABLE;
-  value->data.t = (mongory_table *)t;
+  value->data.t = t;
   return value;
 };
