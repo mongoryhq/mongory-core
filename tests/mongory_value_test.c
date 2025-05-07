@@ -40,7 +40,8 @@ int main() {
     mongory_type_to_string(value_a)
   );
 
-  mongory_value *value_t = mongory_value_wrap_t(pool, "Wait to implement mongory_table");
+  mongory_table *table = pool->alloc(pool, sizeof(mongory_table));
+  mongory_value *value_t = mongory_value_wrap_t(pool, table);
 
   printf("Mongory value_t, type is %s\n",
     mongory_type_to_string(value_t)
