@@ -2,6 +2,9 @@
 #define MONGORY_VALUE
 #include <stdbool.h>
 
+struct mongory_array;
+struct mongory_table;
+
 struct mongory_value;
 typedef struct mongory_value mongory_value;
 enum mongory_type;
@@ -13,8 +16,8 @@ mongory_value* mongory_value_wrap_b(mongory_memory_pool *pool, bool b);
 mongory_value* mongory_value_wrap_i(mongory_memory_pool *pool, int i);
 mongory_value* mongory_value_wrap_d(mongory_memory_pool *pool, double d);
 mongory_value* mongory_value_wrap_s(mongory_memory_pool *pool, char *s);
-mongory_value* mongory_value_wrap_a(mongory_memory_pool *pool, void *a);
-mongory_value* mongory_value_wrap_t(mongory_memory_pool *pool, void *t);
+mongory_value* mongory_value_wrap_a(mongory_memory_pool *pool, struct mongory_array *a);
+mongory_value* mongory_value_wrap_t(mongory_memory_pool *pool, struct mongory_table *t);
 
 #define MONGORY_TYPE_MACRO(_) \
   _(MONGORY_TYPE_BOOL,   10, "Bool",   b) \
@@ -41,8 +44,8 @@ struct mongory_value {
     int i;
     double d;
     char *s;
-    void *a; // mongory_array
-    void *t; // mongory_table
+    struct mongory_array *a;
+    struct mongory_table *t;
   } data;
 };
 
