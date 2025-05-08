@@ -1,6 +1,17 @@
+# Unity test framework
+tests/unity/
 
-.vscode
+# Build artifacts
 *.o
 *.a
+test_runner/
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Temporary files
 tmp
-test_runner
