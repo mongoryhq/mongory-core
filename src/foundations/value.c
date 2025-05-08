@@ -26,47 +26,70 @@ void* mongory_value_extract(mongory_value *value) {
 }
 
 mongory_value* mongory_value_new(mongory_memory_pool *pool) {
-  return pool->alloc(pool, sizeof(mongory_value));
+  mongory_value *value = pool->alloc(pool, sizeof(mongory_value));
+  if (!value) {
+    return NULL;
+  }
+  value->pool = pool;
+  return value;
 }
 
 mongory_value* mongory_value_wrap_b(mongory_memory_pool *pool, bool b) {
   mongory_value *value = mongory_value_new(pool);
+  if (!value) {
+    return NULL;
+  }
   value->type = MONGORY_TYPE_BOOL;
   value->data.b = b;
   return value;
-};
+}
 
 mongory_value* mongory_value_wrap_i(mongory_memory_pool *pool, int i) {
   mongory_value *value = mongory_value_new(pool);
+  if (!value) {
+    return NULL;
+  }
   value->type = MONGORY_TYPE_INT;
   value->data.i = i;
   return value;
-};
+}
 
 mongory_value* mongory_value_wrap_d(mongory_memory_pool *pool, double d) {
   mongory_value *value = mongory_value_new(pool);
+  if (!value) {
+    return NULL;
+  }
   value->type = MONGORY_TYPE_DOUBLE;
   value->data.d = d;
   return value;
-};
+}
 
 mongory_value* mongory_value_wrap_s(mongory_memory_pool *pool, char *s) {
   mongory_value *value = mongory_value_new(pool);
+  if (!value) {
+    return NULL;
+  }
   value->type = MONGORY_TYPE_STRING;
   value->data.s = s;
   return value;
-};
+}
 
 mongory_value* mongory_value_wrap_a(mongory_memory_pool *pool, struct mongory_array *a) {
   mongory_value *value = mongory_value_new(pool);
+  if (!value) {
+    return NULL;
+  }
   value->type = MONGORY_TYPE_ARRAY;
   value->data.a = a;
   return value;
-};
+}
 
 mongory_value* mongory_value_wrap_t(mongory_memory_pool *pool, struct mongory_table *t) {
   mongory_value *value = mongory_value_new(pool);
+  if (!value) {
+    return NULL;
+  }
   value->type = MONGORY_TYPE_TABLE;
   value->data.t = t;
   return value;
-};
+}
