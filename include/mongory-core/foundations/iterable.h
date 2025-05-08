@@ -10,15 +10,16 @@ typedef bool (*mongory_iterable_callback_func)(void *item, void *acc);
 typedef bool (*mongory_iterable_func)(mongory_iterable *self, void *acc, mongory_iterable_callback_func *callback);
 
 struct mongory_iterable {
+  mongory_memory_pool *pool;
   size_t capacity;
   size_t count;
   void **items;
 };
 
 mongory_iterable* mongory_iterable_new(mongory_memory_pool *pool);
-bool mongory_iterable_push(mongory_iterable *iter, mongory_memory_pool *pool, void *item);
+bool mongory_iterable_push(mongory_iterable *iter, void *item);
 void* mongory_iterable_get(mongory_iterable *iter, size_t index);
-bool mongory_iterable_set(mongory_iterable *iter, mongory_memory_pool *pool, size_t index, void *item);
+bool mongory_iterable_set(mongory_iterable *iter, size_t index, void *item);
 bool mongory_iterable_each(mongory_iterable *self, void *acc, mongory_iterable_callback_func func);
 
 #endif

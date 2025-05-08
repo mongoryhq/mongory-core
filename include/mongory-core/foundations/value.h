@@ -38,6 +38,7 @@ enum mongory_type {
 };
 
 struct mongory_value {
+  mongory_memory_pool *pool;
   mongory_type type;
   union {
     bool b;
