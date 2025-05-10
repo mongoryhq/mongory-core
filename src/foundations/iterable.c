@@ -39,7 +39,12 @@ static inline bool mongory_iterable_grow_if_needed(mongory_iterable *iter, size_
   while (new_capacity <= size) {
     new_capacity *= 2;
   }
-  void **new_items = iter->pool->alloc(iter->pool, sizeof(void *) * new_capacity);
+
+  return mongory_iterable_resize(iter, new_capacity);
+}
+
+bool mongory_iterable_resize(mongory_iterable *iter, size_t size) {
+  void **new_items = iter->pool->alloc(iter->pool, sizeof(void *) * size);
   if (!new_items) {
     return false;
   }
@@ -49,7 +54,7 @@ static inline bool mongory_iterable_grow_if_needed(mongory_iterable *iter, size_
   }
 
   iter->items = new_items;
-  iter->capacity = new_capacity;
+  iter->capacity = size;
   return true;
 }
 

@@ -21,5 +21,6 @@ bool mongory_iterable_push(mongory_iterable *iter, void *item);
 void* mongory_iterable_get(mongory_iterable *iter, size_t index);
 bool mongory_iterable_set(mongory_iterable *iter, size_t index, void *item);
 bool mongory_iterable_each(mongory_iterable *self, void *acc, mongory_iterable_callback_func func);
+bool mongory_iterable_resize(mongory_iterable *iter, size_t size);
 
 #endif
