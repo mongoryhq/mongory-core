@@ -43,8 +43,9 @@ void test_array_push_and_get(void) {
     bool push_result = array->push(array, value);
     TEST_ASSERT_TRUE(push_result);
 
-    mongory_value retrieved = array->get(array, 0);
-    TEST_ASSERT_EQUAL(42, *(int *)mongory_value_extract(&retrieved));
+    mongory_value *retrieved = array->get(array, 0);
+    TEST_ASSERT_NOT_NULL(retrieved);
+    TEST_ASSERT_EQUAL(42, *(int *)mongory_value_extract(retrieved));
 }
 
 void test_array_set(void) {
@@ -56,8 +57,9 @@ void test_array_set(void) {
     bool set_result = array->set(array, 1, value2);
     TEST_ASSERT_TRUE(set_result);
 
-    mongory_value retrieved = array->get(array, 1);
-    TEST_ASSERT_EQUAL(2, *(int *)mongory_value_extract(&retrieved));
+    mongory_value *retrieved = array->get(array, 1);
+    TEST_ASSERT_NOT_NULL(retrieved);
+    TEST_ASSERT_EQUAL(2, *(int *)mongory_value_extract(retrieved));
 }
 
 void test_array_each(void) {
@@ -80,8 +82,8 @@ void test_array_each(void) {
 }
 
 void test_array_out_of_bounds(void) {
-    mongory_value retrieved = array->get(array, 999);
-    TEST_ASSERT_EQUAL(MONGORY_TYPE_NULL, retrieved.type);
+    mongory_value *retrieved = array->get(array, 999);
+    TEST_ASSERT_NULL(retrieved);
 }
 
 int main(void) {

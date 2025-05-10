@@ -11,8 +11,8 @@ bool mongory_array_push(mongory_array *self, mongory_value *value) {
   return mongory_iterable_push((mongory_iterable *)self->base, value);
 }
 
-mongory_value mongory_array_get(mongory_array *self, size_t index) {
-  return *(mongory_value *)mongory_iterable_get((mongory_iterable *)self->base, index);
+mongory_value* mongory_array_get(mongory_array *self, size_t index) {
+  return (mongory_value *)mongory_iterable_get((mongory_iterable *)self->base, index);
 }
 
 bool mongory_array_set(mongory_array *self, size_t index, mongory_value *value) {
