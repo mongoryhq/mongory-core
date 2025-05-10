@@ -7,7 +7,7 @@ typedef struct mongory_array mongory_array;
 typedef bool (*mongory_array_callback_func)(mongory_value *item, void *acc);
 typedef bool (*mongory_array_each_func)(mongory_array *self, void *acc, mongory_array_callback_func func);
 typedef bool (*mongory_array_push_func)(mongory_array *self, mongory_value *value);
-typedef mongory_value (*mongory_array_get_func)(mongory_array *self, size_t index);
+typedef mongory_value* (*mongory_array_get_func)(mongory_array *self, size_t index);
 typedef bool (*mongory_array_set_func)(mongory_array *self, size_t index, mongory_value *value);
 
 mongory_array* mongory_array_new(mongory_memory_pool *pool);
