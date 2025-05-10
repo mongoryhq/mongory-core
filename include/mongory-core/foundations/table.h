@@ -14,6 +14,8 @@ mongory_table* mongory_table_new(mongory_memory_pool *pool);
 struct mongory_table {
   mongory_memory_pool *pool;
   void *base;  // mongory_iterable*
+  size_t capacity;
+  size_t count;
   mongory_table_get_func get;
   mongory_table_each_func each;
   mongory_table_set_func set;
