@@ -47,7 +47,7 @@ void test_string_allocation(void) {
 
 void test_double_free_prevention(void) {
     signal(SIGABRT, signal_handler);
-    
+
     if (setjmp(jmp) == 0) {
         char *string = pool->alloc(pool, sizeof(char[6]));
         pool->free(pool);
