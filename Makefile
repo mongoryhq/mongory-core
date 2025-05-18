@@ -1,4 +1,5 @@
 COMMAND = gcc -Iinclude -Wall -Wextra -std=c99
+TEST_COMMAND = $(COMMAND) -DUNITY_USE_COLOR -DUNITY_OUTPUT_COLOR
 SRC_FOLDER = src
 SRC = $(wildcard $(SRC_FOLDER)/**/*.c)
 OBJ = $(SRC:.c=.o)
@@ -41,7 +42,7 @@ $(TEST_OBJ_FOLDER):
 	mkdir -p $(TEST_OBJ_FOLDER)
 
 $(UNITY_OBJ): $(UNITY_SRC) $(TEST_OBJ_FOLDER)
-	$(COMMAND) -I$(TEST_SRC_FOLDER)/unity -c -o $@ $<
+	$(TEST_COMMAND) -I$(TEST_SRC_FOLDER)/unity -c -o $@ $<
 
 $(TEST_OBJ_FOLDER)/%: $(TEST_SRC_FOLDER)/%.c $(CORE) $(UNITY_OBJ) $(TEST_OBJ_FOLDER)
-	$(COMMAND) -I$(TEST_SRC_FOLDER)/unity -o $@ $< $(UNITY_OBJ) $(CORE)
+	$(TEST_COMMAND) -I$(TEST_SRC_FOLDER)/unity -o $@ $< $(UNITY_OBJ) $(CORE)

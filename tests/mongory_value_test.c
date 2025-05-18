@@ -73,6 +73,74 @@ void test_table_value(void) {
     TEST_ASSERT_EQUAL_STRING("Table", mongory_type_to_string(value_t));
 }
 
+void test_boolean_comparison(void) {
+    mongory_value *true_val = mongory_value_wrap_b(pool, true);
+    mongory_value *false_val = mongory_value_wrap_b(pool, false);
+    mongory_value *another_true = mongory_value_wrap_b(pool, true);
+    mongory_value *int_val = mongory_value_wrap_i(pool, 1);
+
+    TEST_ASSERT_EQUAL(0, true_val->comp(true_val, another_true));
+    TEST_ASSERT_NOT_EQUAL(0, true_val->comp(true_val, false_val));
+    TEST_ASSERT_NOT_EQUAL(0, false_val->comp(false_val, true_val));
+    TEST_ASSERT_EQUAL(mongory_value_compare_fail, true_val->comp(true_val, int_val));
+}
+
+void test_integer_comparison(void) {
+    mongory_value *val_1 = mongory_value_wrap_i(pool, 1);
+    mongory_value *val_2 = mongory_value_wrap_i(pool, 2);
+    mongory_value *val_1_again = mongory_value_wrap_i(pool, 1);
+    mongory_value *double_val = mongory_value_wrap_d(pool, 1.5);
+    mongory_value *bool_val = mongory_value_wrap_b(pool, true);
+
+    TEST_ASSERT_EQUAL(0, val_1->comp(val_1, val_1_again));
+    TEST_ASSERT_EQUAL(-1, val_1->comp(val_1, val_2));
+    TEST_ASSERT_EQUAL(1, val_2->comp(val_2, val_1));
+    TEST_ASSERT_EQUAL(-1, val_1->comp(val_1, double_val));
+    TEST_ASSERT_EQUAL(mongory_value_compare_fail, val_1->comp(val_1, bool_val));
+}
+
+void test_double_comparison(void) {
+    mongory_value *val_1_0 = mongory_value_wrap_d(pool, 1.0);
+    mongory_value *val_1_5 = mongory_value_wrap_d(pool, 1.5);
+    mongory_value *val_1_0_again = mongory_value_wrap_d(pool, 1.0);
+    mongory_value *int_val = mongory_value_wrap_i(pool, 1);
+    mongory_value *bool_val = mongory_value_wrap_b(pool, true);
+
+    TEST_ASSERT_EQUAL(0, val_1_0->comp(val_1_0, val_1_0_again));
+    TEST_ASSERT_EQUAL(-1, val_1_0->comp(val_1_0, val_1_5));
+    TEST_ASSERT_EQUAL(1, val_1_5->comp(val_1_5, val_1_0));
+    TEST_ASSERT_EQUAL(0, val_1_0->comp(val_1_0, int_val));
+    TEST_ASSERT_EQUAL(mongory_value_compare_fail, val_1_0->comp(val_1_0, bool_val));
+}
+
+void test_string_comparison(void) {
+    mongory_value *str_a = mongory_value_wrap_s(pool, "apple");
+    mongory_value *str_b = mongory_value_wrap_s(pool, "banana");
+    mongory_value *str_a_again = mongory_value_wrap_s(pool, "apple");
+    mongory_value *int_val = mongory_value_wrap_i(pool, 1);
+
+    TEST_ASSERT_EQUAL(0, str_a->comp(str_a, str_a_again));
+    TEST_ASSERT_EQUAL(-1, str_a->comp(str_a, str_b));
+    TEST_ASSERT_EQUAL(1, str_b->comp(str_b, str_a));
+    TEST_ASSERT_EQUAL(mongory_value_compare_fail, str_a->comp(str_a, int_val));
+}
+
+void test_complex_type_comparison(void) {
+    mongory_array *array1 = mongory_array_new(pool);
+    mongory_array *array2 = mongory_array_new(pool);
+    mongory_table *table1 = pool->alloc(pool, sizeof(mongory_table));
+    mongory_table *table2 = pool->alloc(pool, sizeof(mongory_table));
+
+    mongory_value *array_val1 = mongory_value_wrap_a(pool, array1);
+    mongory_value *array_val2 = mongory_value_wrap_a(pool, array2);
+    mongory_value *table_val1 = mongory_value_wrap_t(pool, table1);
+    mongory_value *table_val2 = mongory_value_wrap_t(pool, table2);
+
+    TEST_ASSERT_EQUAL(mongory_value_compare_fail, array_val1->comp(array_val1, array_val2));
+    TEST_ASSERT_EQUAL(mongory_value_compare_fail, table_val1->comp(table_val1, table_val2));
+    TEST_ASSERT_EQUAL(mongory_value_compare_fail, array_val1->comp(array_val1, table_val1));
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_boolean_value);
@@ -81,5 +149,10 @@ int main(void) {
     RUN_TEST(test_string_value);
     RUN_TEST(test_array_value);
     RUN_TEST(test_table_value);
+    RUN_TEST(test_boolean_comparison);
+    RUN_TEST(test_integer_comparison);
+    RUN_TEST(test_double_comparison);
+    RUN_TEST(test_string_comparison);
+    RUN_TEST(test_complex_type_comparison);
     return UNITY_END();
 }
