@@ -9,6 +9,7 @@ struct mongory_value;
 typedef struct mongory_value mongory_value;
 enum mongory_type;
 typedef enum mongory_type mongory_type;
+typedef int (*mongory_value_compare_func)(mongory_value *a, mongory_value *b);
 char* mongory_type_to_string(mongory_value *value);
 void* mongory_value_extract(mongory_value *value);
 
@@ -37,12 +38,15 @@ enum mongory_type {
   MONGORY_TYPE_UNSUPPORTED = 999 * MONGORY_ENUM_MAGIC
 };
 
+static const int mongory_value_compare_fail = 97;
+
 struct mongory_value {
   mongory_memory_pool *pool;
   mongory_type type;
+  mongory_value_compare_func comp;
   union {
     bool b;
-    int i;
+    int64_t i;
     double d;
     char *s;
     struct mongory_array *a;
