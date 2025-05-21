@@ -1,8 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "unity.h"
-#include <mongory-core/foundations/memory_pool.h>
-#include <mongory-core/foundations/iterable.h>
 #include <mongory-core.h>
 
 mongory_memory_pool *pool;
