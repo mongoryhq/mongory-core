@@ -113,7 +113,8 @@ int mongory_value_string_compare(mongory_value *a, mongory_value *b) {
     return mongory_value_compare_fail;
   }
 
-  return strcmp(a->data.s, b->data.s);
+  int cmp_result = strcmp(a->data.s, b->data.s);
+  return (cmp_result > 0) - (cmp_result < 0);
 }
 
 mongory_value* mongory_value_wrap_s(mongory_memory_pool *pool, char *s) {
