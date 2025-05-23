@@ -19,23 +19,25 @@ mongory_value* mongory_value_wrap_d(mongory_memory_pool *pool, double d);
 mongory_value* mongory_value_wrap_s(mongory_memory_pool *pool, char *s);
 mongory_value* mongory_value_wrap_a(mongory_memory_pool *pool, struct mongory_array *a);
 mongory_value* mongory_value_wrap_t(mongory_memory_pool *pool, struct mongory_table *t);
+mongory_value* mongory_value_wrap_n(mongory_memory_pool *pool, void *n);
+mongory_value* mongory_value_wrap_u(mongory_memory_pool *pool, void *u);
 
 #define MONGORY_TYPE_MACRO(_) \
+  _(MONGORY_TYPE_NULL,   0, "Null",   i) \
   _(MONGORY_TYPE_BOOL,   10, "Bool",   b) \
   _(MONGORY_TYPE_INT,    11, "Int",    i) \
   _(MONGORY_TYPE_DOUBLE, 12, "Double", d) \
   _(MONGORY_TYPE_STRING, 13, "String", s) \
   _(MONGORY_TYPE_ARRAY,  14, "Array",  a) \
-  _(MONGORY_TYPE_TABLE,  15, "Table",  t)
+  _(MONGORY_TYPE_TABLE,  15, "Table",  t) \
+  _(MONGORY_TYPE_UNSUPPORTED, 999, "Unsupported", u)
 
 #define MONGORY_ENUM_MAGIC 103
 
 enum mongory_type {
-  MONGORY_TYPE_NULL = 0,
 #define DEFINE_ENUM(name, num, str, field) name = num * MONGORY_ENUM_MAGIC,
   MONGORY_TYPE_MACRO(DEFINE_ENUM)
 #undef DEFINE_ENUM
-  MONGORY_TYPE_UNSUPPORTED = 999 * MONGORY_ENUM_MAGIC
 };
 
 static const int mongory_value_compare_fail = 97;
@@ -51,6 +53,7 @@ struct mongory_value {
     char *s;
     struct mongory_array *a;
     struct mongory_table *t;
+    void *u;
   } data;
 };
 

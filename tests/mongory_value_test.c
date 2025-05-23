@@ -72,6 +72,23 @@ void test_table_value(void) {
     TEST_ASSERT_EQUAL_STRING("Table", mongory_type_to_string(value_t));
 }
 
+void test_null_value(void) {
+    mongory_value *null_val = mongory_value_wrap_n(pool, NULL);
+    TEST_ASSERT_NOT_NULL(null_val);
+    TEST_ASSERT_EQUAL(pool, null_val->pool);
+    TEST_ASSERT_EQUAL_STRING("Null", mongory_type_to_string(null_val));
+    TEST_ASSERT_EQUAL(0, null_val->comp(null_val, null_val));
+    TEST_ASSERT_EQUAL(mongory_value_compare_fail, null_val->comp(null_val, mongory_value_wrap_b(pool, true)));
+}
+
+void test_unsupported_value(void) {
+    mongory_value *unsupported_val = mongory_value_wrap_u(pool, NULL);
+    TEST_ASSERT_NOT_NULL(unsupported_val);
+    TEST_ASSERT_EQUAL(pool, unsupported_val->pool);
+    TEST_ASSERT_EQUAL_STRING("Unsupported", mongory_type_to_string(unsupported_val));
+    TEST_ASSERT_EQUAL(mongory_value_compare_fail, unsupported_val->comp(unsupported_val, unsupported_val));
+}
+
 void test_boolean_comparison(void) {
     mongory_value *true_val = mongory_value_wrap_b(pool, true);
     mongory_value *false_val = mongory_value_wrap_b(pool, false);
@@ -153,5 +170,7 @@ int main(void) {
     RUN_TEST(test_double_comparison);
     RUN_TEST(test_string_comparison);
     RUN_TEST(test_complex_type_comparison);
+    RUN_TEST(test_null_value);
+    RUN_TEST(test_unsupported_value);
     return UNITY_END();
 }
