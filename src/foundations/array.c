@@ -25,7 +25,7 @@ mongory_array* mongory_array_new(mongory_memory_pool *pool) {
     return NULL;
   }
 
-  mongory_array *array = pool->alloc(pool, sizeof(mongory_array));
+  mongory_array *array = pool->alloc(pool->ctx, sizeof(mongory_array));
   if (!array) {
     return NULL;
   }

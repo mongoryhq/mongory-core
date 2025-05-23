@@ -13,7 +13,7 @@ typedef struct mongory_table_node {
 } mongory_table_node;
 
 mongory_table_node* mongory_table_node_new(mongory_table *self) {
-  return self->pool->alloc(self->pool, sizeof(mongory_table_node));
+  return self->pool->alloc(self->pool->ctx, sizeof(mongory_table_node));
 }
 
 static size_t next_prime(size_t n) {
@@ -177,7 +177,7 @@ mongory_table* mongory_table_new(mongory_memory_pool *pool) {
     return NULL;
   }
 
-  mongory_table *table = pool->alloc(pool, sizeof(mongory_table));
+  mongory_table *table = pool->alloc(pool->ctx, sizeof(mongory_table));
   if (!table) {
     return NULL;
   }

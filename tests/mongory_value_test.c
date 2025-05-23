@@ -63,7 +63,7 @@ void test_array_value(void) {
 }
 
 void test_table_value(void) {
-    mongory_table *table = pool->alloc(pool, sizeof(mongory_table));
+    mongory_table *table = pool->alloc(pool->ctx, sizeof(mongory_table));
     TEST_ASSERT_NOT_NULL(table);
 
     mongory_value *value_t = mongory_value_wrap_t(pool, table);
@@ -127,8 +127,8 @@ void test_string_comparison(void) {
 void test_complex_type_comparison(void) {
     mongory_array *array1 = mongory_array_new(pool);
     mongory_array *array2 = mongory_array_new(pool);
-    mongory_table *table1 = pool->alloc(pool, sizeof(mongory_table));
-    mongory_table *table2 = pool->alloc(pool, sizeof(mongory_table));
+    mongory_table *table1 = pool->alloc(pool->ctx, sizeof(mongory_table));
+    mongory_table *table2 = pool->alloc(pool->ctx, sizeof(mongory_table));
 
     mongory_value *array_val1 = mongory_value_wrap_a(pool, array1);
     mongory_value *array_val2 = mongory_value_wrap_a(pool, array2);

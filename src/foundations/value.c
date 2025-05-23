@@ -27,7 +27,7 @@ void* mongory_value_extract(mongory_value *value) {
 }
 
 mongory_value* mongory_value_new(mongory_memory_pool *pool) {
-  mongory_value *value = pool->alloc(pool, sizeof(mongory_value));
+  mongory_value *value = pool->alloc(pool->ctx, sizeof(mongory_value));
   if (!value) {
     return NULL;
   }
