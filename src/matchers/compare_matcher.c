@@ -2,7 +2,7 @@
 
 mongory_matcher* mongory_matcher_compare_new(mongory_memory_pool *pool, mongory_value *condition, mongory_matcher_match_func match_func) {
   mongory_matcher *matcher = mongory_matcher_new(pool, condition);
-  mongory_matcher_context *context = pool->alloc(pool, sizeof(mongory_matcher_context));
+  mongory_matcher_context *context = pool->alloc(pool->ctx, sizeof(mongory_matcher_context));
   context->original_match = match_func;
   matcher->match = match_func;
   matcher->context = context;
