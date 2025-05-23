@@ -26,12 +26,32 @@ void* mongory_value_extract(mongory_value *value) {
   }
 }
 
-mongory_value* mongory_value_new(mongory_memory_pool *pool) {
+static inline mongory_value* mongory_value_new(mongory_memory_pool *pool) {
   mongory_value *value = pool->alloc(pool->ctx, sizeof(mongory_value));
   if (!value) {
     return NULL;
   }
   value->pool = pool;
+  return value;
+}
+
+int mongory_value_null_compare(mongory_value *a, mongory_value *b) {
+  (void)a;
+  if (b->type != MONGORY_TYPE_NULL) {
+    return mongory_value_compare_fail;
+  }
+
+  return 0;
+}
+
+mongory_value* mongory_value_wrap_n(mongory_memory_pool *pool, void *n) {
+  (void)n;
+  mongory_value *value = mongory_value_new(pool);
+  if (!value) {
+    return NULL;
+  }
+  value->type = MONGORY_TYPE_NULL;
+  value->comp = mongory_value_null_compare;
   return value;
 }
 
@@ -159,5 +179,22 @@ mongory_value* mongory_value_wrap_t(mongory_memory_pool *pool, struct mongory_ta
   value->type = MONGORY_TYPE_TABLE;
   value->data.t = t;
   value->comp = mongory_value_table_compare;
+  return value;
+}
+
+int mongory_value_unknown_compare(mongory_value *a, mongory_value *b) {
+  (void)a;
+  (void)b;
+  return mongory_value_compare_fail;
+}
+
+mongory_value* mongory_value_wrap_u(mongory_memory_pool *pool, void *unknown_value) {
+  mongory_value *value = mongory_value_new(pool);
+  if (!value) {
+    return NULL;
+  }
+  value->type = MONGORY_TYPE_UNSUPPORTED;
+  value->data.u = unknown_value;
+  value->comp = mongory_value_unknown_compare;
   return value;
 }
