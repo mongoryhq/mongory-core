@@ -2,11 +2,11 @@
 #define MONGORY_ITERABLE_INIT_SIZE 4
 
 mongory_iterable* mongory_iterable_new(mongory_memory_pool *pool) {
-  void **items = pool->alloc(pool, sizeof(void *) * MONGORY_ITERABLE_INIT_SIZE);
+  void **items = pool->alloc(pool->ctx, sizeof(void *) * MONGORY_ITERABLE_INIT_SIZE);
   if (!items) {
     return NULL;
   }
-  mongory_iterable *iter = pool->alloc(pool, sizeof(mongory_iterable));
+  mongory_iterable *iter = pool->alloc(pool->ctx, sizeof(mongory_iterable));
   if (!iter) {
     return NULL;
   }
@@ -44,7 +44,7 @@ static inline bool mongory_iterable_grow_if_needed(mongory_iterable *iter, size_
 }
 
 bool mongory_iterable_resize(mongory_iterable *iter, size_t size) {
-  void **new_items = iter->pool->alloc(iter->pool, sizeof(void *) * size);
+  void **new_items = iter->pool->alloc(iter->pool->ctx, sizeof(void *) * size);
   if (!new_items) {
     return false;
   }
