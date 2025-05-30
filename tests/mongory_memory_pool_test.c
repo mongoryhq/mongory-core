@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "unity.h"
 #include <mongory-core.h>
+#include "../src/foundations/memory_pool.c"
 
 static jmp_buf jmp;
 mongory_memory_pool *pool;

@@ -12,8 +12,8 @@ typedef bool (*mongory_table_del_func)(mongory_table *self, char *key);
 mongory_table* mongory_table_new(mongory_memory_pool *pool);
 
 struct mongory_table {
-  mongory_memory_pool *pool;
   void *base;  // mongory_iterable*
+  mongory_memory_pool *pool;
   size_t capacity;
   size_t count;
   mongory_table_get_func get;

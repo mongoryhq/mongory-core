@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include "unity.h"
 #include <mongory-core.h>
+#include "../src/matchers/base_matcher.h"
+#include "../src/matchers/compare_matcher.h"
 
 mongory_memory_pool *pool;
 
