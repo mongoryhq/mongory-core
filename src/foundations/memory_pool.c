@@ -3,12 +3,18 @@
 #define MONGORY_INITIAL_CHUNK_SIZE 1024
 #define MONGORY_ALIGN8(size) (((size) + 7) & ~((size_t)7))
 
-struct mongory_memory_chunk {
+typedef struct mongory_memory_chunk {
   void *start;
   size_t capacity;
   size_t used;
   struct mongory_memory_chunk *next;
-};
+} mongory_memory_chunk;
+
+typedef struct mongory_memory_pool_ctx {
+  size_t chunk_size;
+  mongory_memory_chunk *head;
+  mongory_memory_chunk *current;
+} mongory_memory_pool_ctx;
 
 mongory_memory_chunk* mongory_memory_chunk_new(size_t chunk_size) {
   mongory_memory_chunk *chunk = malloc(sizeof(mongory_memory_chunk));

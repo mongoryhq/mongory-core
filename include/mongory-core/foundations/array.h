@@ -13,8 +13,8 @@ typedef bool (*mongory_array_set_func)(mongory_array *self, size_t index, mongor
 mongory_array* mongory_array_new(mongory_memory_pool *pool);
 
 struct mongory_array {
-  mongory_memory_pool *pool;
   void *base;
+  mongory_memory_pool *pool;
   mongory_array_each_func each;
   mongory_array_push_func push;
   mongory_array_get_func get;

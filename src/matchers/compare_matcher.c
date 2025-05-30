@@ -1,4 +1,6 @@
 #include <mongory-core.h>
+#include "base_matcher.h"
+#include "compare_matcher.h"
 
 mongory_matcher* mongory_matcher_compare_new(mongory_memory_pool *pool, mongory_value *condition, mongory_matcher_match_func match_func) {
   mongory_matcher *matcher = mongory_matcher_new(pool, condition);
