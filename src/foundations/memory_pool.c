@@ -105,6 +105,7 @@ mongory_memory_pool* mongory_memory_pool_new() {
   pool->ctx = ctx;
   pool->alloc = mongory_memory_pool_alloc;
   pool->free = mongory_memory_pool_destroy;
+  pool->error = NULL;
 
   return pool;
 }
