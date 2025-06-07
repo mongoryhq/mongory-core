@@ -82,7 +82,7 @@ void test_not_in_matcher(void) {
   condition_array->push(condition_array, mongory_value_wrap_i(pool, 42));
   condition_array->push(condition_array, mongory_value_wrap_i(pool, 55));
   condition_array->push(condition_array, mongory_value_wrap_i(pool, 66));
-  
+
   mongory_value *condition = mongory_value_wrap_a(pool, condition_array);
   mongory_matcher *matcher = mongory_matcher_not_in_new(pool, condition);
   TEST_ASSERT_NOT_NULL(matcher);
@@ -94,14 +94,14 @@ void test_not_in_matcher(void) {
   TEST_ASSERT_FALSE(matcher->match(matcher, mongory_value_wrap_a(pool, value_array)));
 
   value_array->push(value_array, mongory_value_wrap_i(pool, 55));
-  TEST_ASSERT_FALSE(matcher->match(matcher, mongory_value_wrap_a(pool, value_array)));  
+  TEST_ASSERT_FALSE(matcher->match(matcher, mongory_value_wrap_a(pool, value_array)));
 }
 
 void test_not_in_matcher_with_array_target(void) {
   condition_array->push(condition_array, mongory_value_wrap_i(pool, 42));
   condition_array->push(condition_array, mongory_value_wrap_i(pool, 55));
   condition_array->push(condition_array, mongory_value_wrap_i(pool, 66));
-  
+
   mongory_value *condition = mongory_value_wrap_a(pool, condition_array);
   mongory_matcher *matcher = mongory_matcher_not_in_new(pool, condition);
   TEST_ASSERT_NOT_NULL(matcher);

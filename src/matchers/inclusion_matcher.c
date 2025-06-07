@@ -20,7 +20,7 @@ bool mongory_matcher_validate_array_condition(mongory_value *condition) {
 bool mongory_matcher_inclusion_value_compare(mongory_value *a, void *ctx) {
   mongory_matcher_inclusion_context *context = (mongory_matcher_inclusion_context *)ctx;
   mongory_value *b = context->value;
-  
+
   context->result = a->comp(a, b) == 0;
   return !context->result; // Continue iteration if the values are not equal.
 }
@@ -42,7 +42,7 @@ bool mongory_matcher_in_match(mongory_matcher *matcher, mongory_value *value) {
     condition_array->each(condition_array, &ctx, mongory_matcher_inclusion_array_compare);
     return ctx.result;
   } else {
-    condition_array->each(condition_array, &ctx, mongory_matcher_inclusion_value_compare); 
+    condition_array->each(condition_array, &ctx, mongory_matcher_inclusion_value_compare);
     return ctx.result;
   }
 }
