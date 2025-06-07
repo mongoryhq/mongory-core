@@ -5,6 +5,11 @@ SRC = $(wildcard $(SRC_FOLDER)/**/*.c)
 OBJ = $(SRC:.c=.o)
 CORE = mongory-core.a
 
+# 顏色代碼
+RED = \033[0;31m
+GREEN = \033[0;32m
+NC = \033[0m # No Color
+
 TEST_SRC_FOLDER = tests
 TEST_SRC = $(wildcard $(TEST_SRC_FOLDER)/*.c)
 TEST_OBJ_FOLDER = test_runner
@@ -24,7 +29,11 @@ setup-unity:
 test: setup-unity $(TEST_OBJ)
 	@for file in $(TEST_OBJ); do \
 		echo "\nRun test $$file:"; \
-		$$file; \
+		if $$file; then \
+			echo "$(GREEN)Test passed.$(NC)"; \
+		else \
+			echo "$(RED)Test failed with exit code $$?$(NC)"; \
+		fi; \
 		echo "Test done."; \
 	done
 
