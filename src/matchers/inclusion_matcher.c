@@ -54,7 +54,7 @@ mongory_matcher* mongory_matcher_in_new(mongory_memory_pool *pool, mongory_value
     pool->error->message = "Condition must be an array.";
     return NULL;
   }
-  mongory_matcher *matcher = mongory_matcher_new(pool, condition);
+  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
   mongory_matcher_context *context = pool->alloc(pool->ctx, sizeof(mongory_matcher_context));
   context->original_match = mongory_matcher_in_match;
   matcher->match = mongory_matcher_in_match;
@@ -73,7 +73,7 @@ mongory_matcher* mongory_matcher_not_in_new(mongory_memory_pool *pool, mongory_v
     pool->error->message = "Condition must be an array.";
     return NULL;
   }
-  mongory_matcher *matcher = mongory_matcher_new(pool, condition);
+  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
   mongory_matcher_context *context = pool->alloc(pool->ctx, sizeof(mongory_matcher_context));
   context->original_match = mongory_matcher_not_in_match;
   matcher->match = mongory_matcher_not_in_match;

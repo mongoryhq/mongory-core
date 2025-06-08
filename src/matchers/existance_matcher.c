@@ -25,7 +25,7 @@ mongory_matcher* mongory_matcher_exists_new(mongory_memory_pool *pool, mongory_v
     pool->error->message = "Condition must be a boolean value.";
     return NULL;
   }
-  mongory_matcher *matcher = mongory_matcher_new(pool, condition);
+  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
   mongory_matcher_context *context = pool->alloc(pool->ctx, sizeof(mongory_matcher_context));
   context->original_match = mongory_matcher_exists_match;
   matcher->match = mongory_matcher_exists_match;
@@ -66,7 +66,7 @@ mongory_matcher* mongory_matcher_present_new(mongory_memory_pool *pool, mongory_
     pool->error->message = "Condition must be a boolean value.";
     return NULL;
   }
-  mongory_matcher *matcher = mongory_matcher_new(pool, condition);
+  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
   mongory_matcher_context *context = pool->alloc(pool->ctx, sizeof(mongory_matcher_context));
   context->original_match = mongory_matcher_present_match;
   matcher->match = mongory_matcher_present_match;
