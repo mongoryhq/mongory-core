@@ -16,4 +16,4 @@ struct mongory_matcher {
   mongory_matcher_context *context;
 };
 
-mongory_matcher* mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher* mongory_matcher_base_new(mongory_memory_pool *pool, mongory_value *condition);
