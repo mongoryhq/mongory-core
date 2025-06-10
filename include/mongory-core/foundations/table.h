@@ -1,5 +1,9 @@
 #ifndef MONGORY_TABLE_H
 #define MONGORY_TABLE_H
+#include <stdbool.h>
+#include <stddef.h>
+#include "mongory-core/foundations/memory_pool.h"
+#include "mongory-core/foundations/value.h"
 
 struct mongory_table;
 typedef struct mongory_table mongory_table;

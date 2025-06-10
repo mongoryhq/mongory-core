@@ -1,5 +1,6 @@
 #ifndef MONGORY_FOUNDATIONS_CONFIG_PRIVATE_H
 #define MONGORY_FOUNDATIONS_CONFIG_PRIVATE_H
+#include "mongory-core/foundations/config.h"
 
 typedef struct mongory_regex_adapter {
   mongory_regex_func func;

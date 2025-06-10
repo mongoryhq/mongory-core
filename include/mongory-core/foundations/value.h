@@ -1,6 +1,7 @@
 #ifndef MONGORY_VALUE
 #define MONGORY_VALUE
 #include <stdbool.h>
+#include "mongory-core/foundations/memory_pool.h"
 
 struct mongory_array;
 struct mongory_table;
