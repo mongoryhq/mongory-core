@@ -1,7 +1,9 @@
 #include <stdbool.h>
+#include <mongory-core/foundations/array.h>
 
 typedef struct mongory_matcher mongory_matcher;
 typedef bool (*mongory_matcher_match_func)(struct mongory_matcher *matcher, mongory_value *value);
+typedef mongory_matcher *(*mongory_matcher_build_func)(mongory_memory_pool *pool, mongory_value *condition);
 
 typedef struct mongory_matcher_context {
   mongory_matcher_match_func original_match;

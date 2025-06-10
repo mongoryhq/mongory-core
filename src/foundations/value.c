@@ -198,3 +198,37 @@ mongory_value* mongory_value_wrap_u(mongory_memory_pool *pool, void *unknown_val
   value->comp = mongory_value_unknown_compare;
   return value;
 }
+
+int mongory_value_regex_compare(mongory_value *a, mongory_value *b) {
+  (void)a;
+  (void)b;
+  return mongory_value_compare_fail;
+}
+
+mongory_value* mongory_value_wrap_regex(mongory_memory_pool *pool, void *regex) {
+  mongory_value *value = mongory_value_new(pool);
+  if (!value) {
+    return NULL;
+  }
+  value->type = MONGORY_TYPE_REGEX;
+  value->data.regex = regex;
+  value->comp = mongory_value_regex_compare;
+  return value;
+}
+
+int mongory_value_ptr_compare(mongory_value *a, mongory_value *b) {
+  (void)a;
+  (void)b;
+  return mongory_value_compare_fail;
+}
+
+mongory_value* mongory_value_wrap_ptr(mongory_memory_pool *pool, void *ptr) {
+  mongory_value *value = mongory_value_new(pool);
+  if (!value) {
+    return NULL;
+  }
+  value->type = MONGORY_TYPE_POINTER;
+  value->data.ptr = ptr;
+  value->comp = mongory_value_ptr_compare;
+  return value;
+}
