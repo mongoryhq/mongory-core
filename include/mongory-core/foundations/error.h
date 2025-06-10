@@ -1,5 +1,6 @@
 #ifndef MONGORY_ERROR
 #define MONGORY_ERROR
+#include <stdbool.h>
 
 #define MONGORY_ERROR_TYPE_MAGIC 107
 #define MONGORY_ERROR_TYPE_MACRO(_) \
