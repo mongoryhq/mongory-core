@@ -3,3 +3,4 @@
 #include "mongory-core/foundations/array.h"
 #include "mongory-core/foundations/table.h"
 #include "mongory-core/foundations/error.h"
+#include "mongory-core/foundations/config.h"

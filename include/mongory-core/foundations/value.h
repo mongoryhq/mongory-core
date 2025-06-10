@@ -13,13 +13,15 @@ typedef int (*mongory_value_compare_func)(mongory_value *a, mongory_value *b);
 char* mongory_type_to_string(mongory_value *value);
 void* mongory_value_extract(mongory_value *value);
 
+mongory_value* mongory_value_wrap_n(mongory_memory_pool *pool, void *n);
 mongory_value* mongory_value_wrap_b(mongory_memory_pool *pool, bool b);
 mongory_value* mongory_value_wrap_i(mongory_memory_pool *pool, int i);
 mongory_value* mongory_value_wrap_d(mongory_memory_pool *pool, double d);
 mongory_value* mongory_value_wrap_s(mongory_memory_pool *pool, char *s);
 mongory_value* mongory_value_wrap_a(mongory_memory_pool *pool, struct mongory_array *a);
 mongory_value* mongory_value_wrap_t(mongory_memory_pool *pool, struct mongory_table *t);
-mongory_value* mongory_value_wrap_n(mongory_memory_pool *pool, void *n);
+mongory_value* mongory_value_wrap_regex(mongory_memory_pool *pool, void *regex);
+mongory_value* mongory_value_wrap_ptr(mongory_memory_pool *pool, void *ptr);
 mongory_value* mongory_value_wrap_u(mongory_memory_pool *pool, void *u);
 
 #define MONGORY_TYPE_MACRO(_) \
@@ -30,6 +32,8 @@ mongory_value* mongory_value_wrap_u(mongory_memory_pool *pool, void *u);
   _(MONGORY_TYPE_STRING, 13, "String", s) \
   _(MONGORY_TYPE_ARRAY,  14, "Array",  a) \
   _(MONGORY_TYPE_TABLE,  15, "Table",  t) \
+  _(MONGORY_TYPE_REGEX,  16, "Regex",  regex) \
+  _(MONGORY_TYPE_POINTER, 17, "Pointer", ptr) \
   _(MONGORY_TYPE_UNSUPPORTED, 999, "Unsupported", u)
 
 #define MONGORY_ENUM_MAGIC 103
@@ -53,8 +57,11 @@ struct mongory_value {
     char *s;
     struct mongory_array *a;
     struct mongory_table *t;
+    void *regex;
+    void *ptr;
     void *u;
   } data;
+  void *origin;
 };
 
 #endif
