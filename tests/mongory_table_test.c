@@ -107,6 +107,7 @@ void test_table_auto_rehash(void) {
 
 int main(void) {
     UNITY_BEGIN();
+    mongory_init();
     RUN_TEST(test_table_set_and_get);
     RUN_TEST(test_table_delete);
     RUN_TEST(test_table_each);

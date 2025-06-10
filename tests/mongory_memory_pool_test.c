@@ -65,6 +65,7 @@ void test_double_free_prevention(void) {
 
 int main(void) {
     UNITY_BEGIN();
+    mongory_init();
     RUN_TEST(test_initial_pool_size);
     RUN_TEST(test_pool_allocation);
     RUN_TEST(test_string_allocation);

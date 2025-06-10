@@ -107,6 +107,7 @@ void test_compare_less_than_or_equal(void) {
 
 int main(void) {
     UNITY_BEGIN();
+    mongory_init();
     RUN_TEST(test_compare_equal);
     RUN_TEST(test_compare_not_equal);
     RUN_TEST(test_compare_greater_than);

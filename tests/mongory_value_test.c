@@ -159,6 +159,7 @@ void test_complex_type_comparison(void) {
 
 int main(void) {
     UNITY_BEGIN();
+    mongory_init();
     RUN_TEST(test_boolean_value);
     RUN_TEST(test_integer_value);
     RUN_TEST(test_double_value);

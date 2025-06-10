@@ -127,6 +127,7 @@ void test_not_in_matcher_invalid_condition(void) {
 
 int main(void) {
     UNITY_BEGIN();
+    mongory_init();
     RUN_TEST(test_in_matcher);
     RUN_TEST(test_in_matcher_with_array_target);
     RUN_TEST(test_in_matcher_invalid_condition);
