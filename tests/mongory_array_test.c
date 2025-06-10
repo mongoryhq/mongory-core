@@ -28,6 +28,7 @@ void tearDown(void) {
         pool = NULL;
         array = NULL;
     }
+    
 }
 
 void test_array_creation(void) {
@@ -87,6 +88,7 @@ void test_array_out_of_bounds(void) {
 
 int main(void) {
     UNITY_BEGIN();
+    mongory_init();
     RUN_TEST(test_array_creation);
     RUN_TEST(test_array_push_and_get);
     RUN_TEST(test_array_set);

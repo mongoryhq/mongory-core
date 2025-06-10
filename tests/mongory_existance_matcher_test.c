@@ -88,6 +88,7 @@ void test_present_matcher_invalid_condition(void) {
 
 int main(void) {
     UNITY_BEGIN();
+    mongory_init();
     RUN_TEST(test_exists_matcher_true);
     RUN_TEST(test_exists_matcher_false);
     RUN_TEST(test_exists_matcher_invalid_condition);
