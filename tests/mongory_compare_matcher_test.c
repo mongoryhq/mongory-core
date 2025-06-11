@@ -114,5 +114,6 @@ int main(void) {
     RUN_TEST(test_compare_less_than);
     RUN_TEST(test_compare_greater_than_or_equal);
     RUN_TEST(test_compare_less_than_or_equal);
+    mongory_cleanup();
     return UNITY_END();
 }

@@ -134,5 +134,6 @@ int main(void) {
     RUN_TEST(test_not_in_matcher);
     RUN_TEST(test_not_in_matcher_with_array_target);
     RUN_TEST(test_not_in_matcher_invalid_condition);
+    mongory_cleanup();
     return UNITY_END();
 }

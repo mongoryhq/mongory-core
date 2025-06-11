@@ -70,5 +70,6 @@ int main(void) {
     RUN_TEST(test_pool_allocation);
     RUN_TEST(test_string_allocation);
     RUN_TEST(test_double_free_prevention);
+    mongory_cleanup();
     return UNITY_END();
 }

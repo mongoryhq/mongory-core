@@ -94,5 +94,6 @@ int main(void) {
     RUN_TEST(test_array_set);
     RUN_TEST(test_array_each);
     RUN_TEST(test_array_out_of_bounds);
+    mongory_cleanup();
     return UNITY_END();
 }
