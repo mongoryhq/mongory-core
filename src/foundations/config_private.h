@@ -1,11 +1,13 @@
 #ifndef MONGORY_FOUNDATIONS_CONFIG_PRIVATE_H
 #define MONGORY_FOUNDATIONS_CONFIG_PRIVATE_H
 #include "mongory-core/foundations/config.h"
+#include "../matchers/base_matcher.h"
 
 typedef struct mongory_regex_adapter {
   mongory_regex_func func;
 } mongory_regex_adapter;
 
+extern mongory_memory_pool *mongory_internal_pool;
 extern mongory_regex_adapter *mongory_internal_regex_adapter;
 
 void mongory_matcher_register(char *name, mongory_matcher_build_func build_func);
