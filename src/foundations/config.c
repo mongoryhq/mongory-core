@@ -7,6 +7,7 @@
 #include "../matchers/inclusion_matcher.h"
 #include "../matchers/compare_matcher.h"
 #include "../matchers/existance_matcher.h"
+#include "../matchers/regex_matcher.h"
 
 mongory_memory_pool *mongory_internal_pool = NULL;
 mongory_regex_adapter *mongory_internal_regex_adapter = NULL;
@@ -87,6 +88,7 @@ void mongory_init() {
   mongory_matcher_register("$lte", mongory_matcher_less_than_or_equal_new);
   mongory_matcher_register("$exists", mongory_matcher_exists_new);
   mongory_matcher_register("$present", mongory_matcher_present_new);
+  mongory_matcher_register("$regex", mongory_matcher_regex_new);
 }
 
 void mongory_cleanup() {
