@@ -113,5 +113,6 @@ int main(void) {
     RUN_TEST(test_table_each);
     RUN_TEST(test_table_get_nonexistent);
     RUN_TEST(test_table_auto_rehash);
+    mongory_cleanup();
     return UNITY_END();
 }

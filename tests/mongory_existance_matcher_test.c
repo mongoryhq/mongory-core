@@ -95,6 +95,7 @@ int main(void) {
     RUN_TEST(test_present_matcher_true);
     RUN_TEST(test_present_matcher_false);
     RUN_TEST(test_present_matcher_invalid_condition);
+    mongory_cleanup();
     return UNITY_END();
 }
 

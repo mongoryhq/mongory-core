@@ -173,5 +173,6 @@ int main(void) {
     RUN_TEST(test_complex_type_comparison);
     RUN_TEST(test_null_value);
     RUN_TEST(test_unsupported_value);
+    mongory_cleanup();
     return UNITY_END();
 }
