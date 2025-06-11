@@ -27,15 +27,21 @@ setup-unity:
 	fi
 
 test: setup-unity $(TEST_OBJ)
-	@for file in $(TEST_OBJ); do \
+	@failed_tests=""; \
+	for file in $(TEST_OBJ); do \
 		echo "\nRun test $$file:"; \
 		if $$file; then \
 			echo "$(GREEN)Test passed.$(NC)"; \
 		else \
 			echo "$(RED)Test failed with exit code $$?$(NC)"; \
+			failed_tests="$$failed_tests\n$$file"; \
 		fi; \
 		echo "Test done."; \
-	done
+	done; \
+	if [ ! -z "$$failed_tests" ]; then \
+		echo "\n$(RED)Failed tests:"; \
+		echo "$(RED)$$failed_tests"; \
+	fi
 
 clean:
 	rm -f $(OBJ) $(TEST_OBJ) $(CORE) $(UNITY_OBJ)
