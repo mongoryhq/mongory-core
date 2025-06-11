@@ -4,6 +4,9 @@
 #include "mongory-core/foundations/config.h"
 #include "../matchers/base_matcher.h"
 #include "config_private.h"
+#include "../matchers/inclusion_matcher.h"
+#include "../matchers/compare_matcher.h"
+#include "../matchers/existance_matcher.h"
 
 mongory_memory_pool *mongory_internal_pool = NULL;
 mongory_regex_adapter *mongory_internal_regex_adapter = NULL;
@@ -74,4 +77,23 @@ void mongory_init() {
   mongory_internal_pool_init();
   mongory_internal_regex_adapter_init();
   mongory_matcher_mapping_init();
+  mongory_matcher_register("$in", mongory_matcher_in_new);
+  mongory_matcher_register("$nin", mongory_matcher_not_in_new);
+  mongory_matcher_register("$eq", mongory_matcher_equal_new);
+  mongory_matcher_register("$ne", mongory_matcher_not_equal_new);
+  mongory_matcher_register("$gt", mongory_matcher_greater_than_new);
+  mongory_matcher_register("$gte", mongory_matcher_greater_than_or_equal_new);
+  mongory_matcher_register("$lt", mongory_matcher_less_than_new);
+  mongory_matcher_register("$lte", mongory_matcher_less_than_or_equal_new);
+  mongory_matcher_register("$exists", mongory_matcher_exists_new);
+  mongory_matcher_register("$present", mongory_matcher_present_new);
+}
+
+void mongory_cleanup() {
+  if (mongory_internal_pool != NULL) {
+    mongory_internal_pool->free(mongory_internal_pool);
+    mongory_internal_pool = NULL;
+  }
+  mongory_internal_regex_adapter = NULL;
+  mongory_matcher_mapping = NULL;
 }
