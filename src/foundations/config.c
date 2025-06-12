@@ -8,6 +8,8 @@
 #include "../matchers/compare_matcher.h"
 #include "../matchers/existance_matcher.h"
 #include "../matchers/regex_matcher.h"
+#include "../matchers/composite_matcher.h"
+#include "../matchers/literal_matcher.h"
 
 mongory_memory_pool *mongory_internal_pool = NULL;
 mongory_regex_adapter *mongory_internal_regex_adapter = NULL;
@@ -89,6 +91,12 @@ void mongory_init() {
   mongory_matcher_register("$exists", mongory_matcher_exists_new);
   mongory_matcher_register("$present", mongory_matcher_present_new);
   mongory_matcher_register("$regex", mongory_matcher_regex_new);
+  mongory_matcher_register("$and", mongory_matcher_and_new);
+  mongory_matcher_register("$or", mongory_matcher_or_new);
+  mongory_matcher_register("$elemMatch", mongory_matcher_elem_match_new);
+  mongory_matcher_register("$every", mongory_matcher_every_new);
+  mongory_matcher_register("$not", mongory_matcher_not_new);
+  mongory_matcher_register("$size", mongory_matcher_size_new);
 }
 
 void mongory_cleanup() {
