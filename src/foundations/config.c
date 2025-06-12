@@ -13,6 +13,7 @@
 
 mongory_memory_pool *mongory_internal_pool = NULL;
 mongory_regex_adapter *mongory_internal_regex_adapter = NULL;
+mongory_table *mongory_matcher_mapping = NULL;
 
 static void mongory_internal_pool_init() {
   if (mongory_internal_pool != NULL) return;
@@ -46,8 +47,6 @@ void mongory_regex_func_set(mongory_regex_func func) {
     mongory_internal_regex_adapter->func = func;
   }
 }
-
-static mongory_table *mongory_matcher_mapping = NULL;
 
 static void mongory_matcher_mapping_init() {
   if (mongory_matcher_mapping != NULL) return;

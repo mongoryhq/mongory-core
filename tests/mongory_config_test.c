@@ -59,6 +59,7 @@ void test_mongory_matcher_register(void) {
 }
 
 void test_mongory_matcher_build_func_get(void) {
+    TEST_ASSERT_NOT_NULL(mongory_matcher_mapping);
     mongory_matcher_build_func in_matcher = mongory_matcher_build_func_get("$in");
     TEST_ASSERT_NOT_NULL(in_matcher);
 
