@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <string.h>
 #include <mongory-core/foundations/memory_pool.h>
 
 #define MONGORY_INITIAL_CHUNK_SIZE 1024
@@ -71,11 +73,17 @@ void mongory_memory_pool_destroy(mongory_memory_pool *pool) {
   mongory_memory_chunk *chunk = ctx->head;
   while (chunk) {
     mongory_memory_chunk *next = chunk->next;
-    free(chunk->start);
+    if (chunk->start) {
+      memset(chunk->start, 0x0, chunk->capacity); // poison memory with 0x0
+      free(chunk->start);
+    }
+    memset(chunk, 0x0, sizeof(mongory_memory_chunk)); // poison chunk struct with 0x0
     free(chunk);
     chunk = next;
   }
+  memset(ctx, 0x0, sizeof(mongory_memory_pool_ctx)); // poison ctx struct with 0x0
   free(ctx);
+  memset(pool, 0x0, sizeof(mongory_memory_pool)); // poison pool struct with 0x0
   free(pool);
 }
 
