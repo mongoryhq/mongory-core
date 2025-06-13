@@ -19,12 +19,12 @@ typedef struct mongory_memory_pool_ctx {
 } mongory_memory_pool_ctx;
 
 mongory_memory_chunk* mongory_memory_chunk_new(size_t chunk_size) {
-  mongory_memory_chunk *chunk = malloc(sizeof(mongory_memory_chunk));
+  mongory_memory_chunk *chunk = calloc(1, sizeof(mongory_memory_chunk));
   if (!chunk) {
     return NULL;
   }
 
-  void *mem = malloc(chunk_size);
+  void *mem = calloc(1, chunk_size);
   if (!mem) {
     free(chunk);
     return NULL;
@@ -74,26 +74,26 @@ void mongory_memory_pool_destroy(mongory_memory_pool *pool) {
   while (chunk) {
     mongory_memory_chunk *next = chunk->next;
     if (chunk->start) {
-      memset(chunk->start, 0x0, chunk->capacity); // poison memory with 0x0
+      memset(chunk->start, 0, chunk->capacity); // Clear memory for safety
       free(chunk->start);
     }
-    memset(chunk, 0x0, sizeof(mongory_memory_chunk)); // poison chunk struct with 0x0
+    memset(chunk, 0, sizeof(mongory_memory_chunk)); // Clear the chunk structure
     free(chunk);
     chunk = next;
   }
-  memset(ctx, 0x0, sizeof(mongory_memory_pool_ctx)); // poison ctx struct with 0x0
+  memset(ctx, 0, sizeof(mongory_memory_pool_ctx)); // Clear the context structure
   free(ctx);
-  memset(pool, 0x0, sizeof(mongory_memory_pool)); // poison pool struct with 0x0
+  memset(pool, 0, sizeof(mongory_memory_pool)); // Clear the pool structure
   free(pool);
 }
 
 mongory_memory_pool* mongory_memory_pool_new() {
-  mongory_memory_pool *pool = malloc(sizeof(mongory_memory_pool));
+  mongory_memory_pool *pool = calloc(1, sizeof(mongory_memory_pool));
   if (!pool) {
     return NULL;
   }
 
-  mongory_memory_pool_ctx *ctx = malloc(sizeof(mongory_memory_pool_ctx));
+  mongory_memory_pool_ctx *ctx = calloc(1, sizeof(mongory_memory_pool_ctx));
   if (!ctx) {
     free(pool);
     return NULL;
