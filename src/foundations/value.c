@@ -160,7 +160,7 @@ int mongory_value_array_compare(mongory_value *a, mongory_value *b) {
   if (iterable_a->count != iterable_b->count) {
     return mongory_value_compare_fail;
   }
-  for (int i = 0; i < iterable_a->count; i++) {
+  for (size_t i = 0; i < iterable_a->count; i++) {
     mongory_value *item_a = array_a->get(array_a, i);
     mongory_value *item_b = array_b->get(array_b, i);
     bool a_is_null = item_a == NULL;
