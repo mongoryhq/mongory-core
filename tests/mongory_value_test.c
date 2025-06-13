@@ -141,20 +141,31 @@ void test_string_comparison(void) {
     TEST_ASSERT_EQUAL(mongory_value_compare_fail, str_a->comp(str_a, int_val));
 }
 
-void test_complex_type_comparison(void) {
+void test_array_comparison(void) {
     mongory_array *array1 = mongory_array_new(pool);
     mongory_array *array2 = mongory_array_new(pool);
-    mongory_table *table1 = pool->alloc(pool->ctx, sizeof(mongory_table));
-    mongory_table *table2 = pool->alloc(pool->ctx, sizeof(mongory_table));
-
     mongory_value *array_val1 = mongory_value_wrap_a(pool, array1);
     mongory_value *array_val2 = mongory_value_wrap_a(pool, array2);
+
+    array1->push(array1, mongory_value_wrap_i(pool, 1));
+    array2->push(array2, mongory_value_wrap_i(pool, 2));
+
+    TEST_ASSERT_EQUAL(-1, array_val1->comp(array_val1, array_val2));
+    TEST_ASSERT_EQUAL(1, array_val2->comp(array_val2, array_val1));
+}
+
+void test_table_comparison(void) {
+    mongory_table *table1 = mongory_table_new(pool);
+    mongory_table *table2 = mongory_table_new(pool);
+
     mongory_value *table_val1 = mongory_value_wrap_t(pool, table1);
     mongory_value *table_val2 = mongory_value_wrap_t(pool, table2);
 
-    TEST_ASSERT_EQUAL(mongory_value_compare_fail, array_val1->comp(array_val1, array_val2));
+    table1->set(table1, "a", mongory_value_wrap_i(pool, 1));
+    table2->set(table2, "a", mongory_value_wrap_i(pool, 2));
+
     TEST_ASSERT_EQUAL(mongory_value_compare_fail, table_val1->comp(table_val1, table_val2));
-    TEST_ASSERT_EQUAL(mongory_value_compare_fail, array_val1->comp(array_val1, table_val1));
+    TEST_ASSERT_EQUAL(mongory_value_compare_fail, table_val2->comp(table_val2, table_val1));
 }
 
 int main(void) {
@@ -170,7 +181,8 @@ int main(void) {
     RUN_TEST(test_integer_comparison);
     RUN_TEST(test_double_comparison);
     RUN_TEST(test_string_comparison);
-    RUN_TEST(test_complex_type_comparison);
+    RUN_TEST(test_array_comparison);
+    RUN_TEST(test_table_comparison);
     RUN_TEST(test_null_value);
     RUN_TEST(test_unsupported_value);
     mongory_cleanup();

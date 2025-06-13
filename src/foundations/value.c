@@ -5,6 +5,7 @@
 #include <mongory-core/foundations/value.h>
 #include <mongory-core/foundations/table.h>
 #include <mongory-core/foundations/array.h>
+#include "iterable.h"
 
 char* mongory_type_to_string(mongory_value *value) {
   switch (value->type) {
@@ -149,9 +150,33 @@ mongory_value* mongory_value_wrap_s(mongory_memory_pool *pool, char *s) {
 }
 
 int mongory_value_array_compare(mongory_value *a, mongory_value *b) {
-  (void)a;
-  (void)b;
-  return mongory_value_compare_fail;
+  if (b->type != MONGORY_TYPE_ARRAY || a->data.a == NULL || b->data.a == NULL) {
+    return mongory_value_compare_fail;
+  }
+  mongory_array *array_a = a->data.a;
+  mongory_array *array_b = b->data.a;
+  mongory_iterable *iterable_a = (mongory_iterable *)array_a->base;
+  mongory_iterable *iterable_b = (mongory_iterable *)array_b->base;
+  if (iterable_a->count != iterable_b->count) {
+    return mongory_value_compare_fail;
+  }
+  for (int i = 0; i < iterable_a->count; i++) {
+    mongory_value *item_a = array_a->get(array_a, i);
+    mongory_value *item_b = array_b->get(array_b, i);
+    bool a_is_null = item_a == NULL;
+    bool b_is_null = item_b == NULL;
+    if (a_is_null != b_is_null) {
+      return mongory_value_compare_fail;
+    }
+    if (a_is_null && b_is_null) {
+      continue;
+    }
+    int cmp_result = item_a->comp(item_a, item_b);
+    if (cmp_result != 0) {
+      return cmp_result;
+    }
+  }
+  return 0;
 }
 
 mongory_value* mongory_value_wrap_a(mongory_memory_pool *pool, struct mongory_array *a) {
