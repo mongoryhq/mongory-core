@@ -129,12 +129,16 @@ mongory_matcher* mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongo
   if (table->count == 0) {
     return mongory_matcher_always_true_new(pool, condition);
   }
-  mongory_matcher *sub_matchers[table->count];
-  mongory_matcher_table_build_sub_matcher_context ctx = { pool, &sub_matchers, 0 };
+  mongory_matcher **sub_matchers = calloc(table->count, sizeof(mongory_matcher *));
+  if (sub_matchers == NULL) {
+    return NULL;
+  }
+  mongory_matcher_table_build_sub_matcher_context ctx = { pool, sub_matchers, 0 };
   table->each(table, &ctx, mongory_matcher_table_build_sub_matcher);
 
   mongory_matcher *matcher = mongory_matcher_construct_by_and(sub_matchers, 0, table->count - 1);
   matcher->condition = condition;
+  free(sub_matchers);
   return matcher;
 }
 
@@ -160,11 +164,15 @@ mongory_matcher* mongory_matcher_and_new(mongory_memory_pool *pool, mongory_valu
   if (iterable->count == 0) {
     return mongory_matcher_always_true_new(pool, condition);
   }
-  mongory_matcher *matchers[iterable->count];
-  mongory_matcher_table_build_sub_matcher_context ctx = { pool, &matchers, 0 };
+  mongory_matcher **sub_matchers = calloc(iterable->count, sizeof(mongory_matcher *));
+  if (sub_matchers == NULL) {
+    return NULL;
+  }
+  mongory_matcher_table_build_sub_matcher_context ctx = { pool, sub_matchers, 0 };
   array->each(array, &ctx, mongory_matcher_build_and_sub_matcher);
-  mongory_matcher *matcher = mongory_matcher_construct_by_and(matchers, 0, iterable->count - 1);
+  mongory_matcher *matcher = mongory_matcher_construct_by_and(sub_matchers, 0, iterable->count - 1);
   matcher->condition = condition;
+  free(sub_matchers);
   return matcher;
 }
 
@@ -192,11 +200,15 @@ mongory_matcher* mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value
   if (iterable->count == 0) {
     return mongory_matcher_always_false_new(pool, condition);
   }
-  mongory_matcher *matchers[iterable->count];
-  mongory_matcher_table_build_sub_matcher_context ctx = { pool, &matchers, 0 };
+  mongory_matcher **sub_matchers = calloc(iterable->count, sizeof(mongory_matcher *));
+  if (sub_matchers == NULL) {
+    return NULL;
+  }
+  mongory_matcher_table_build_sub_matcher_context ctx = { pool, sub_matchers, 0 };
   array->each(array, &ctx, mongory_matcher_build_or_sub_matcher);
-  mongory_matcher *matcher = mongory_matcher_construct_by_or(matchers, 0, iterable->count - 1);
+  mongory_matcher *matcher = mongory_matcher_construct_by_or(sub_matchers, 0, iterable->count - 1);
   matcher->condition = condition;
+  free(sub_matchers);
   return matcher;
 }
 
@@ -230,8 +242,11 @@ mongory_matcher* mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongo
     return NULL; // Invalid condition
   }
   mongory_table *table = condition->data.t;
-  mongory_matcher *sub_matchers[table->count];
-  mongory_matcher_table_build_sub_matcher_context ctx = { pool, &sub_matchers, 0 };
+  mongory_matcher **sub_matchers = calloc(table->count, sizeof(mongory_matcher *));
+  if (sub_matchers == NULL) {
+    return NULL;
+  }
+  mongory_matcher_table_build_sub_matcher_context ctx = { pool, sub_matchers, 0 };
   table->each(table, &ctx, mongory_matcher_table_build_sub_matcher);
   mongory_matcher *matcher = mongory_matcher_construct_by_and(sub_matchers, 0, table->count - 1);
   mongory_matcher_context *context = pool->alloc(pool->ctx, sizeof(mongory_matcher_context));
@@ -239,6 +254,7 @@ mongory_matcher* mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongo
   matcher->match = mongory_matcher_elem_match_match;
   matcher->context = context;
   matcher->condition = condition;
+  free(sub_matchers);
   return matcher;
 }
 
@@ -267,8 +283,11 @@ mongory_matcher* mongory_matcher_every_new(mongory_memory_pool *pool, mongory_va
     return NULL; // Invalid condition
   }
   mongory_table *table = condition->data.t;
-  mongory_matcher *sub_matchers[table->count];
-  mongory_matcher_table_build_sub_matcher_context ctx = { pool, &sub_matchers, 0 };
+  mongory_matcher **sub_matchers = calloc(table->count, sizeof(mongory_matcher *));
+  if (sub_matchers == NULL) {
+    return NULL;
+  }
+  mongory_matcher_table_build_sub_matcher_context ctx = { pool, sub_matchers, 0 };
   table->each(table, &ctx, mongory_matcher_table_build_sub_matcher);
   mongory_matcher *matcher = mongory_matcher_construct_by_and(sub_matchers, 0, table->count - 1);
   mongory_matcher_context *context = pool->alloc(pool->ctx, sizeof(mongory_matcher_context));
@@ -276,5 +295,6 @@ mongory_matcher* mongory_matcher_every_new(mongory_memory_pool *pool, mongory_va
   matcher->match = mongory_matcher_every_match;
   matcher->context = context;
   matcher->condition = condition;
+  free(sub_matchers);
   return matcher;
 }
