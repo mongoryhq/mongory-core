@@ -16,6 +16,7 @@ typedef struct mongory_memory_pool_ctx {
   size_t chunk_size;
   mongory_memory_chunk *head;
   mongory_memory_chunk *current;
+  mongory_memory_chunk *extra;
 } mongory_memory_pool_ctx;
 
 mongory_memory_chunk* mongory_memory_chunk_new(size_t chunk_size) {
@@ -68,9 +69,8 @@ void* mongory_memory_pool_alloc(void *ctx, size_t size) {
   return ptr;
 }
 
-void mongory_memory_pool_destroy(mongory_memory_pool *pool) {
-  mongory_memory_pool_ctx *ctx = (mongory_memory_pool_ctx *)pool->ctx;
-  mongory_memory_chunk *chunk = ctx->head;
+void mongory_memory_pool_chunk_list_free(mongory_memory_chunk *head) {
+  mongory_memory_chunk *chunk = head;
   while (chunk) {
     mongory_memory_chunk *next = chunk->next;
     if (chunk->start) {
@@ -81,10 +81,29 @@ void mongory_memory_pool_destroy(mongory_memory_pool *pool) {
     free(chunk);
     chunk = next;
   }
+}
+
+void mongory_memory_pool_destroy(mongory_memory_pool *pool) {
+  mongory_memory_pool_ctx *ctx = (mongory_memory_pool_ctx *)pool->ctx;
+  mongory_memory_pool_chunk_list_free(ctx->head);
+  mongory_memory_pool_chunk_list_free(ctx->extra);
+
   memset(ctx, 0, sizeof(mongory_memory_pool_ctx)); // Clear the context structure
   free(ctx);
   memset(pool, 0, sizeof(mongory_memory_pool)); // Clear the pool structure
   free(pool);
+}
+
+void mongory_memory_pool_trace(void *ctx, void *ptr, size_t size) {
+  mongory_memory_pool_ctx *pool_ctx = (mongory_memory_pool_ctx *)ctx;
+  mongory_memory_chunk *extra_alloc_tracer = calloc(1, sizeof(mongory_memory_chunk));
+  if (!extra_alloc_tracer) {
+    return; // Handle allocation failure
+  }
+  extra_alloc_tracer->start = ptr;
+  extra_alloc_tracer->capacity = size;
+  extra_alloc_tracer->next = pool_ctx->extra;
+  pool_ctx->extra = extra_alloc_tracer;
 }
 
 mongory_memory_pool* mongory_memory_pool_new() {
@@ -109,10 +128,12 @@ mongory_memory_pool* mongory_memory_pool_new() {
   ctx->chunk_size = MONGORY_INITIAL_CHUNK_SIZE;
   ctx->head = first_chunk;
   ctx->current = first_chunk;
+  ctx->extra = NULL;
 
   pool->ctx = ctx;
   pool->alloc = mongory_memory_pool_alloc;
   pool->free = mongory_memory_pool_destroy;
+  pool->trace = mongory_memory_pool_trace;
   pool->error = NULL;
 
   return pool;
