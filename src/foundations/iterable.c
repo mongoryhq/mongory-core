@@ -80,7 +80,7 @@ bool mongory_iterable_set(mongory_iterable *iter, size_t index, void *item) {
   }
 
   if (index >= iter->count) {
-    for (size_t i = iter->count; i < index; ++i) {
+    for (size_t i = iter->count; i < index; i++) {
       iter->items[i] = NULL;
     }
     iter->count = index + 1;
