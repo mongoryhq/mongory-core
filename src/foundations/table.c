@@ -56,39 +56,23 @@ static bool mongory_table_rehash_on_node(mongory_table_node *node, void *acc) {
   mongory_table *self = (mongory_table *)acc;
   mongory_iterable *iter = (mongory_iterable *)self->base;
   size_t new_index = hash_string(node->key) % self->capacity;
-  node->next = iter->items[new_index];
-  iter->items[new_index] = node;
+  node->next = mongory_iterable_get(iter, new_index);
+  mongory_iterable_set(iter, new_index, node); // Place the node in the new index
   return true;
 }
 
 static bool mongory_table_rehash(mongory_table *self) {
   mongory_iterable *iter = (mongory_iterable *)self->base;
-  size_t origin_size = self->capacity; // This is also old iter->capacity and iter->count
   void **origin_items = iter->items; // Capture old items array
+  size_t origin_size = self->capacity; // This is also old iter->capacity and iter->count
+  size_t new_size = next_prime(origin_size * 2); // New table capacity
+  iter->count = 0; // Ignore reassign elements in iterable resize
 
-  self->capacity = next_prime(origin_size * 2); // New table capacity
+  if (!mongory_iterable_resize(iter, new_size)) return false;
 
-  // Resize iterable to the new table capacity
-  if (!mongory_iterable_resize(iter, self->capacity)) {
-    // Failed to resize, table capacity should revert, or handle error more robustly
-    self->capacity = origin_size; // Revert capacity
-    return false;
-  }
-
-  // Initialize all slots in the new iterable items array to NULL before rehashing
-  for (size_t i = 0; i < self->capacity; ++i) {
-    iter->items[i] = NULL;
-  }
-  // After resize, iter->capacity is self->capacity. Update iter->count as well.
-  iter->count = self->capacity;
-
-
-  // Rehash: Iterate OLD items and place them into the NEWLY resized and zeroed iter->items
+  self->capacity = new_size; // Update the table capacity
   for (size_t i = 0; i < origin_size; i++) { // Iterate up to old capacity
-    mongory_table_node *node = (mongory_table_node *)origin_items[i];
-    if (node) { // Only walk if there was a chain at this old slot
-      mongory_table_node_walk(node, self, mongory_table_rehash_on_node);
-    }
+    mongory_table_node_walk((mongory_table_node *)origin_items[i], self, mongory_table_rehash_on_node);
   }
 
   return true;
@@ -188,31 +172,18 @@ bool mongory_table_each_pair(mongory_table *self, void *acc, mongory_table_each_
 }
 
 mongory_table* mongory_table_new(mongory_memory_pool *pool) {
+  size_t init_size = MONGORY_TABLE_INIT_SIZE;
   mongory_iterable *iter = mongory_iterable_new(pool);
-  if (!iter) {
-    return NULL;
-  }
+  bool iter_init_success = iter && mongory_iterable_resize(iter, init_size) && mongory_iterable_set(iter, init_size - 1, NULL);
+  if (!iter_init_success) return NULL;
 
   mongory_table *table = pool->alloc(pool->ctx, sizeof(mongory_table));
-  if (!table) {
-    return NULL;
-  }
+  if (!table) return NULL;
 
   table->pool = pool;
   table->base = iter;
-  table->capacity = MONGORY_TABLE_INIT_SIZE;
+  table->capacity = init_size;
   table->count = 0;
-
-  // Ensure iterable has the same capacity as the table and initialize items to NULL
-  mongory_iterable *base_iter = (mongory_iterable *)table->base;
-  if (!mongory_iterable_resize(base_iter, table->capacity)) {
-    // TODO: Handle memory allocation failure during resize, maybe free(table) and return NULL
-    return NULL;
-  }
-  for (size_t i = 0; i < table->capacity; ++i) {
-    base_iter->items[i] = NULL;
-  }
-  base_iter->count = table->capacity; // Critical for mongory_iterable_get to work correctly
 
   table->each = mongory_table_each_pair;
   table->get = mongory_table_get;
