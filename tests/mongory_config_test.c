@@ -61,7 +61,7 @@ void test_mongory_matcher_register(void) {
     TEST_ASSERT_EQUAL(test_build_func, retrieved);
 }
 
-bool print_matcher_mapping(const char *key, mongory_value *value, void *acc) {
+bool print_matcher_mapping(char *key, mongory_value *value, void *acc) {
     (void)acc;
     printf("key: %s, value: %p\n", key, value);
     return true;
