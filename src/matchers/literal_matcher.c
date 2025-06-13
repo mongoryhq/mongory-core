@@ -17,9 +17,6 @@ mongory_matcher* mongory_matcher_size_new(mongory_memory_pool *pool, mongory_val
   return mongory_matcher_base_new(pool, condition);
 }
 
-mongory_matcher* mongory_matcher_array_record_new(mongory_memory_pool *pool, mongory_value *condition) {
-  return mongory_matcher_composite_new(pool, condition);
-}
 mongory_matcher* mongory_matcher_literal_new(mongory_memory_pool *pool, mongory_value *condition) {
-  return mongory_matcher_composite_new(pool, condition);
+  return (mongory_matcher *)mongory_matcher_composite_new(pool, condition);
 }
