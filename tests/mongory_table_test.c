@@ -62,7 +62,7 @@ void test_table_delete(void) {
     TEST_ASSERT_NULL(retrieved_2);
 }
 
-bool test_table_each_callback(const char *key, mongory_value *value, void *acc) {
+bool test_table_each_callback(char *key, mongory_value *value, void *acc) {
     (void)key;
     (void)value;
     (*(int *)acc)++;
