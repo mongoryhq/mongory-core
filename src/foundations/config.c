@@ -14,6 +14,7 @@
 mongory_memory_pool *mongory_internal_pool = NULL;
 mongory_regex_adapter *mongory_internal_regex_adapter = NULL;
 mongory_table *mongory_matcher_mapping = NULL;
+mongory_value_converter *mongory_internal_value_converter = NULL;
 
 static void mongory_internal_pool_init() {
   if (mongory_internal_pool != NULL) return;
@@ -75,10 +76,32 @@ mongory_matcher_build_func mongory_matcher_build_func_get(char *name) {
   return (mongory_matcher_build_func)value->data.ptr;
 }
 
+static void mongory_internal_value_converter_init() {
+  if (mongory_internal_value_converter != NULL) return;
+
+  mongory_internal_value_converter = mongory_internal_pool->alloc(mongory_internal_pool->ctx, sizeof(mongory_value_converter));
+  if (mongory_internal_value_converter == NULL) {
+    return;
+  }
+}
+
+void mongory_value_converter_deep_convert_set(mongory_deep_convert_func deep_convert) {
+  mongory_internal_value_converter->deep_convert = deep_convert;
+}
+
+void mongory_value_converter_shallow_convert_set(mongory_shallow_convert_func shallow_convert) {
+  mongory_internal_value_converter->shallow_convert = shallow_convert;
+}
+
+void mongory_value_converter_recover_set(mongory_recover_func recover) {
+  mongory_internal_value_converter->recover = recover;
+}
+
 void mongory_init() {
   mongory_internal_pool_init();
   mongory_internal_regex_adapter_init();
   mongory_matcher_mapping_init();
+  mongory_internal_value_converter_init();
   mongory_matcher_register("$in", mongory_matcher_in_new);
   mongory_matcher_register("$nin", mongory_matcher_not_in_new);
   mongory_matcher_register("$eq", mongory_matcher_equal_new);
@@ -105,4 +128,5 @@ void mongory_cleanup() {
   }
   mongory_internal_regex_adapter = NULL;
   mongory_matcher_mapping = NULL;
+  mongory_internal_value_converter = NULL;
 }
