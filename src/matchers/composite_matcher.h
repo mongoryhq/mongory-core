@@ -17,4 +17,6 @@ mongory_matcher* mongory_matcher_every_new(mongory_memory_pool *pool, mongory_va
 mongory_matcher* mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongory_value *condition);
 mongory_composite_matcher* mongory_matcher_composite_new(mongory_memory_pool *pool, mongory_value *condition);
 
+bool mongory_matcher_or_match(mongory_matcher *matcher, mongory_value *value);
+
 #endif
