@@ -1,0 +1,120 @@
+[
+  {
+    "description": "basic field test",
+    "condition": {
+      "name": "John",
+      "age": 30
+    },
+    "records": [
+      {
+        "data": {
+          "name": "John",
+          "age": 30
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "name": "Frank",
+          "age": 30
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "name": "John",
+          "age": 20
+        },
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "nested field test",
+    "condition": {
+      "name": "John",
+      "age": 30,
+      "address": {
+        "city": "Taipei"
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "name": "John",
+          "age": 30,
+          "address": {
+            "city": "Taipei"
+          }
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "name": "John",
+          "age": 30,
+          "address": {
+            "city": "New York"
+          }
+        },
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "operator $gt test",
+    "condition": {
+      "age": {
+        "$gt": 30
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "age": 30
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "age": 40
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "age": 20
+        },
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "operator $lt test",
+    "condition": {
+      "age": {
+        "$lt": 30
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "age": 30
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "age": 20
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "age": 40
+        },
+        "expected": false
+      }
+    ]
+  }
+]

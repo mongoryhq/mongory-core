@@ -13,6 +13,8 @@ void setup_test_environment(void);
 void teardown_test_environment(void);
 mongory_memory_pool *get_test_pool(void);
 
+bool execute_test_case(mongory_value *test_case, void *acc);
+
 // 斷言輔助函數
 void assert_value_equals(mongory_value *expected, mongory_value *actual);
 void assert_value_not_equals(mongory_value *expected, mongory_value *actual);
