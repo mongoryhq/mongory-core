@@ -115,14 +115,22 @@ mongory_value *json_to_value_from_file(mongory_memory_pool *pool, const char *fi
     return value;
 }
 
+typedef struct text_execute_context {
+    mongory_matcher *matcher;
+    int index;
+} text_execute_context;
+
 bool execute_test_record(mongory_value *test_record, void *acc) {
-  mongory_matcher *matcher = (mongory_matcher *)acc;
+  text_execute_context *context = (text_execute_context *)acc;
+  printf("Running test record: %d\n", context->index);
+  mongory_matcher *matcher = context->matcher;
   mongory_value *data_value = test_record->data.t->get(test_record->data.t, "data");
   mongory_value *expected_value = test_record->data.t->get(test_record->data.t, "expected");
   bool expected = expected_value->data.b;
   TEST_ASSERT_NOT_NULL(data_value);
   TEST_ASSERT_NOT_NULL(expected_value);
   TEST_ASSERT_EQUAL(expected, matcher->match(matcher, data_value));
+  context->index++;
   return true;
 }
 
@@ -139,7 +147,11 @@ bool execute_test_case(mongory_value *test_case, void *acc) {
   TEST_ASSERT_NOT_NULL(matcher);
   TEST_ASSERT_NULL(get_test_pool()->error);
   mongory_array *records = records_value->data.a;
-  records->each(records, matcher, execute_test_record);
+  text_execute_context context = {
+    .matcher = matcher,
+    .index = 0
+  };
+  records->each(records, &context, execute_test_record);
   return true;
 }
 
