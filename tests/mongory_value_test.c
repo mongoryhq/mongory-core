@@ -2,22 +2,19 @@
 #include <stdio.h>
 #include "unity.h"
 #include <mongory-core.h>
-
-mongory_memory_pool *pool;
+#include "../src/test_helper/test_helper.h"
+#include "../src/foundations/iterable.h"
 
 void setUp(void) {
-    pool = mongory_memory_pool_new();
-    TEST_ASSERT_NOT_NULL(pool);
+    setup_test_environment();
 }
 
 void tearDown(void) {
-    if (pool != NULL) {
-        pool->free(pool);
-        pool = NULL;
-    }
+    teardown_test_environment();
 }
 
 void test_boolean_value(void) {
+    mongory_memory_pool *pool = get_test_pool();
     mongory_value *value_b = mongory_value_wrap_b(pool, true);
     TEST_ASSERT_NOT_NULL(value_b);
     TEST_ASSERT_EQUAL(pool, value_b->pool);
@@ -26,6 +23,7 @@ void test_boolean_value(void) {
 }
 
 void test_integer_value(void) {
+    mongory_memory_pool *pool = get_test_pool();
     mongory_value *value_i = mongory_value_wrap_i(pool, 123);
     TEST_ASSERT_NOT_NULL(value_i);
     TEST_ASSERT_EQUAL(pool, value_i->pool);
@@ -34,6 +32,7 @@ void test_integer_value(void) {
 }
 
 void test_double_value(void) {
+    mongory_memory_pool *pool = get_test_pool();
     double test_value = 0.123;
     mongory_value *value_d = mongory_value_wrap_d(pool, test_value);
     TEST_ASSERT_NOT_NULL(value_d);
@@ -44,6 +43,7 @@ void test_double_value(void) {
 }
 
 void test_string_value(void) {
+    mongory_memory_pool *pool = get_test_pool();
     mongory_value *value_s = mongory_value_wrap_s(pool, "Hello");
     TEST_ASSERT_NOT_NULL(value_s);
     TEST_ASSERT_EQUAL(pool, value_s->pool);
@@ -52,6 +52,7 @@ void test_string_value(void) {
 }
 
 void test_array_value(void) {
+    mongory_memory_pool *pool = get_test_pool();
     mongory_array *array = mongory_array_new(pool);
     TEST_ASSERT_NOT_NULL(array);
     TEST_ASSERT_EQUAL(pool, array->pool);
@@ -63,6 +64,7 @@ void test_array_value(void) {
 }
 
 void test_table_value(void) {
+    mongory_memory_pool *pool = get_test_pool();
     mongory_table *table = pool->alloc(pool->ctx, sizeof(mongory_table));
     TEST_ASSERT_NOT_NULL(table);
 
@@ -73,6 +75,7 @@ void test_table_value(void) {
 }
 
 void test_null_value(void) {
+    mongory_memory_pool *pool = get_test_pool();
     mongory_value *null_val = mongory_value_wrap_n(pool, NULL);
     TEST_ASSERT_NOT_NULL(null_val);
     TEST_ASSERT_EQUAL(pool, null_val->pool);
@@ -82,6 +85,7 @@ void test_null_value(void) {
 }
 
 void test_unsupported_value(void) {
+    mongory_memory_pool *pool = get_test_pool();
     mongory_value *unsupported_val = mongory_value_wrap_u(pool, NULL);
     TEST_ASSERT_NOT_NULL(unsupported_val);
     TEST_ASSERT_EQUAL(pool, unsupported_val->pool);
@@ -90,6 +94,7 @@ void test_unsupported_value(void) {
 }
 
 void test_boolean_comparison(void) {
+    mongory_memory_pool *pool = get_test_pool();
     mongory_value *true_val = mongory_value_wrap_b(pool, true);
     mongory_value *false_val = mongory_value_wrap_b(pool, false);
     mongory_value *another_true = mongory_value_wrap_b(pool, true);
@@ -102,6 +107,7 @@ void test_boolean_comparison(void) {
 }
 
 void test_integer_comparison(void) {
+    mongory_memory_pool *pool = get_test_pool();
     mongory_value *val_1 = mongory_value_wrap_i(pool, 1);
     mongory_value *val_2 = mongory_value_wrap_i(pool, 2);
     mongory_value *val_1_again = mongory_value_wrap_i(pool, 1);
@@ -116,6 +122,7 @@ void test_integer_comparison(void) {
 }
 
 void test_double_comparison(void) {
+    mongory_memory_pool *pool = get_test_pool();
     mongory_value *val_1_0 = mongory_value_wrap_d(pool, 1.0);
     mongory_value *val_1_5 = mongory_value_wrap_d(pool, 1.5);
     mongory_value *val_1_0_again = mongory_value_wrap_d(pool, 1.0);
@@ -130,6 +137,7 @@ void test_double_comparison(void) {
 }
 
 void test_string_comparison(void) {
+    mongory_memory_pool *pool = get_test_pool();
     mongory_value *str_a = mongory_value_wrap_s(pool, "apple");
     mongory_value *str_b = mongory_value_wrap_s(pool, "banana");
     mongory_value *str_a_again = mongory_value_wrap_s(pool, "apple");
@@ -142,6 +150,7 @@ void test_string_comparison(void) {
 }
 
 void test_array_comparison(void) {
+    mongory_memory_pool *pool = get_test_pool();
     mongory_array *array1 = mongory_array_new(pool);
     mongory_array *array2 = mongory_array_new(pool);
     mongory_value *array_val1 = mongory_value_wrap_a(pool, array1);
@@ -155,6 +164,7 @@ void test_array_comparison(void) {
 }
 
 void test_table_comparison(void) {
+    mongory_memory_pool *pool = get_test_pool();
     mongory_table *table1 = mongory_table_new(pool);
     mongory_table *table2 = mongory_table_new(pool);
 
@@ -168,9 +178,53 @@ void test_table_comparison(void) {
     TEST_ASSERT_EQUAL(mongory_value_compare_fail, table_val2->comp(table_val2, table_val1));
 }
 
+void test_json_to_value_string(void) {
+    mongory_memory_pool *pool = get_test_pool();
+    mongory_value *value = json_to_value(pool, "\"Hello, World!\"");
+    TEST_ASSERT_NOT_NULL(value);
+    TEST_ASSERT_EQUAL_STRING("Hello, World!", value->data.s);
+}
+
+void test_json_to_value_number(void) {
+    mongory_memory_pool *pool = get_test_pool();
+    mongory_value *value = json_to_value(pool, "42");
+    TEST_ASSERT_NOT_NULL(value);
+    TEST_ASSERT_EQUAL_INT(42, value->data.i);
+}
+
+void test_json_to_value_array(void) {
+    mongory_memory_pool *pool = get_test_pool();
+    mongory_value *value = json_to_value(pool, "[1, 2, 3]");
+    TEST_ASSERT_NOT_NULL(value);
+    TEST_ASSERT_EQUAL(MONGORY_TYPE_ARRAY, value->type);
+    
+    mongory_array *array = value->data.a;
+    mongory_iterable *iterable = (mongory_iterable *)array->base;
+    TEST_ASSERT_EQUAL_INT(3, iterable->count);
+    
+    mongory_value *first = array->get(array, 0);
+    TEST_ASSERT_NOT_NULL(first);
+    TEST_ASSERT_EQUAL_INT(1, first->data.i);
+}
+
+void test_json_to_value_object(void) {
+    mongory_memory_pool *pool = get_test_pool();
+    mongory_value *value = json_to_value(pool, "{\"name\": \"John\", \"age\": 30}");
+    TEST_ASSERT_NOT_NULL(value);
+    TEST_ASSERT_EQUAL(MONGORY_TYPE_TABLE, value->type);
+    
+    mongory_table *table = value->data.t;
+    mongory_value *name = table->get(table, "name");
+    mongory_value *age = table->get(table, "age");
+    
+    TEST_ASSERT_NOT_NULL(name);
+    TEST_ASSERT_NOT_NULL(age);
+    TEST_ASSERT_EQUAL_STRING("John", name->data.s);
+    TEST_ASSERT_EQUAL_INT(30, age->data.i);
+}
+
 int main(void) {
     UNITY_BEGIN();
-    mongory_init();
     RUN_TEST(test_boolean_value);
     RUN_TEST(test_integer_value);
     RUN_TEST(test_double_value);
@@ -185,6 +239,9 @@ int main(void) {
     RUN_TEST(test_table_comparison);
     RUN_TEST(test_null_value);
     RUN_TEST(test_unsupported_value);
-    mongory_cleanup();
+    RUN_TEST(test_json_to_value_string);
+    RUN_TEST(test_json_to_value_number);
+    RUN_TEST(test_json_to_value_array);
+    RUN_TEST(test_json_to_value_object);
     return UNITY_END();
 }
