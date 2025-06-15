@@ -1,7 +1,4 @@
-#include <stdlib.h>
-#include <errno.h>
-#include <limits.h>
-#include <stdbool.h>
+
 #include <mongory-core.h>
 #include "base_matcher.h"
 #include "literal_matcher.h"
@@ -54,20 +51,6 @@ typedef struct mongory_field_matcher {
   mongory_composite_matcher composite;
   char *field;
 } mongory_field_matcher;
-
-bool try_parse_int(const char *key, int *out) {
-    if (key == NULL || *key == '\0') return false;
-
-    char *endptr = NULL;
-    errno = 0;
-    long val = strtol(key, &endptr, 10);
-
-    if (*endptr != '\0') return false;
-    if (errno == ERANGE || val < INT_MIN || val > INT_MAX) return false;
-
-    *out = (int)val;
-    return true;
-}
 
 bool mongory_matcher_field_match(mongory_matcher *matcher, mongory_value *value) {
   if (value == NULL) return false;

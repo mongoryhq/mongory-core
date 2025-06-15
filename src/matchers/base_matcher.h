@@ -26,4 +26,6 @@ mongory_matcher* mongory_matcher_base_new(mongory_memory_pool *pool, mongory_val
 mongory_matcher* mongory_matcher_always_true_new(mongory_memory_pool *pool, mongory_value *condition);
 mongory_matcher* mongory_matcher_always_false_new(mongory_memory_pool *pool, mongory_value *condition);
 
+bool try_parse_int(const char *key, int *out);
+
 #endif
