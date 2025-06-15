@@ -133,7 +133,9 @@ mongory_matcher* mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongo
   table->each(table, &ctx, mongory_matcher_table_build_sub_matcher);
 
   mongory_matcher *matcher = mongory_matcher_construct_by_and(sub_matchers, 0, table->count - 1);
-  matcher->condition = condition;
+  if (matcher->condition == NULL) {
+    matcher->condition = condition;
+  }
   free(sub_matchers);
   return matcher;
 }
@@ -167,7 +169,9 @@ mongory_matcher* mongory_matcher_and_new(mongory_memory_pool *pool, mongory_valu
   mongory_matcher_table_build_sub_matcher_context ctx = { pool, sub_matchers, 0 };
   array->each(array, &ctx, mongory_matcher_build_and_sub_matcher);
   mongory_matcher *matcher = mongory_matcher_construct_by_and(sub_matchers, 0, iterable->count - 1);
-  matcher->condition = condition;
+  if (matcher->condition == NULL) {
+    matcher->condition = condition;
+  }
   free(sub_matchers);
   return matcher;
 }
@@ -203,7 +207,9 @@ mongory_matcher* mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value
   mongory_matcher_table_build_sub_matcher_context ctx = { pool, sub_matchers, 0 };
   array->each(array, &ctx, mongory_matcher_build_or_sub_matcher);
   mongory_matcher *matcher = mongory_matcher_construct_by_or(sub_matchers, 0, iterable->count - 1);
-  matcher->condition = condition;
+  if (matcher->condition == NULL) {
+    matcher->condition = condition;
+  }
   free(sub_matchers);
   return matcher;
 }
@@ -231,25 +237,19 @@ bool mongory_matcher_elem_match_match(mongory_matcher *matcher, mongory_value *v
 }
 
 mongory_matcher* mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongory_value *condition) {
-  if (!mongory_matcher_table_cond_validate(condition, NULL)) {
-    pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
-    pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
-    pool->error->message = "ElemMatch condition must be a table.";
-    return NULL; // Invalid condition
-  }
-  mongory_table *table = condition->data.t;
-  mongory_matcher **sub_matchers = calloc(table->count, sizeof(mongory_matcher *));
-  if (sub_matchers == NULL) {
+  mongory_composite_matcher *composite = mongory_matcher_composite_new(pool, condition);
+  if (composite == NULL) {
     return NULL;
   }
-  mongory_matcher_table_build_sub_matcher_context ctx = { pool, sub_matchers, 0 };
-  table->each(table, &ctx, mongory_matcher_table_build_sub_matcher);
-  mongory_matcher *matcher = mongory_matcher_construct_by_and(sub_matchers, 0, table->count - 1);
-  matcher->context.original_match = mongory_matcher_elem_match_match;
-  matcher->match = mongory_matcher_elem_match_match;
-  matcher->condition = condition;
-  free(sub_matchers);
-  return matcher;
+  composite->left = mongory_matcher_table_cond_new(pool, condition);
+  if (composite->left == NULL) {
+    return NULL;
+  }
+  composite->right = NULL;
+  composite->base.context.original_match = mongory_matcher_elem_match_match;
+  composite->base.match = mongory_matcher_elem_match_match;
+
+  return (mongory_matcher *)composite;
 }
 
 bool mongory_matcher_every_match_unit_compare(mongory_value *value, void *acc) {
@@ -270,23 +270,17 @@ bool mongory_matcher_every_match(mongory_matcher *matcher, mongory_value *value)
 }
 
 mongory_matcher* mongory_matcher_every_new(mongory_memory_pool *pool, mongory_value *condition) {
-  if (!mongory_matcher_table_cond_validate(condition, NULL)) {
-    pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
-    pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
-    pool->error->message = "Every condition must be a table.";
-    return NULL; // Invalid condition
-  }
-  mongory_table *table = condition->data.t;
-  mongory_matcher **sub_matchers = calloc(table->count, sizeof(mongory_matcher *));
-  if (sub_matchers == NULL) {
+  mongory_composite_matcher *composite = mongory_matcher_composite_new(pool, condition);
+  if (composite == NULL) {
     return NULL;
   }
-  mongory_matcher_table_build_sub_matcher_context ctx = { pool, sub_matchers, 0 };
-  table->each(table, &ctx, mongory_matcher_table_build_sub_matcher);
-  mongory_matcher *matcher = mongory_matcher_construct_by_and(sub_matchers, 0, table->count - 1);
-  matcher->context.original_match = mongory_matcher_every_match;
-  matcher->match = mongory_matcher_every_match;
-  matcher->condition = condition;
-  free(sub_matchers);
-  return matcher;
+  composite->left = mongory_matcher_table_cond_new(pool, condition);
+  if (composite->left == NULL) {
+    return NULL;
+  }
+  composite->right = NULL;
+  composite->base.context.original_match = mongory_matcher_every_match;
+  composite->base.match = mongory_matcher_every_match;
+
+  return (mongory_matcher *)composite;
 }
