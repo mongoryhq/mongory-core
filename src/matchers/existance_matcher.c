@@ -14,7 +14,7 @@ bool mongory_matcher_validate_bool_condition(mongory_value *condition) {
 }
 
 bool mongory_matcher_exists_match(mongory_matcher *matcher, mongory_value *value) {
-  bool condition = *(bool*)mongory_value_extract(matcher->condition);
+  bool condition = matcher->condition->data.b;
   return condition == (value != NULL);
 }
 
@@ -32,7 +32,7 @@ mongory_matcher* mongory_matcher_exists_new(mongory_memory_pool *pool, mongory_v
 }
 
 bool mongory_matcher_present_match(mongory_matcher *matcher, mongory_value *value) {
-  bool condition = *(bool*)mongory_value_extract(matcher->condition);
+  bool condition = matcher->condition->data.b;
   if (value == NULL) {
     return !condition; // If value is NULL, it can only match if condition is false.
   }
@@ -46,7 +46,7 @@ bool mongory_matcher_present_match(mongory_matcher *matcher, mongory_value *valu
       return condition == (value->data.t->count > 0);
     case MONGORY_TYPE_STRING: {
       char *str = (char *)value->data.s;
-      return condition == (str != NULL && str[0] != '\0');
+      return condition == (str != NULL && *str != '\0');
     }
     case MONGORY_TYPE_NULL:
       return condition == false;
