@@ -100,7 +100,7 @@ mongory_value *json_to_value_from_file(mongory_memory_pool *pool, const char *fi
     long file_size = ftell(file);
     fseek(file, 0, SEEK_SET);
 
-    char *json = malloc(file_size + 1);
+    char *json = calloc(1, file_size + 1);
     if (!json) {
         fclose(file);
         return NULL;
