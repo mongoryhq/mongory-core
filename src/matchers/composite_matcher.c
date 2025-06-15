@@ -80,7 +80,15 @@ bool mongory_matcher_table_build_sub_matcher(char *key, mongory_value *value, vo
   return true;
 }
 
-mongory_matcher* mongory_matcher_construct_by_and(mongory_matcher **matchers, int head, int tail) {
+typedef mongory_matcher* (*mongory_matchers_construct_func)(mongory_matcher **matchers, int head, int tail);
+
+inline mongory_matcher* mongory_matcher_binary_construct(
+  mongory_matcher **matchers,
+  int head,
+  int tail,
+  mongory_matcher_match_func match_func,
+  mongory_matchers_construct_func construct_func
+) {
   mongory_matcher *sub_matcher = matchers[head];
   int count = tail - head + 1;
   if (count == 1) {
@@ -91,31 +99,20 @@ mongory_matcher* mongory_matcher_construct_by_and(mongory_matcher **matchers, in
   mongory_composite_matcher *composite = mongory_matcher_composite_new(sub_matcher->pool, NULL);
   mongory_matcher *base = (mongory_matcher *)composite;
   base->context = sub_matcher->pool->alloc(sub_matcher->pool->ctx, sizeof(mongory_matcher_context));
-  base->match = mongory_matcher_and_match;
-  base->context->original_match = mongory_matcher_and_match;
-  composite->left = mongory_matcher_construct_by_and(matchers, head, mid);
-  composite->right = mongory_matcher_construct_by_and(matchers, mid + 1, tail);
+  base->match = match_func;
+  base->context->original_match = match_func;
+  composite->left = construct_func(matchers, head, mid);
+  composite->right = construct_func(matchers, mid + 1, tail);
 
   return (mongory_matcher *)composite;
 }
 
+mongory_matcher* mongory_matcher_construct_by_and(mongory_matcher **matchers, int head, int tail) {
+  return mongory_matcher_binary_construct(matchers, head, tail, mongory_matcher_and_match, mongory_matcher_construct_by_and);
+}
+
 mongory_matcher* mongory_matcher_construct_by_or(mongory_matcher **matchers, int head, int tail) {
-  mongory_matcher *sub_matcher = matchers[head];
-  int count = tail - head + 1;
-  if (count == 1) {
-    return sub_matcher;
-  }
-
-  int mid = (head + tail) / 2;
-  mongory_composite_matcher *composite = mongory_matcher_composite_new(sub_matcher->pool, NULL);
-  mongory_matcher *base = (mongory_matcher *)composite;
-  base->context = sub_matcher->pool->alloc(sub_matcher->pool->ctx, sizeof(mongory_matcher_context));
-  base->match = mongory_matcher_or_match;
-  base->context->original_match = mongory_matcher_or_match;
-  composite->left = mongory_matcher_construct_by_or(matchers, head, mid);
-  composite->right = mongory_matcher_construct_by_or(matchers, mid + 1, tail);
-
-  return (mongory_matcher *)composite;
+  return mongory_matcher_binary_construct(matchers, head, tail, mongory_matcher_or_match, mongory_matcher_construct_by_or);
 }
 
 mongory_matcher* mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongory_value *condition) {
@@ -249,10 +246,8 @@ mongory_matcher* mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongo
   mongory_matcher_table_build_sub_matcher_context ctx = { pool, sub_matchers, 0 };
   table->each(table, &ctx, mongory_matcher_table_build_sub_matcher);
   mongory_matcher *matcher = mongory_matcher_construct_by_and(sub_matchers, 0, table->count - 1);
-  mongory_matcher_context *context = pool->alloc(pool->ctx, sizeof(mongory_matcher_context));
-  context->original_match = mongory_matcher_elem_match_match;
+  matcher->context->original_match = mongory_matcher_elem_match_match;
   matcher->match = mongory_matcher_elem_match_match;
-  matcher->context = context;
   matcher->condition = condition;
   free(sub_matchers);
   return matcher;
@@ -290,10 +285,8 @@ mongory_matcher* mongory_matcher_every_new(mongory_memory_pool *pool, mongory_va
   mongory_matcher_table_build_sub_matcher_context ctx = { pool, sub_matchers, 0 };
   table->each(table, &ctx, mongory_matcher_table_build_sub_matcher);
   mongory_matcher *matcher = mongory_matcher_construct_by_and(sub_matchers, 0, table->count - 1);
-  mongory_matcher_context *context = pool->alloc(pool->ctx, sizeof(mongory_matcher_context));
-  context->original_match = mongory_matcher_every_match;
+  matcher->context->original_match = mongory_matcher_every_match;
   matcher->match = mongory_matcher_every_match;
-  matcher->context = context;
   matcher->condition = condition;
   free(sub_matchers);
   return matcher;
