@@ -3,6 +3,9 @@
 
 mongory_matcher* mongory_matcher_base_new(mongory_memory_pool *pool, mongory_value *condition) {
   mongory_matcher *matcher = pool->alloc(pool->ctx, sizeof(mongory_matcher));
+  if (matcher == NULL) return NULL;
+  matcher->context.original_match = NULL;
+  matcher->context.trace = NULL;
   matcher->pool = pool;
   matcher->condition = condition;
   return matcher;

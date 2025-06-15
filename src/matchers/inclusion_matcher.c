@@ -55,10 +55,8 @@ mongory_matcher* mongory_matcher_in_new(mongory_memory_pool *pool, mongory_value
     return NULL;
   }
   mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
-  mongory_matcher_context *context = pool->alloc(pool->ctx, sizeof(mongory_matcher_context));
-  context->original_match = mongory_matcher_in_match;
   matcher->match = mongory_matcher_in_match;
-  matcher->context = context;
+  matcher->context.original_match = mongory_matcher_in_match;
   return matcher;
 }
 
@@ -74,9 +72,7 @@ mongory_matcher* mongory_matcher_not_in_new(mongory_memory_pool *pool, mongory_v
     return NULL;
   }
   mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
-  mongory_matcher_context *context = pool->alloc(pool->ctx, sizeof(mongory_matcher_context));
-  context->original_match = mongory_matcher_not_in_match;
   matcher->match = mongory_matcher_not_in_match;
-  matcher->context = context;
+  matcher->context.original_match = mongory_matcher_not_in_match;
   return matcher;
 }

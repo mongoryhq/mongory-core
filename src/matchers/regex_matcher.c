@@ -23,9 +23,7 @@ mongory_matcher *mongory_matcher_regex_new(mongory_memory_pool *pool, mongory_va
     return NULL;
   }
   mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
-  mongory_matcher_context *context = pool->alloc(pool->ctx, sizeof(mongory_matcher_context));
-  context->original_match = mongory_matcher_regex_match;
+  matcher->context.original_match = mongory_matcher_regex_match;
   matcher->match = mongory_matcher_regex_match;
-  matcher->context = context;
   return matcher;
 }

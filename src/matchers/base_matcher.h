@@ -19,7 +19,7 @@ struct mongory_matcher {
   mongory_value *condition;
   mongory_matcher_match_func match;
   mongory_memory_pool *pool;
-  mongory_matcher_context *context;
+  mongory_matcher_context context;
 };
 
 mongory_matcher* mongory_matcher_base_new(mongory_memory_pool *pool, mongory_value *condition);
