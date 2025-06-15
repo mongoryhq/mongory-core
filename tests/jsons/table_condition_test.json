@@ -30,6 +30,44 @@
     ]
   },
   {
+    "description": "All match",
+    "condition": {},
+    "records": [
+      {
+        "data": {},
+        "expected": true
+      },
+      {
+        "data": [],
+        "expected": true
+      },
+      {
+        "data": "lalala",
+        "expected": true
+      }
+    ]
+  },
+  {
+    "description": "Array record with non array condition",
+    "condition": {
+      "tags": "ruby"
+    },
+    "records": [
+      {
+        "data": {
+          "tags": [1, 2, "ruby"]
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "tags": ["lala", "port"]
+        },
+        "expected": false
+      }
+    ]
+  },
+  {
     "description": "nested field test",
     "condition": {
       "name": "John",
