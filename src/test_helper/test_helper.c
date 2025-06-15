@@ -6,6 +6,7 @@
 #include <mongory-core/foundations/value.h>
 #include <mongory-core/foundations/memory_pool.h>
 #include "test_helper.h"
+#include "../../src/matchers/base_matcher.h"
 #include "../../tests/unity/unity.h"
 
 static mongory_memory_pool *test_pool = NULL;
@@ -112,6 +113,34 @@ mongory_value *json_to_value_from_file(mongory_memory_pool *pool, const char *fi
     mongory_value *value = json_string_to_mongory_value(pool, json);
     free(json);
     return value;
+}
+
+bool execute_test_record(mongory_value *test_record, void *acc) {
+  mongory_matcher *matcher = (mongory_matcher *)acc;
+  mongory_value *data_value = test_record->data.t->get(test_record->data.t, "data");
+  mongory_value *expected_value = test_record->data.t->get(test_record->data.t, "expected");
+  bool expected = expected_value->data.b;
+  TEST_ASSERT_NOT_NULL(data_value);
+  TEST_ASSERT_NOT_NULL(expected_value);
+  TEST_ASSERT_EQUAL(expected, matcher->match(matcher, data_value));
+  return true;
+}
+
+bool execute_test_case(mongory_value *test_case, void *acc) {
+  mongory_matcher_build_func matcher_build_func = (mongory_matcher_build_func)acc;
+  mongory_value *description_value = test_case->data.t->get(test_case->data.t, "description");
+  mongory_value *condition_value = test_case->data.t->get(test_case->data.t, "condition");
+  mongory_value *records_value = test_case->data.t->get(test_case->data.t, "records");
+  TEST_ASSERT_NOT_NULL(description_value);
+  printf("Running test case: %s\n", description_value->data.s);
+  TEST_ASSERT_NOT_NULL(condition_value);
+  TEST_ASSERT_NOT_NULL(records_value);
+  mongory_matcher *matcher = matcher_build_func(get_test_pool(), condition_value);
+  TEST_ASSERT_NOT_NULL(matcher);
+  TEST_ASSERT_NULL(get_test_pool()->error);
+  mongory_array *records = records_value->data.a;
+  records->each(records, matcher, execute_test_record);
+  return true;
 }
 
 void setup_test_environment(void) {
