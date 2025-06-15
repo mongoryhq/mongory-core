@@ -3,6 +3,7 @@
 
 #include <mongory-core.h>
 #include <cjson/cJSON.h>
+#include "../matchers/base_matcher.h"
 
 // JSON 轉換相關函數
 mongory_value *json_string_to_mongory_value(mongory_memory_pool *pool, const char *json);
@@ -13,7 +14,7 @@ void setup_test_environment(void);
 void teardown_test_environment(void);
 mongory_memory_pool *get_test_pool(void);
 
-bool execute_test_case(mongory_value *test_case, void *acc);
+void execute_test_case(char *file_name, mongory_matcher_build_func matcher_build_func);
 
 // 斷言輔助函數
 void assert_value_equals(mongory_value *expected, mongory_value *actual);
