@@ -116,5 +116,358 @@
         "expected": false
       }
     ]
+  },
+  {
+    "description": "operator $gte test",
+    "condition": {
+      "age": {
+        "$gte": 30
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "age": 30
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "age": 20
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "age": 40
+        },
+        "expected": true
+      }
+    ]
+  },
+  {
+    "description": "operator $lte test",
+    "condition": {
+      "age": {
+        "$lte": 30
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "age": 30
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "age": 20
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "age": 40
+        },
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "operator $eq test",
+    "condition": {
+      "age": {
+        "$eq": 30
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "age": 30
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "age": 20
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "age": 40
+        },
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "operator $ne test",
+    "condition": {
+      "age": {
+        "$ne": 30
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "age": 30
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "age": 20
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "age": 40
+        },
+        "expected": true
+      }
+    ]
+  },
+  {
+    "description": "operator $in test",
+    "condition": {
+      "age": {
+        "$in": [30, 40]
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "age": 30
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "age": 20
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "age": 40
+        },
+        "expected": true
+      }
+    ]
+  },
+  {
+    "description": "operator $nin test",
+    "condition": {
+      "age": {
+        "$nin": [30, 40]
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "age": 30
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "age": 20
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "age": 40
+        },
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "operator $exists true test",
+    "condition": {
+      "age": {
+        "$exists": true
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "age": 30
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "name": "John"
+        },
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "operator $exists false test",
+    "condition": {
+      "age": {
+        "$exists": false
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "name": "John"
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "age": 30
+        },
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "operator $present true test",
+    "condition": {
+      "name": {
+        "$present": true
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "name": "John"
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "name": ""
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "name": null
+        },
+        "expected": false
+      },
+      {
+        "data": {},
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "operator $present false test",
+    "condition": {
+      "name": {
+        "$present": false
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "name": "John"
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "name": ""
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "name": null
+        },
+        "expected": true
+      },
+      {
+        "data": {},
+        "expected": true
+      }
+    ]
+  },
+  {
+    "description": "operator $size basic test",
+    "condition": {
+      "tags": {
+        "$size": 3
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "tags": ["a", "b", "c"]
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "tags": ["a", "b"]
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "tags": ["a", "b", "c", "d"]
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "tags": []
+        },
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "operator $size with range test",
+    "condition": {
+      "tags": {
+        "$size": {
+          "$gte": 1,
+          "$lte": 3
+        }
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "tags": ["a", "b", "c"]
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "tags": ["a"]
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "tags": ["a", "b", "c", "d"]
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "tags": []
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "tags": "alaalala"
+        },
+        "expected": false
+      }
+    ]
   }
 ]
