@@ -17,7 +17,7 @@
 
 bool mongory_matcher_literal_match(mongory_matcher *matcher, mongory_value *value) {
   mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
-  if (value->type == MONGORY_TYPE_ARRAY) {
+  if (value && value->type == MONGORY_TYPE_ARRAY) {
     if (composite->right == NULL) {
       composite->right = mongory_matcher_array_record_new(matcher->pool, matcher->condition);
     }
@@ -90,7 +90,7 @@ bool mongory_matcher_field_match(mongory_matcher *matcher, mongory_value *value)
     return false;
   }
 
-  if (field_value->type == MONGORY_TYPE_POINTER) {
+  if (field_value && field_value->type == MONGORY_TYPE_POINTER) {
     field_value = mongory_internal_value_converter->shallow_convert(field_value->pool, field_value->data.ptr);
   }
 
