@@ -1,3 +1,7 @@
+#include <stdlib.h>
+#include <errno.h>
+#include <limits.h>
+#include <stdbool.h>
 #include <mongory-core.h>
 #include "base_matcher.h"
 
@@ -33,4 +37,18 @@ mongory_matcher* mongory_matcher_always_false_new(mongory_memory_pool *pool, mon
   mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
   matcher->match = mongory_matcher_always_false_match;
   return matcher;
+}
+
+bool try_parse_int(const char *key, int *out) {
+    if (key == NULL || *key == '\0') return false;
+
+    char *endptr = NULL;
+    errno = 0;
+    long val = strtol(key, &endptr, 10);
+
+    if (*endptr != '\0') return false;
+    if (errno == ERANGE || val < INT_MIN || val > INT_MAX) return false;
+
+    *out = (int)val;
+    return true;
 }
