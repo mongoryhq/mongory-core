@@ -1,5 +1,6 @@
-COMMAND = gcc -Iinclude -Wall -Wextra -std=c99
-TEST_COMMAND = $(COMMAND) -DUNITY_USE_COLOR -DUNITY_OUTPUT_COLOR
+COMMAND = gcc -Iinclude -I/opt/homebrew/include -Wall -Wextra -std=c99
+TEST_COMMAND = $(COMMAND) -I. -Itests -I/opt/homebrew/Cellar/cjson/1.7.18/include -DUNITY_USE_COLOR -DUNITY_OUTPUT_COLOR
+LDFLAGS = -L/opt/homebrew/Cellar/cjson/1.7.18/lib -lcjson
 SRC_FOLDER = src
 SRC = $(wildcard $(SRC_FOLDER)/**/*.c)
 OBJ = $(SRC:.c=.o)
@@ -60,4 +61,5 @@ $(UNITY_OBJ): $(UNITY_SRC) $(TEST_OBJ_FOLDER)
 	$(TEST_COMMAND) -I$(TEST_SRC_FOLDER)/unity -c -o $@ $<
 
 $(TEST_OBJ_FOLDER)/%: $(TEST_SRC_FOLDER)/%.c $(CORE) $(UNITY_OBJ) $(TEST_OBJ_FOLDER)
-	$(TEST_COMMAND) -I$(TEST_SRC_FOLDER)/unity -o $@ $< $(UNITY_OBJ) $(CORE)
+	$(TEST_COMMAND) -I$(TEST_SRC_FOLDER)/unity -o $@ $< $(UNITY_OBJ) $(CORE) $(LDFLAGS)
+
