@@ -5,7 +5,7 @@
 #include <cjson/cJSON.h>
 
 // JSON 轉換相關函數
-mongory_value *json_to_value(mongory_memory_pool *pool, const char *json);
+mongory_value *json_string_to_mongory_value(mongory_memory_pool *pool, const char *json);
 mongory_value *json_to_value_from_file(mongory_memory_pool *pool, const char *filename);
 
 // 測試輔助函數

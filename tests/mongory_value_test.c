@@ -180,21 +180,21 @@ void test_table_comparison(void) {
 
 void test_json_to_value_string(void) {
     mongory_memory_pool *pool = get_test_pool();
-    mongory_value *value = json_to_value(pool, "\"Hello, World!\"");
+    mongory_value *value = json_string_to_mongory_value(pool, "\"Hello, World!\"");
     TEST_ASSERT_NOT_NULL(value);
     TEST_ASSERT_EQUAL_STRING("Hello, World!", value->data.s);
 }
 
 void test_json_to_value_number(void) {
     mongory_memory_pool *pool = get_test_pool();
-    mongory_value *value = json_to_value(pool, "42");
+    mongory_value *value = json_string_to_mongory_value(pool, "42");
     TEST_ASSERT_NOT_NULL(value);
     TEST_ASSERT_EQUAL_INT(42, value->data.i);
 }
 
 void test_json_to_value_array(void) {
     mongory_memory_pool *pool = get_test_pool();
-    mongory_value *value = json_to_value(pool, "[1, 2, 3]");
+    mongory_value *value = json_string_to_mongory_value(pool, "[1, 2, 3]");
     TEST_ASSERT_NOT_NULL(value);
     TEST_ASSERT_EQUAL(MONGORY_TYPE_ARRAY, value->type);
     
@@ -209,7 +209,7 @@ void test_json_to_value_array(void) {
 
 void test_json_to_value_object(void) {
     mongory_memory_pool *pool = get_test_pool();
-    mongory_value *value = json_to_value(pool, "{\"name\": \"John\", \"age\": 30}");
+    mongory_value *value = json_string_to_mongory_value(pool, "{\"name\": \"John\", \"age\": 30}");
     TEST_ASSERT_NOT_NULL(value);
     TEST_ASSERT_EQUAL(MONGORY_TYPE_TABLE, value->type);
     

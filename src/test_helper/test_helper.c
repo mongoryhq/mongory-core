@@ -11,17 +11,8 @@
 static mongory_memory_pool *test_pool = NULL;
 
 // JSON 轉換相關函數
-mongory_value *json_to_value(mongory_memory_pool *pool, const char *json) {
-    if (!json) return NULL;
-    
-    cJSON *root = cJSON_Parse(json);
-    if (!root) {
-        const char *error_ptr = cJSON_GetErrorPtr();
-        if (error_ptr) {
-            fprintf(stderr, "JSON Parse Error: %s\n", error_ptr);
-        }
-        return NULL;
-    }
+static mongory_value *cjson_to_mongory_value(mongory_memory_pool *pool, cJSON *root) {
+    if (!root) return NULL;
 
     mongory_value *value = NULL;
     mongory_array *array = NULL;
@@ -54,7 +45,7 @@ mongory_value *json_to_value(mongory_memory_pool *pool, const char *json) {
             array = mongory_array_new(pool);
             value = mongory_value_wrap_a(pool, array);
             for (cJSON *item = root->child; item; item = item->next) {
-                mongory_value *item_value = json_to_value(pool, cJSON_Print(item));
+                mongory_value *item_value = cjson_to_mongory_value(pool, item);
                 if (item_value) {
                     array->push(array, item_value);
                 }
@@ -64,7 +55,7 @@ mongory_value *json_to_value(mongory_memory_pool *pool, const char *json) {
             table = mongory_table_new(pool);
             value = mongory_value_wrap_t(pool, table);
             for (cJSON *item = root->child; item; item = item->next) {
-                mongory_value *item_value = json_to_value(pool, cJSON_Print(item));
+                mongory_value *item_value = cjson_to_mongory_value(pool, item);
                 if (item_value) {
                     char *key_copy = pool->alloc(pool->ctx, strlen(item->string) + 1);
                     strcpy(key_copy, item->string);
@@ -77,6 +68,22 @@ mongory_value *json_to_value(mongory_memory_pool *pool, const char *json) {
             break;
     }
 
+    return value;
+}
+
+mongory_value *json_string_to_mongory_value(mongory_memory_pool *pool, const char *json) {
+    if (!json) return NULL;
+    
+    cJSON *root = cJSON_Parse(json);
+    if (!root) {
+        const char *error_ptr = cJSON_GetErrorPtr();
+        if (error_ptr) {
+            fprintf(stderr, "JSON Parse Error: %s\n", error_ptr);
+        }
+        return NULL;
+    }
+
+    mongory_value *value = cjson_to_mongory_value(pool, root);
     cJSON_Delete(root);
     return value;
 }
@@ -102,7 +109,7 @@ mongory_value *json_to_value_from_file(mongory_memory_pool *pool, const char *fi
     json[read_size] = '\0';
     fclose(file);
 
-    mongory_value *value = json_to_value(pool, json);
+    mongory_value *value = json_string_to_mongory_value(pool, json);
     free(json);
     return value;
 }
