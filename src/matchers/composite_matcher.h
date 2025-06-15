@@ -5,7 +5,7 @@
 #include "base_matcher.h"
 
 typedef struct mongory_composite_matcher {
-  mongory_matcher *base;
+  mongory_matcher base;
   mongory_matcher *left;
   mongory_matcher *right;
 } mongory_composite_matcher;
