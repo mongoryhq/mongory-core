@@ -8,7 +8,10 @@ bool mongory_array_each(mongory_array *self, void *acc, mongory_array_callback_f
 }
 
 bool mongory_array_push(mongory_array *self, mongory_value *value) {
-  return mongory_iterable_push((mongory_iterable *)self->base, value);
+  bool result = mongory_iterable_push((mongory_iterable *)self->base, value);
+  self->count = ((mongory_iterable *)self->base)->count;
+  self->capacity = ((mongory_iterable *)self->base)->capacity;
+  return result;
 }
 
 mongory_value* mongory_array_get(mongory_array *self, size_t index) {
@@ -16,7 +19,10 @@ mongory_value* mongory_array_get(mongory_array *self, size_t index) {
 }
 
 bool mongory_array_set(mongory_array *self, size_t index, mongory_value *value) {
-  return mongory_iterable_set((mongory_iterable *)self->base, index, value);
+  bool result = mongory_iterable_set((mongory_iterable *)self->base, index, value);
+  self->count = ((mongory_iterable *)self->base)->count;
+  self->capacity = ((mongory_iterable *)self->base)->capacity;
+  return result;
 }
 
 mongory_array* mongory_array_new(mongory_memory_pool *pool) {
@@ -32,6 +38,9 @@ mongory_array* mongory_array_new(mongory_memory_pool *pool) {
 
   array->pool = pool;
   array->base = iter;
+  array->items = (mongory_value **)iter->items;
+  array->capacity = iter->capacity;
+  array->count = iter->count;
   array->each = mongory_array_each;
   array->get = mongory_array_get;
   array->push = mongory_array_push;
