@@ -89,9 +89,14 @@ static inline bool mongory_matcher_array_record_match(mongory_matcher *matcher, 
 }
 
 mongory_matcher* mongory_matcher_array_record_new(mongory_memory_pool *pool, mongory_value *condition) {
+  mongory_matcher *left = mongory_matcher_array_record_left_delegate(pool, condition);
+  mongory_matcher *right = mongory_matcher_array_record_right_delegate(pool, condition);
+  if (right == NULL) {
+    return left;
+  }
   mongory_composite_matcher *composite = mongory_matcher_composite_new(pool, condition);
-  composite->left = mongory_matcher_array_record_left_delegate(pool, condition);
-  composite->right = mongory_matcher_array_record_right_delegate(pool, condition);
+  composite->left = left;
+  composite->right = right;
   composite->base.match = mongory_matcher_array_record_match;
   composite->base.context.original_match = mongory_matcher_array_record_match;
   return (mongory_matcher *)composite;
