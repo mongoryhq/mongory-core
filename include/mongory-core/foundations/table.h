@@ -6,25 +6,25 @@
 #include "mongory-core/foundations/value.h"
 #include "mongory-core/foundations/array.h"
 
-struct mongory_table;
-typedef struct mongory_table mongory_table;
-typedef bool (*mongory_table_each_pair_callback_func)(char *key, mongory_value *value, void *acc);
-typedef mongory_value* (*mongory_table_get_func)(mongory_table *self, char *key);
-typedef bool (*mongory_table_set_func)(mongory_table *self, char *key, mongory_value *value);
-typedef bool (*mongory_table_each_func)(mongory_table *self, void *acc, mongory_table_each_pair_callback_func callback);
-typedef bool (*mongory_table_del_func)(mongory_table *self, char *key);
+struct mongory_table; // forward declaration
+typedef struct mongory_table mongory_table; // alias
+typedef bool (*mongory_table_each_pair_callback_func)(char *key, mongory_value *value, void *acc); // each pair callback function
+typedef mongory_value* (*mongory_table_get_func)(mongory_table *self, char *key); // get function
+typedef bool (*mongory_table_set_func)(mongory_table *self, char *key, mongory_value *value); // set function
+typedef bool (*mongory_table_each_func)(mongory_table *self, void *acc, mongory_table_each_pair_callback_func callback); // each function
+typedef bool (*mongory_table_del_func)(mongory_table *self, char *key); // delete function
 
-mongory_table* mongory_table_new(mongory_memory_pool *pool);
+mongory_table* mongory_table_new(mongory_memory_pool *pool); // create new table
 
 struct mongory_table {
-  mongory_array *base;
-  mongory_memory_pool *pool;
-  size_t capacity;
-  size_t count;
-  mongory_table_get_func get;
-  mongory_table_each_func each;
-  mongory_table_set_func set;
-  mongory_table_del_func del;
+  mongory_array *base; // base array
+  mongory_memory_pool *pool; // memory pool
+  size_t capacity; // capacity
+  size_t count; // count
+  mongory_table_get_func get; // get function
+  mongory_table_each_func each; // each function
+  mongory_table_set_func set; // set function
+  mongory_table_del_func del; // delete function
 };
 
 #endif // MONGORY_TABLE_H
