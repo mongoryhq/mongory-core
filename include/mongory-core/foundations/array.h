@@ -17,6 +17,9 @@ mongory_array* mongory_array_new(mongory_memory_pool *pool);
 
 struct mongory_array {
   void *base;
+  mongory_value **items;
+  size_t capacity;
+  size_t count;
   mongory_memory_pool *pool;
   mongory_array_each_func each;
   mongory_array_push_func push;
