@@ -4,7 +4,6 @@
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
 #include "literal_matcher.h"
-#include "../foundations/iterable.h"
 #include "../foundations/config_private.h"
 
 mongory_composite_matcher* mongory_matcher_composite_new(mongory_memory_pool *pool, mongory_value *condition) {
@@ -158,17 +157,16 @@ mongory_matcher* mongory_matcher_and_new(mongory_memory_pool *pool, mongory_valu
     return NULL; // Invalid condition
   }
   mongory_array *array = condition->data.a;
-  mongory_iterable *iterable = (mongory_iterable *)array->base;
-  if (iterable->count == 0) {
+  if (array->count == 0) {
     return mongory_matcher_always_true_new(pool, condition);
   }
-  mongory_matcher **sub_matchers = calloc(iterable->count, sizeof(mongory_matcher *));
+  mongory_matcher **sub_matchers = calloc(array->count, sizeof(mongory_matcher *));
   if (sub_matchers == NULL) {
     return NULL;
   }
   mongory_matcher_table_build_sub_matcher_context ctx = { pool, sub_matchers, 0 };
   array->each(array, &ctx, mongory_matcher_build_and_sub_matcher);
-  mongory_matcher *matcher = mongory_matcher_construct_by_and(sub_matchers, 0, iterable->count - 1);
+  mongory_matcher *matcher = mongory_matcher_construct_by_and(sub_matchers, 0, array->count - 1);
   if (matcher->condition == NULL) {
     matcher->condition = condition;
   }
@@ -196,17 +194,16 @@ mongory_matcher* mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value
     return NULL; // Invalid condition
   }
   mongory_array *array = condition->data.a;
-  mongory_iterable *iterable = (mongory_iterable *)array->base;
-  if (iterable->count == 0) {
+  if (array->count == 0) {
     return mongory_matcher_always_false_new(pool, condition);
   }
-  mongory_matcher **sub_matchers = calloc(iterable->count, sizeof(mongory_matcher *));
+  mongory_matcher **sub_matchers = calloc(array->count, sizeof(mongory_matcher *));
   if (sub_matchers == NULL) {
     return NULL;
   }
   mongory_matcher_table_build_sub_matcher_context ctx = { pool, sub_matchers, 0 };
   array->each(array, &ctx, mongory_matcher_build_or_sub_matcher);
-  mongory_matcher *matcher = mongory_matcher_construct_by_or(sub_matchers, 0, iterable->count - 1);
+  mongory_matcher *matcher = mongory_matcher_construct_by_or(sub_matchers, 0, array->count - 1);
   if (matcher->condition == NULL) {
     matcher->condition = condition;
   }

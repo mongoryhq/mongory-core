@@ -1,7 +1,7 @@
 #include <string.h>
-#include "iterable.h"
 #include <mongory-core/foundations/value.h>
 #include <mongory-core/foundations/table.h>
+#include <mongory-core/foundations/array.h>
 
 #define MONGORY_TABLE_INIT_SIZE 17
 #define MONGORY_TABLE_LOAD_FACTOR 0.75
@@ -42,6 +42,16 @@ static size_t hash_string(const char *str) {
   return hash;
 }
 
+static mongory_value* mongory_table_node_wrap(mongory_memory_pool *pool, mongory_table_node *node) {
+  if (!node) return NULL;
+  return mongory_value_wrap_ptr(pool, node);
+}
+
+static mongory_table_node* mongory_table_node_unwrap(mongory_value *value) {
+  if (!value) return NULL;
+  return (mongory_table_node *)value->data.ptr;
+}
+
 static bool mongory_table_node_walk(mongory_table_node *head, void *acc, bool (*callback)(mongory_table_node *node, void *acc)) {
   for (mongory_table_node *node = head; node;) {
     mongory_table_node *next = node->next;
@@ -54,25 +64,25 @@ static bool mongory_table_node_walk(mongory_table_node *head, void *acc, bool (*
 
 static bool mongory_table_rehash_on_node(mongory_table_node *node, void *acc) {
   mongory_table *self = (mongory_table *)acc;
-  mongory_iterable *iter = (mongory_iterable *)self->base;
+  mongory_array *array = self->base;
   size_t new_index = hash_string(node->key) % self->capacity;
-  node->next = mongory_iterable_get(iter, new_index);
-  mongory_iterable_set(iter, new_index, node); // Place the node in the new index
+  node->next = mongory_table_node_unwrap(array->get(array, new_index));
+  array->set(array, new_index, mongory_table_node_wrap(self->pool, node)); // Place the node in the new index
   return true;
 }
 
 static bool mongory_table_rehash(mongory_table *self) {
-  mongory_iterable *iter = (mongory_iterable *)self->base;
-  void **origin_items = iter->items; // Capture old items array
+  mongory_array *array = self->base;
+  mongory_value **origin_items = array->items; // Capture old items array
   size_t origin_size = self->capacity; // This is also old iter->capacity and iter->count
   size_t new_size = next_prime(origin_size * 2); // New table capacity
-  iter->count = 0; // Ignore reassign elements in iterable resize
+  array->count = 0; // Ignore reassign elements in array resize
 
-  if (!mongory_iterable_resize(iter, new_size)) return false;
+  if (!mongory_array_resize(array, new_size)) return false;
 
   self->capacity = new_size; // Update the table capacity
   for (size_t i = 0; i < origin_size; i++) { // Iterate up to old capacity
-    mongory_table_node_walk((mongory_table_node *)origin_items[i], self, mongory_table_rehash_on_node);
+    mongory_table_node_walk(mongory_table_node_unwrap(origin_items[i]), self, mongory_table_rehash_on_node);
   }
 
   return true;
@@ -94,9 +104,9 @@ static bool mongory_table_get_on_node(mongory_table_node *node, void *acc) {
 }
 
 mongory_value* mongory_table_get(mongory_table *self, char *key) {
-  mongory_iterable *iter = (mongory_iterable *)self->base;
+  mongory_array *array = self->base;
   size_t index = hash_string(key) % self->capacity;
-  mongory_table_node *root_node = (mongory_table_node *)mongory_iterable_get(iter, index);
+  mongory_table_node *root_node = mongory_table_node_unwrap(array->get(array, index));
   mongory_table_kv_context ctx = { key, NULL };
   mongory_table_node_walk(root_node, &ctx, mongory_table_get_on_node);
   return ctx.value;
@@ -113,9 +123,9 @@ static bool mongory_table_set_on_node(mongory_table_node *node, void *acc) {
 }
 
 bool mongory_table_set(mongory_table *self, char *key, mongory_value *value) {
-  mongory_iterable *iter = (mongory_iterable *)self->base;
+  mongory_array *array = self->base;
   size_t index = hash_string(key) % self->capacity;
-  mongory_table_node *root_node =(mongory_table_node *)mongory_iterable_get(iter, index);
+  mongory_table_node *root_node = mongory_table_node_unwrap(array->get(array, index));
   mongory_table_kv_context ctx = { key, value };
   if (!mongory_table_node_walk(root_node, &ctx, mongory_table_set_on_node)) return true;
 
@@ -125,7 +135,7 @@ bool mongory_table_set(mongory_table *self, char *key, mongory_value *value) {
   new_node->key = key;
   new_node->value = value;
   new_node->next = root_node;
-  mongory_iterable_set(iter, index, new_node);
+  array->set(array, index, mongory_table_node_wrap(self->pool, new_node));
 
   self->count++;
   if (self->count > self->capacity * MONGORY_TABLE_LOAD_FACTOR) {
@@ -135,17 +145,24 @@ bool mongory_table_set(mongory_table *self, char *key, mongory_value *value) {
 }
 
 bool mongory_table_del(mongory_table *self, char *key) {
-  mongory_iterable *iter = (mongory_iterable *)self->base;
+  mongory_array *array = self->base;
   size_t index = hash_string(key) % self->capacity;
-  mongory_table_node **node = (mongory_table_node **)&iter->items[index];
-  while (*node) {
-    if (strcmp((*node)->key, key) == 0) {
-      *node = (*node)->next;
+  mongory_value *node_value = array->get(array, index);
+  mongory_table_node *node = mongory_table_node_unwrap(node_value);
+  mongory_table_node *prev = NULL;
+  while (node) {
+    if (strcmp(node->key, key) == 0) {
+      if (prev) {
+        prev->next = node->next;
+      } else {
+        array->set(array, index, mongory_table_node_wrap(self->pool, node->next));
+      }
       self->count--;
       return true;
     }
 
-    node = &(*node)->next;
+    prev = node;
+    node = node->next;
   }
 
   return false;
@@ -161,27 +178,27 @@ static bool mongory_table_each_pair_on_node(mongory_table_node *node, void *acc)
   return ctx->callback(node->key, node->value, ctx->acc);
 }
 
-static bool mongory_table_each_pair_on_root(void *node_ptr, void *acc) {
-  mongory_table_node *node = (mongory_table_node *)node_ptr;
+static bool mongory_table_each_pair_on_root(mongory_value *value, void *acc) {
+  mongory_table_node *node = mongory_table_node_unwrap(value);
   return mongory_table_node_walk(node, acc, mongory_table_each_pair_on_node);
 }
 
 bool mongory_table_each_pair(mongory_table *self, void *acc, mongory_table_each_pair_callback_func callback) {
   mongory_table_each_pair_context each_ctx = { acc, callback };
-  return mongory_iterable_each(self->base, &each_ctx, mongory_table_each_pair_on_root);
+  return self->base->each(self->base, &each_ctx, mongory_table_each_pair_on_root);
 }
 
 mongory_table* mongory_table_new(mongory_memory_pool *pool) {
   size_t init_size = MONGORY_TABLE_INIT_SIZE;
-  mongory_iterable *iter = mongory_iterable_new(pool);
-  bool iter_init_success = iter && mongory_iterable_resize(iter, init_size) && mongory_iterable_set(iter, init_size - 1, NULL);
-  if (!iter_init_success) return NULL;
+  mongory_array *array = mongory_array_new(pool);
+  bool array_init_success = array && mongory_array_resize(array, init_size) && array->set(array, init_size - 1, NULL);
+  if (!array_init_success) return NULL;
 
   mongory_table *table = pool->alloc(pool->ctx, sizeof(mongory_table));
   if (!table) return NULL;
 
   table->pool = pool;
-  table->base = iter;
+  table->base = array;
   table->capacity = init_size;
   table->count = 0;
 

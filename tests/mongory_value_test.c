@@ -3,7 +3,6 @@
 #include "unity.h"
 #include <mongory-core.h>
 #include "../src/test_helper/test_helper.h"
-#include "../src/foundations/iterable.h"
 
 void setUp(void) {
     setup_test_environment();
@@ -199,8 +198,7 @@ void test_json_to_value_array(void) {
     TEST_ASSERT_EQUAL(MONGORY_TYPE_ARRAY, value->type);
     
     mongory_array *array = value->data.a;
-    mongory_iterable *iterable = (mongory_iterable *)array->base;
-    TEST_ASSERT_EQUAL_INT(3, iterable->count);
+    TEST_ASSERT_EQUAL_INT(3, array->count);
     
     mongory_value *first = array->get(array, 0);
     TEST_ASSERT_NOT_NULL(first);

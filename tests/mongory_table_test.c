@@ -53,7 +53,7 @@ void test_table_delete(void) {
     table->set(table, "test_key", value);
     mongory_value *retrieved = table->get(table, "test_key");
     TEST_ASSERT_NOT_NULL(retrieved);
-    TEST_ASSERT_EQUAL_STRING("test_value", *(char **)mongory_value_extract(retrieved));
+    TEST_ASSERT_EQUAL_STRING("test_value", retrieved->data.s);
 
     bool del_result = table->del(table, "test_key");
     TEST_ASSERT_TRUE(del_result);

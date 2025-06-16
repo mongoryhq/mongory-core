@@ -14,9 +14,9 @@ typedef mongory_value* (*mongory_array_get_func)(mongory_array *self, size_t ind
 typedef bool (*mongory_array_set_func)(mongory_array *self, size_t index, mongory_value *value);
 
 mongory_array* mongory_array_new(mongory_memory_pool *pool);
+bool mongory_array_resize(mongory_array *self, size_t size);
 
 struct mongory_array {
-  void *base;
   mongory_value **items;
   size_t capacity;
   size_t count;

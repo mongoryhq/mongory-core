@@ -1,7 +1,6 @@
 #include <mongory-core.h>
 #include "base_matcher.h"
 #include "existance_matcher.h"
-#include "../foundations/iterable.h"
 
 bool mongory_matcher_validate_bool_condition(mongory_value *condition) {
   if (condition == NULL) {
@@ -39,8 +38,7 @@ bool mongory_matcher_present_match(mongory_matcher *matcher, mongory_value *valu
   // Check the type of the value and determine if it is "present" based on its type.
   switch (value->type) {
     case MONGORY_TYPE_ARRAY: {
-      mongory_iterable *iterable = (mongory_iterable *)value->data.a->base;
-      return condition == (iterable->count > 0);
+      return condition == (value->data.a->count > 0);
     }
     case MONGORY_TYPE_TABLE:
       return condition == (value->data.t->count > 0);
