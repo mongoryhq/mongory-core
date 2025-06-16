@@ -39,7 +39,7 @@ mongory_matcher* mongory_matcher_always_false_new(mongory_memory_pool *pool, mon
   return matcher;
 }
 
-bool try_parse_int(const char *key, int *out) {
+bool mongory_try_parse_int(const char *key, int *out) {
     if (key == NULL || *key == '\0') return false;
 
     char *endptr = NULL;

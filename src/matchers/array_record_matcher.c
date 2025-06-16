@@ -29,7 +29,7 @@ static inline bool mongory_matcher_array_record_parse_table_foreach(char *key, m
   if (strcmp(key, "$elemMatch") == 0 && value->type == MONGORY_TYPE_TABLE && value->data.t != NULL) {
     mongory_table *value_table = value->data.t;
     value_table->each(value_table, context, mongory_matcher_array_record_set_table_elem);
-  } else if (*key == '$' || try_parse_int(key, NULL)) {
+  } else if (*key == '$' || mongory_try_parse_int(key, NULL)) {
     parsed_table->set(parsed_table, key, value);
   } else {
     elem_match_table->set(elem_match_table, key, value);

@@ -62,7 +62,7 @@ bool mongory_matcher_field_match(mongory_matcher *matcher, mongory_value *value)
   } else if (value->type == MONGORY_TYPE_ARRAY) {
     int index;
     mongory_array *array = value->data.a;
-    if (!try_parse_int(field, &index)) return false;
+    if (!mongory_try_parse_int(field, &index)) return false;
     if (index < 0) {
       index = array->count + index;
     }
