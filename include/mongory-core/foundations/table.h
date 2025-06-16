@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
+#include "mongory-core/foundations/array.h"
 
 struct mongory_table;
 typedef struct mongory_table mongory_table;
@@ -16,7 +17,7 @@ typedef bool (*mongory_table_del_func)(mongory_table *self, char *key);
 mongory_table* mongory_table_new(mongory_memory_pool *pool);
 
 struct mongory_table {
-  void *base;  // mongory_iterable*
+  mongory_array *base;
   mongory_memory_pool *pool;
   size_t capacity;
   size_t count;

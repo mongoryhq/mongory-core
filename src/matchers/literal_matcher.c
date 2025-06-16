@@ -4,7 +4,6 @@
 #include "literal_matcher.h"
 #include "mongory-core/foundations/value.h"
 #include "../foundations/config_private.h"
-#include "../foundations/iterable.h"
 #include "composite_matcher.h"
 #include "array_record_matcher.h"
 #include "regex_matcher.h"
@@ -65,8 +64,7 @@ bool mongory_matcher_field_match(mongory_matcher *matcher, mongory_value *value)
     mongory_array *array = value->data.a;
     if (!try_parse_int(field, &index)) return false;
     if (index < 0) {
-      mongory_iterable *iterable = (mongory_iterable *)array->base;
-      index = iterable->count + index;
+      index = array->count + index;
     }
     field_value = array->get(array, (size_t)index);
   } else {
@@ -112,8 +110,7 @@ mongory_matcher* mongory_matcher_not_new(mongory_memory_pool *pool, mongory_valu
 bool mongory_matcher_size_match(mongory_matcher *matcher, mongory_value *value) {
   if (value->type != MONGORY_TYPE_ARRAY) return false;
   mongory_array *array = value->data.a;
-  mongory_iterable *iterable = (mongory_iterable *)array->base;
-  mongory_value *size = mongory_value_wrap_i(value->pool, iterable->count);
+  mongory_value *size = mongory_value_wrap_i(value->pool, array->count);
   return mongory_matcher_literal_match(matcher, size);
 }
 

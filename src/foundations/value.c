@@ -5,7 +5,6 @@
 #include <mongory-core/foundations/value.h>
 #include <mongory-core/foundations/table.h>
 #include <mongory-core/foundations/array.h>
-#include "iterable.h"
 
 char* mongory_type_to_string(mongory_value *value) {
   switch (value->type) {
@@ -155,12 +154,10 @@ int mongory_value_array_compare(mongory_value *a, mongory_value *b) {
   }
   mongory_array *array_a = a->data.a;
   mongory_array *array_b = b->data.a;
-  mongory_iterable *iterable_a = (mongory_iterable *)array_a->base;
-  mongory_iterable *iterable_b = (mongory_iterable *)array_b->base;
-  if (iterable_a->count != iterable_b->count) {
+  if (array_a->count != array_b->count) {
     return mongory_value_compare_fail;
   }
-  for (size_t i = 0; i < iterable_a->count; i++) {
+  for (size_t i = 0; i < array_a->count; i++) {
     mongory_value *item_a = array_a->get(array_a, i);
     mongory_value *item_b = array_b->get(array_b, i);
     bool a_is_null = item_a == NULL;
