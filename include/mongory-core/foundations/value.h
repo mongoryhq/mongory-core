@@ -4,27 +4,27 @@
 #include <stdint.h>
 #include "mongory-core/foundations/memory_pool.h"
 
-struct mongory_array;
-struct mongory_table;
+struct mongory_array; // forward declaration
+struct mongory_table; // forward declaration
 
-struct mongory_value;
-typedef struct mongory_value mongory_value;
-enum mongory_type;
-typedef enum mongory_type mongory_type;
-typedef int (*mongory_value_compare_func)(mongory_value *a, mongory_value *b);
-char* mongory_type_to_string(mongory_value *value);
-void* mongory_value_extract(mongory_value *value);
+struct mongory_value; // forward declaration
+typedef struct mongory_value mongory_value; // alias
+enum mongory_type; // forward declaration
+typedef enum mongory_type mongory_type; // alias
+typedef int (*mongory_value_compare_func)(mongory_value *a, mongory_value *b); // compare function
+char* mongory_type_to_string(mongory_value *value); // convert type to string
+void* mongory_value_extract(mongory_value *value); // extract value
 
-mongory_value* mongory_value_wrap_n(mongory_memory_pool *pool, void *n);
-mongory_value* mongory_value_wrap_b(mongory_memory_pool *pool, bool b);
-mongory_value* mongory_value_wrap_i(mongory_memory_pool *pool, int i);
-mongory_value* mongory_value_wrap_d(mongory_memory_pool *pool, double d);
-mongory_value* mongory_value_wrap_s(mongory_memory_pool *pool, char *s);
-mongory_value* mongory_value_wrap_a(mongory_memory_pool *pool, struct mongory_array *a);
-mongory_value* mongory_value_wrap_t(mongory_memory_pool *pool, struct mongory_table *t);
-mongory_value* mongory_value_wrap_regex(mongory_memory_pool *pool, void *regex);
-mongory_value* mongory_value_wrap_ptr(mongory_memory_pool *pool, void *ptr);
-mongory_value* mongory_value_wrap_u(mongory_memory_pool *pool, void *u);
+mongory_value* mongory_value_wrap_n(mongory_memory_pool *pool, void *n); // wrap null
+mongory_value* mongory_value_wrap_b(mongory_memory_pool *pool, bool b); // wrap boolean
+mongory_value* mongory_value_wrap_i(mongory_memory_pool *pool, int i); // wrap integer
+mongory_value* mongory_value_wrap_d(mongory_memory_pool *pool, double d); // wrap double
+mongory_value* mongory_value_wrap_s(mongory_memory_pool *pool, char *s); // wrap string
+mongory_value* mongory_value_wrap_a(mongory_memory_pool *pool, struct mongory_array *a); // wrap array
+mongory_value* mongory_value_wrap_t(mongory_memory_pool *pool, struct mongory_table *t); // wrap table
+mongory_value* mongory_value_wrap_regex(mongory_memory_pool *pool, void *regex); // wrap regex
+mongory_value* mongory_value_wrap_ptr(mongory_memory_pool *pool, void *ptr); // wrap pointer
+mongory_value* mongory_value_wrap_u(mongory_memory_pool *pool, void *u); // wrap unsupported
 
 #define MONGORY_TYPE_MACRO(_) \
   _(MONGORY_TYPE_NULL,   0, "Null",   i) \
@@ -49,21 +49,21 @@ enum mongory_type {
 static const int mongory_value_compare_fail = 97;
 
 struct mongory_value {
-  mongory_memory_pool *pool;
-  mongory_type type;
-  mongory_value_compare_func comp;
+  mongory_memory_pool *pool; // memory pool
+  mongory_type type; // type
+  mongory_value_compare_func comp; // compare function
   union {
-    bool b;
-    int64_t i;
-    double d;
-    char *s;
-    struct mongory_array *a;
-    struct mongory_table *t;
-    void *regex;
-    void *ptr;
-    void *u;
-  } data;
-  void *origin;
+    bool b; // boolean
+    int64_t i; // integer
+    double d; // double
+    char *s; // string
+    struct mongory_array *a; // array
+    struct mongory_table *t; // table
+    void *regex; // regex
+    void *ptr; // pointer
+    void *u; // unsupported
+  } data; // data
+  void *origin; // for bridged value pointer
 };
 
 #endif

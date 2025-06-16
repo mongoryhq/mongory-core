@@ -5,26 +5,27 @@
 #include "mongory-core/foundations/value.h"
 
 
-struct mongory_array;
-typedef struct mongory_array mongory_array;
-typedef bool (*mongory_array_callback_func)(mongory_value *item, void *acc);
-typedef bool (*mongory_array_each_func)(mongory_array *self, void *acc, mongory_array_callback_func func);
-typedef bool (*mongory_array_push_func)(mongory_array *self, mongory_value *value);
-typedef mongory_value* (*mongory_array_get_func)(mongory_array *self, size_t index);
-typedef bool (*mongory_array_set_func)(mongory_array *self, size_t index, mongory_value *value);
+struct mongory_array; // forward declaration
+typedef struct mongory_array mongory_array; // alias
 
-mongory_array* mongory_array_new(mongory_memory_pool *pool);
-bool mongory_array_resize(mongory_array *self, size_t size);
+typedef bool (*mongory_array_callback_func)(mongory_value *item, void *acc); // callback function
+typedef bool (*mongory_array_each_func)(mongory_array *self, void *acc, mongory_array_callback_func func); // each function
+typedef bool (*mongory_array_push_func)(mongory_array *self, mongory_value *value); // push function
+typedef mongory_value* (*mongory_array_get_func)(mongory_array *self, size_t index); // get function
+typedef bool (*mongory_array_set_func)(mongory_array *self, size_t index, mongory_value *value); // set function
+
+mongory_array* mongory_array_new(mongory_memory_pool *pool); // create new array
+bool mongory_array_resize(mongory_array *self, size_t size); // resize array
 
 struct mongory_array {
-  mongory_value **items;
-  size_t capacity;
-  size_t count;
-  mongory_memory_pool *pool;
-  mongory_array_each_func each;
-  mongory_array_push_func push;
-  mongory_array_get_func get;
-  mongory_array_set_func set;
+  mongory_value **items; // items pointer
+  size_t capacity; // capacity
+  size_t count; // count
+  mongory_memory_pool *pool; // memory pool
+  mongory_array_each_func each; // each function
+  mongory_array_push_func push; // push function
+  mongory_array_get_func get; // get function
+  mongory_array_set_func set; // set function
 };
 
 #endif

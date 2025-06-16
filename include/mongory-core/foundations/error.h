@@ -20,11 +20,11 @@ typedef enum mongory_error_type {
 #undef DEFINE_ERROR_ENUM
 } mongory_error_type;
 
-const char* mongory_error_type_to_string(enum mongory_error_type type);
+const char* mongory_error_type_to_string(enum mongory_error_type type); // convert error type to string
 
 typedef struct mongory_error {
-    mongory_error_type type;
-    const char *message;
+    mongory_error_type type; // error type
+    const char *message; // error message
 } mongory_error;
 
 #endif
