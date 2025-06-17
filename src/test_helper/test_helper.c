@@ -11,10 +11,32 @@
 
 static mongory_memory_pool *test_pool = NULL;
 
-// JSON convert functions
-static inline mongory_value *cjson_to_mongory_value_primitive(mongory_memory_pool *pool, cJSON *root) {
+static inline mongory_value *cjson_to_mongory_value_convert_recursive(mongory_memory_pool *pool, cJSON *root, mongory_value *(*convert_func)(mongory_memory_pool *pool, cJSON *root)) {
+  if (!root) {
+    return NULL;
+  }
+
   mongory_value *value = NULL;
+  mongory_array *array = NULL;
+  mongory_table *table = NULL;
+  
   switch (root->type) {
+    case cJSON_Array:
+      array = mongory_array_new(pool);
+      value = mongory_value_wrap_a(pool, array);
+      for (cJSON *item = root->child; item; item = item->next) {
+        array->push(array, convert_func(pool, item));
+      }
+      break;
+    case cJSON_Object:
+      table = mongory_table_new(pool);
+      value = mongory_value_wrap_t(pool, table);
+      for (cJSON *item = root->child; item; item = item->next) {
+        char *key_copy = pool->alloc(pool->ctx, strlen(item->string) + 1);
+        strcpy(key_copy, item->string);
+        table->set(table, key_copy, convert_func(pool, item));
+      }
+      break;
     case cJSON_String: {
       char *str_copy = pool->alloc(pool->ctx, strlen(root->valuestring) + 1);
       strcpy(str_copy, root->valuestring);
@@ -45,77 +67,15 @@ static inline mongory_value *cjson_to_mongory_value_primitive(mongory_memory_poo
 }
 
 mongory_value *cjson_to_mongory_value_deep_convert(mongory_memory_pool *pool, cJSON *root) {
-  if (!root) {
-    return NULL;
-  }
+  return cjson_to_mongory_value_convert_recursive(pool, root, cjson_to_mongory_value_deep_convert);
+}
 
-  mongory_value *value = NULL;
-  mongory_array *array = NULL;
-  mongory_table *table = NULL;
-  
-  switch (root->type) {
-    case cJSON_Array:
-      array = mongory_array_new(pool);
-      value = mongory_value_wrap_a(pool, array);
-      for (cJSON *item = root->child; item; item = item->next) {
-        mongory_value *item_value = cjson_to_mongory_value_deep_convert(pool, item);
-        if (item_value) {
-          array->push(array, item_value);
-        }
-      }
-      break;
-    case cJSON_Object:
-      table = mongory_table_new(pool);
-      value = mongory_value_wrap_t(pool, table);
-      for (cJSON *item = root->child; item; item = item->next) {
-        mongory_value *item_value = cjson_to_mongory_value_deep_convert(pool, item);
-        if (item_value) {
-          char *key_copy = pool->alloc(pool->ctx, strlen(item->string) + 1);
-          strcpy(key_copy, item->string);
-          table->set(table, key_copy, item_value);
-        }
-      }
-      break;
-    default:
-      value = cjson_to_mongory_value_primitive(pool, root);
-      break;
-  }
-
-  return value;
+static inline mongory_value *cjson_to_mongory_value_ptr(mongory_memory_pool *pool, cJSON *root) {
+  return mongory_value_wrap_ptr(pool, root);
 }
 
 mongory_value *cjson_to_mongory_value_shallow_convert(mongory_memory_pool *pool, cJSON *root) {
-  if (!root) {
-    return NULL;
-  }
-
-  mongory_value *value = NULL;
-  mongory_array *array = NULL;
-  mongory_table *table = NULL;
-  
-  switch (root->type) {
-    case cJSON_Array:
-      array = mongory_array_new(pool);
-      value = mongory_value_wrap_a(pool, array);
-      for (cJSON *item = root->child; item; item = item->next) {
-        array->push(array, mongory_value_wrap_ptr(pool, item));
-      }
-      break;
-    case cJSON_Object:
-      table = mongory_table_new(pool);
-      value = mongory_value_wrap_t(pool, table);
-      for (cJSON *item = root->child; item; item = item->next) {
-        char *key_copy = pool->alloc(pool->ctx, strlen(item->string) + 1);
-        strcpy(key_copy, item->string);
-        table->set(table, key_copy, mongory_value_wrap_ptr(pool, item));
-      }
-      break;
-    default:
-      value = cjson_to_mongory_value_primitive(pool, root);
-      break;
-  }
-
-  return value;
+  return cjson_to_mongory_value_convert_recursive(pool, root, cjson_to_mongory_value_ptr);
 }
 
 mongory_value *json_string_to_mongory_value(mongory_memory_pool *pool, const char *json) {
