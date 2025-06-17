@@ -35,7 +35,7 @@ static inline mongory_value* mongory_value_new(mongory_memory_pool *pool) {
   return value;
 }
 
-int mongory_value_null_compare(mongory_value *a, mongory_value *b) {
+static inline int mongory_value_null_compare(mongory_value *a, mongory_value *b) {
   (void)a;
   if (b->type != MONGORY_TYPE_NULL) {
     return mongory_value_compare_fail;
@@ -55,7 +55,7 @@ mongory_value* mongory_value_wrap_n(mongory_memory_pool *pool, void *n) {
   return value;
 }
 
-int mongory_value_bool_compare(mongory_value *a, mongory_value *b) {
+static inline int mongory_value_bool_compare(mongory_value *a, mongory_value *b) {
   if (b->type != MONGORY_TYPE_BOOL || a->data.b != b->data.b) {
     return mongory_value_compare_fail;
   }
@@ -74,7 +74,7 @@ mongory_value* mongory_value_wrap_b(mongory_memory_pool *pool, bool b) {
   return value;
 }
 
-int mongory_value_int_compare(mongory_value *a, mongory_value *b) {
+static inline int mongory_value_int_compare(mongory_value *a, mongory_value *b) {
   if (b->type == MONGORY_TYPE_DOUBLE) {
     double a_as_double = (double)a->data.i;
     double b_value = b->data.d;
@@ -101,7 +101,7 @@ mongory_value* mongory_value_wrap_i(mongory_memory_pool *pool, int i) {
   return value;
 }
 
-int mongory_value_double_compare(mongory_value *a, mongory_value *b) {
+static inline int mongory_value_double_compare(mongory_value *a, mongory_value *b) {
   if (b->type == MONGORY_TYPE_DOUBLE) {
     double a_value = a->data.d;
     double b_value = b->data.d;
@@ -128,7 +128,7 @@ mongory_value* mongory_value_wrap_d(mongory_memory_pool *pool, double d) {
   return value;
 }
 
-int mongory_value_string_compare(mongory_value *a, mongory_value *b) {
+static inline int mongory_value_string_compare(mongory_value *a, mongory_value *b) {
   if (b->type != MONGORY_TYPE_STRING || a->data.s == NULL || b->data.s == NULL) {
     return mongory_value_compare_fail;
   }
@@ -148,7 +148,7 @@ mongory_value* mongory_value_wrap_s(mongory_memory_pool *pool, char *s) {
   return value;
 }
 
-int mongory_value_array_compare(mongory_value *a, mongory_value *b) {
+static inline int mongory_value_array_compare(mongory_value *a, mongory_value *b) {
   if (b->type != MONGORY_TYPE_ARRAY || a->data.a == NULL || b->data.a == NULL) {
     return mongory_value_compare_fail;
   }
@@ -187,7 +187,7 @@ mongory_value* mongory_value_wrap_a(mongory_memory_pool *pool, struct mongory_ar
   return value;
 }
 
-int mongory_value_table_compare(mongory_value *a, mongory_value *b) {
+static inline int mongory_value_table_compare(mongory_value *a, mongory_value *b) {
   (void)a;
   (void)b;
   return mongory_value_compare_fail;
@@ -204,7 +204,7 @@ mongory_value* mongory_value_wrap_t(mongory_memory_pool *pool, struct mongory_ta
   return value;
 }
 
-int mongory_value_unknown_compare(mongory_value *a, mongory_value *b) {
+static inline int mongory_value_unknown_compare(mongory_value *a, mongory_value *b) {
   (void)a;
   (void)b;
   return mongory_value_compare_fail;
@@ -221,7 +221,7 @@ mongory_value* mongory_value_wrap_u(mongory_memory_pool *pool, void *unknown_val
   return value;
 }
 
-int mongory_value_regex_compare(mongory_value *a, mongory_value *b) {
+static inline int mongory_value_regex_compare(mongory_value *a, mongory_value *b) {
   (void)a;
   (void)b;
   return mongory_value_compare_fail;
@@ -238,7 +238,7 @@ mongory_value* mongory_value_wrap_regex(mongory_memory_pool *pool, void *regex) 
   return value;
 }
 
-int mongory_value_ptr_compare(mongory_value *a, mongory_value *b) {
+static inline int mongory_value_ptr_compare(mongory_value *a, mongory_value *b) {
   (void)a;
   (void)b;
   return mongory_value_compare_fail;

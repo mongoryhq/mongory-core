@@ -31,7 +31,7 @@ static inline bool mongory_array_grow_if_needed(mongory_array *self, size_t size
   return mongory_array_resize(self, new_capacity);
 }
 
-bool mongory_array_each(mongory_array *self, void *acc, mongory_array_callback_func func) {
+static inline bool mongory_array_each(mongory_array *self, void *acc, mongory_array_callback_func func) {
   for (size_t i = 0; i < self->count; i++) {
     mongory_value *item = self->items[i];
     if (!func(item, acc)) {
@@ -42,7 +42,7 @@ bool mongory_array_each(mongory_array *self, void *acc, mongory_array_callback_f
   return true;
 }
 
-bool mongory_array_push(mongory_array *self, mongory_value *value) {
+static inline bool mongory_array_push(mongory_array *self, mongory_value *value) {
   if (!mongory_array_grow_if_needed(self, self->count)) {
     return false;
   }
@@ -51,14 +51,14 @@ bool mongory_array_push(mongory_array *self, mongory_value *value) {
   return true;
 }
 
-mongory_value* mongory_array_get(mongory_array *self, size_t index) {
+static inline mongory_value* mongory_array_get(mongory_array *self, size_t index) {
   if (index >= self->count) {
     return NULL;
   }
   return self->items[index];
 }
 
-bool mongory_array_set(mongory_array *self, size_t index, mongory_value *value) {
+static inline bool mongory_array_set(mongory_array *self, size_t index, mongory_value *value) {
   if (!mongory_array_grow_if_needed(self, index + 1)) {
     return false;
   }

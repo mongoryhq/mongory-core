@@ -12,7 +12,7 @@ bool mongory_matcher_validate_bool_condition(mongory_value *condition) {
   return true;
 }
 
-bool mongory_matcher_exists_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_exists_match(mongory_matcher *matcher, mongory_value *value) {
   bool condition = matcher->condition->data.b;
   return condition == (value != NULL);
 }
@@ -30,7 +30,7 @@ mongory_matcher* mongory_matcher_exists_new(mongory_memory_pool *pool, mongory_v
   return matcher;
 }
 
-bool mongory_matcher_present_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_present_match(mongory_matcher *matcher, mongory_value *value) {
   bool condition = matcher->condition->data.b;
   if (value == NULL) {
     return !condition; // If value is NULL, it can only match if condition is false.
