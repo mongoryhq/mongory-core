@@ -11,7 +11,7 @@
 #include "composite_matcher.h"
 #include "existance_matcher.h"
 
-bool mongory_matcher_literal_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_literal_match(mongory_matcher *matcher, mongory_value *value) {
   mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
   if (value && value->type == MONGORY_TYPE_ARRAY) {
     if (composite->right == NULL) {
@@ -23,7 +23,7 @@ bool mongory_matcher_literal_match(mongory_matcher *matcher, mongory_value *valu
   }
 }
 
-mongory_matcher* mongory_matcher_null_new(mongory_memory_pool *pool, mongory_value *condition) {
+static inline mongory_matcher* mongory_matcher_null_new(mongory_memory_pool *pool, mongory_value *condition) {
   mongory_composite_matcher *composite = mongory_matcher_composite_new(pool, condition);
   composite->left = mongory_matcher_equal_new(pool, mongory_value_wrap_n(pool, NULL));
   composite->right = mongory_matcher_exists_new(pool, mongory_value_wrap_b(pool, false));
@@ -33,7 +33,7 @@ mongory_matcher* mongory_matcher_null_new(mongory_memory_pool *pool, mongory_val
   return (mongory_matcher *)composite;
 }
 
-mongory_matcher* mongory_matcher_literal_delegate(mongory_memory_pool *pool, mongory_value *condition) {
+static inline mongory_matcher* mongory_matcher_literal_delegate(mongory_memory_pool *pool, mongory_value *condition) {
   switch (condition->type) {
     case MONGORY_TYPE_TABLE:
       return mongory_matcher_table_cond_new(pool, condition);
@@ -51,7 +51,7 @@ typedef struct mongory_field_matcher {
   char *field;
 } mongory_field_matcher;
 
-bool mongory_matcher_field_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_field_match(mongory_matcher *matcher, mongory_value *value) {
   if (value == NULL) {
     return false;
   }
@@ -98,7 +98,7 @@ mongory_matcher* mongory_matcher_field_new(mongory_memory_pool *pool, char *fiel
   return (mongory_matcher *)field_matcher;
 }
 
-bool mongory_matcher_not_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_not_match(mongory_matcher *matcher, mongory_value *value) {
   return !mongory_matcher_literal_match(matcher, value);
 }
 
@@ -111,7 +111,7 @@ mongory_matcher* mongory_matcher_not_new(mongory_memory_pool *pool, mongory_valu
   return (mongory_matcher *)composite;
 }
 
-bool mongory_matcher_size_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_size_match(mongory_matcher *matcher, mongory_value *value) {
   if (value->type != MONGORY_TYPE_ARRAY) {
     return false;
   }

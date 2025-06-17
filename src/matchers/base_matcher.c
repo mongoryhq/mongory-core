@@ -17,7 +17,7 @@ mongory_matcher* mongory_matcher_base_new(mongory_memory_pool *pool, mongory_val
   return matcher;
 }
 
-bool mongory_matcher_always_true_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_always_true_match(mongory_matcher *matcher, mongory_value *value) {
   (void)matcher; // Unused parameter
   (void)value; // Unused parameter
   return true; // Always matches
@@ -29,7 +29,7 @@ mongory_matcher* mongory_matcher_always_true_new(mongory_memory_pool *pool, mong
   return matcher;
 }
 
-bool mongory_matcher_always_false_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_always_false_match(mongory_matcher *matcher, mongory_value *value) {
   (void)matcher; // Unused parameter
   (void)value; // Unused parameter
   return false; // Never matches

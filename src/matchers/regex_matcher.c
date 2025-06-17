@@ -4,7 +4,7 @@
 #include "base_matcher.h"
 #include "regex_matcher.h"
 
-bool mongory_matcher_regex_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_regex_match(mongory_matcher *matcher, mongory_value *value) {
   if (value->type != MONGORY_TYPE_STRING) {
     return false;
   }
@@ -12,7 +12,7 @@ bool mongory_matcher_regex_match(mongory_matcher *matcher, mongory_value *value)
   return mongory_internal_regex_adapter->func(matcher->pool, matcher->condition, value);
 }
 
-bool mongory_matcher_regex_validation(mongory_value *condition) {
+static inline bool mongory_matcher_regex_validation(mongory_value *condition) {
   return condition != NULL && 
          (condition->type == MONGORY_TYPE_STRING || condition->type == MONGORY_TYPE_REGEX);
 }

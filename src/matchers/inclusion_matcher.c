@@ -7,7 +7,7 @@ typedef struct mongory_matcher_inclusion_context {
   mongory_value *value;
 } mongory_matcher_inclusion_context;
 
-bool mongory_matcher_validate_array_condition(mongory_value *condition) {
+static inline bool mongory_matcher_validate_array_condition(mongory_value *condition) {
   if (condition == NULL) {
     return false;
   }
@@ -17,7 +17,7 @@ bool mongory_matcher_validate_array_condition(mongory_value *condition) {
   return true;
 }
 
-bool mongory_matcher_inclusion_value_compare(mongory_value *a, void *ctx) {
+static inline bool mongory_matcher_inclusion_value_compare(mongory_value *a, void *ctx) {
   mongory_matcher_inclusion_context *context = (mongory_matcher_inclusion_context *)ctx;
   mongory_value *b = context->value;
 
@@ -25,7 +25,7 @@ bool mongory_matcher_inclusion_value_compare(mongory_value *a, void *ctx) {
   return !context->result;
 }
 
-bool mongory_matcher_inclusion_array_compare(mongory_value *a, void *ctx) {
+static inline bool mongory_matcher_inclusion_array_compare(mongory_value *a, void *ctx) {
   mongory_matcher_inclusion_context *context = (mongory_matcher_inclusion_context *)ctx;
   mongory_array *b = context->value->data.a;
   mongory_matcher_inclusion_context ctx_b = { false, a };
@@ -35,7 +35,7 @@ bool mongory_matcher_inclusion_array_compare(mongory_value *a, void *ctx) {
   return is_continue;
 }
 
-bool mongory_matcher_in_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_in_match(mongory_matcher *matcher, mongory_value *value) {
   mongory_matcher_inclusion_context ctx = { false, value };
   mongory_array *condition_array = (mongory_array *)matcher->condition->data.a;
   if (value->type == MONGORY_TYPE_ARRAY) {
@@ -60,7 +60,7 @@ mongory_matcher* mongory_matcher_in_new(mongory_memory_pool *pool, mongory_value
   return matcher;
 }
 
-bool mongory_matcher_not_in_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_not_in_match(mongory_matcher *matcher, mongory_value *value) {
   return !mongory_matcher_in_match(matcher, value);
 }
 

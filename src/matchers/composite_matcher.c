@@ -22,7 +22,7 @@ mongory_composite_matcher* mongory_matcher_composite_new(mongory_memory_pool *po
   return composite;
 }
 
-bool mongory_matcher_and_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_and_match(mongory_matcher *matcher, mongory_value *value) {
   mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
   if (composite->left && !composite->left->match(composite->left, value)) {
     return false;
@@ -44,7 +44,7 @@ bool mongory_matcher_or_match(mongory_matcher *matcher, mongory_value *value) {
   return false;
 }
 
-bool mongory_matcher_table_cond_validate(mongory_value *condition, void *acc) {
+static inline bool mongory_matcher_table_cond_validate(mongory_value *condition, void *acc) {
   (void)acc;
   return condition && condition->type == MONGORY_TYPE_TABLE && condition->data.t != NULL;
 }
@@ -55,7 +55,7 @@ typedef struct mongory_matcher_table_build_sub_matcher_context {
   int index;
 } mongory_matcher_table_build_sub_matcher_context;
 
-bool mongory_matcher_table_build_sub_matcher(char *key, mongory_value *value, void *acc) {
+static inline bool mongory_matcher_table_build_sub_matcher(char *key, mongory_value *value, void *acc) {
   mongory_matcher_table_build_sub_matcher_context *ctx = (mongory_matcher_table_build_sub_matcher_context *)acc;
   mongory_memory_pool *pool = ctx->pool;
   mongory_matcher **matchers = ctx->matchers;
@@ -78,14 +78,12 @@ bool mongory_matcher_table_build_sub_matcher(char *key, mongory_value *value, vo
   return true;
 }
 
-typedef mongory_matcher* (*mongory_matchers_construct_func)(mongory_matcher **matchers, int head, int tail);
-
 static inline mongory_matcher* mongory_matcher_binary_construct(
   mongory_matcher **matchers,
   int head,
   int tail,
   mongory_matcher_match_func match_func,
-  mongory_matchers_construct_func construct_func
+  mongory_matcher* (*construct_func)(mongory_matcher **matchers, int head, int tail)
 ) {
   mongory_matcher *sub_matcher = matchers[head];
   int count = tail - head + 1;
@@ -139,7 +137,7 @@ mongory_matcher* mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongo
   return matcher;
 }
 
-bool mongory_matcher_multi_table_cond_validate(mongory_value *condition) {
+static inline bool mongory_matcher_multi_table_cond_validate(mongory_value *condition) {
   if (condition->type != MONGORY_TYPE_ARRAY) {
     return false;
   }
@@ -147,7 +145,7 @@ bool mongory_matcher_multi_table_cond_validate(mongory_value *condition) {
   return condition->data.a->each(condition->data.a, NULL, mongory_matcher_table_cond_validate);
 }
 
-bool mongory_matcher_build_and_sub_matcher(mongory_value *condition, void *acc) { 
+static inline bool mongory_matcher_build_and_sub_matcher(mongory_value *condition, void *acc) { 
   return condition->data.t->each(condition->data.t, acc, mongory_matcher_table_build_sub_matcher);
 }
 
@@ -176,7 +174,7 @@ mongory_matcher* mongory_matcher_and_new(mongory_memory_pool *pool, mongory_valu
   return matcher;
 }
 
-bool mongory_matcher_build_or_sub_matcher(mongory_value *condition, void *acc) { 
+static inline bool mongory_matcher_build_or_sub_matcher(mongory_value *condition, void *acc) { 
   mongory_matcher_table_build_sub_matcher_context *ctx = (mongory_matcher_table_build_sub_matcher_context *)acc;
   mongory_memory_pool *pool = ctx->pool;
   mongory_matcher **matchers = ctx->matchers;
@@ -213,12 +211,12 @@ mongory_matcher* mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value
   return matcher;
 }
 
-bool mongory_matcher_elem_match_unit_compare(mongory_value *value, void *acc) {
+static inline bool mongory_matcher_elem_match_unit_compare(mongory_value *value, void *acc) {
   mongory_matcher *matcher = (mongory_matcher *)acc;
   return !matcher->match(matcher, value);
 }
 
-bool mongory_matcher_elem_match_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_elem_match_match(mongory_matcher *matcher, mongory_value *value) {
   if (value->type != MONGORY_TYPE_ARRAY) {
     return false;
   }
@@ -242,12 +240,12 @@ mongory_matcher* mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongo
   return (mongory_matcher *)composite;
 }
 
-bool mongory_matcher_every_match_unit_compare(mongory_value *value, void *acc) {
+static inline bool mongory_matcher_every_match_unit_compare(mongory_value *value, void *acc) {
   mongory_matcher *matcher = (mongory_matcher *)acc;
   return matcher->match(matcher, value);
 }
 
-bool mongory_matcher_every_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_every_match(mongory_matcher *matcher, mongory_value *value) {
   if (value->type != MONGORY_TYPE_ARRAY) {
     return false;
   }

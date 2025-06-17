@@ -12,7 +12,7 @@ mongory_matcher* mongory_matcher_compare_new(mongory_memory_pool *pool, mongory_
   return matcher;
 }
 
-bool mongory_matcher_equal_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_equal_match(mongory_matcher *matcher, mongory_value *value) {
   int result = value->comp(value, matcher->condition);
   if (result == mongory_value_compare_fail) {
     return false;
@@ -24,7 +24,7 @@ mongory_matcher* mongory_matcher_equal_new(mongory_memory_pool *pool, mongory_va
   return mongory_matcher_compare_new(pool, condition, mongory_matcher_equal_match);
 }
 
-bool mongory_matcher_not_equal_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_not_equal_match(mongory_matcher *matcher, mongory_value *value) {
   int result = value->comp(value, matcher->condition);
   if (result == mongory_value_compare_fail) {
     return true;
@@ -36,7 +36,7 @@ mongory_matcher* mongory_matcher_not_equal_new(mongory_memory_pool *pool, mongor
   return mongory_matcher_compare_new(pool, condition, mongory_matcher_not_equal_match);
 }
 
-bool mongory_matcher_greater_than_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_greater_than_match(mongory_matcher *matcher, mongory_value *value) {
   int result = value->comp(value, matcher->condition);
   if (result == mongory_value_compare_fail) {
     return false;
@@ -48,7 +48,7 @@ mongory_matcher* mongory_matcher_greater_than_new(mongory_memory_pool *pool, mon
   return mongory_matcher_compare_new(pool, condition, mongory_matcher_greater_than_match);
 }
 
-bool mongory_matcher_less_than_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_less_than_match(mongory_matcher *matcher, mongory_value *value) {
   int result = value->comp(value, matcher->condition);
   if (result == mongory_value_compare_fail) {
     return false;
@@ -60,7 +60,7 @@ mongory_matcher* mongory_matcher_less_than_new(mongory_memory_pool *pool, mongor
   return mongory_matcher_compare_new(pool, condition, mongory_matcher_less_than_match);
 }
 
-bool mongory_matcher_greater_than_or_equal_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_greater_than_or_equal_match(mongory_matcher *matcher, mongory_value *value) {
   int result = value->comp(value, matcher->condition);
   if (result == mongory_value_compare_fail) {
     return false;
@@ -72,7 +72,7 @@ mongory_matcher* mongory_matcher_greater_than_or_equal_new(mongory_memory_pool *
   return mongory_matcher_compare_new(pool, condition, mongory_matcher_greater_than_or_equal_match);
 }
 
-bool mongory_matcher_less_than_or_equal_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_less_than_or_equal_match(mongory_matcher *matcher, mongory_value *value) {
   int result = value->comp(value, matcher->condition);
   if (result == mongory_value_compare_fail) {
     return false;

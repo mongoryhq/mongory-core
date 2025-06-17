@@ -16,7 +16,7 @@ mongory_regex_adapter *mongory_internal_regex_adapter = NULL;
 mongory_table *mongory_matcher_mapping = NULL;
 mongory_value_converter *mongory_internal_value_converter = NULL;
 
-static void mongory_internal_pool_init() {
+static inline void mongory_internal_pool_init() {
   if (mongory_internal_pool != NULL) {
     return;
   }
@@ -24,14 +24,14 @@ static void mongory_internal_pool_init() {
   mongory_internal_pool = mongory_memory_pool_new();
 }
 
-static bool mongory_regex_default_func(mongory_memory_pool *pool, mongory_value *pattern, mongory_value *value) {
+static inline bool mongory_regex_default_func(mongory_memory_pool *pool, mongory_value *pattern, mongory_value *value) {
   (void)pool;
   (void)pattern;
   (void)value;
   return false;
 }
 
-static void mongory_internal_regex_adapter_init() {
+static inline void mongory_internal_regex_adapter_init() {
   if (mongory_internal_regex_adapter != NULL) {
     return;
   }
@@ -53,7 +53,7 @@ void mongory_regex_func_set(mongory_regex_func func) {
   }
 }
 
-static void mongory_matcher_mapping_init() {
+static inline void mongory_matcher_mapping_init() {
   if (mongory_matcher_mapping != NULL) {
     return;
   }
@@ -82,7 +82,7 @@ mongory_matcher_build_func mongory_matcher_build_func_get(char *name) {
   return (mongory_matcher_build_func)value->data.ptr;
 }
 
-static void mongory_internal_value_converter_init() {
+static inline void mongory_internal_value_converter_init() {
   if (mongory_internal_value_converter != NULL) {
     return;
   }
