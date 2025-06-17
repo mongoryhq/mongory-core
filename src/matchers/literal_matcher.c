@@ -52,7 +52,9 @@ typedef struct mongory_field_matcher {
 } mongory_field_matcher;
 
 bool mongory_matcher_field_match(mongory_matcher *matcher, mongory_value *value) {
-  if (value == NULL) return false;
+  if (value == NULL) {
+    return false;
+  }
   mongory_field_matcher *field_matcher = (mongory_field_matcher *)matcher;
   mongory_value *field_value = NULL;
   char *field = field_matcher->field;
@@ -62,7 +64,9 @@ bool mongory_matcher_field_match(mongory_matcher *matcher, mongory_value *value)
   } else if (value->type == MONGORY_TYPE_ARRAY) {
     int index;
     mongory_array *array = value->data.a;
-    if (!mongory_try_parse_int(field, &index)) return false;
+    if (!mongory_try_parse_int(field, &index)) {
+      return false;
+    }
     if (index < 0) {
       index = array->count + index;
     }
@@ -108,7 +112,9 @@ mongory_matcher* mongory_matcher_not_new(mongory_memory_pool *pool, mongory_valu
 }
 
 bool mongory_matcher_size_match(mongory_matcher *matcher, mongory_value *value) {
-  if (value->type != MONGORY_TYPE_ARRAY) return false;
+  if (value->type != MONGORY_TYPE_ARRAY) {
+    return false;
+  }
   mongory_array *array = value->data.a;
   mongory_value *size = mongory_value_wrap_i(value->pool, array->count);
   return mongory_matcher_literal_match(matcher, size);

@@ -5,7 +5,9 @@
 #include "regex_matcher.h"
 
 bool mongory_matcher_regex_match(mongory_matcher *matcher, mongory_value *value) {
-  if (value->type != MONGORY_TYPE_STRING) return false;
+  if (value->type != MONGORY_TYPE_STRING) {
+    return false;
+  }
 
   return mongory_internal_regex_adapter->func(matcher->pool, matcher->condition, value);
 }

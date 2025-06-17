@@ -9,10 +9,10 @@ typedef struct mongory_matcher_inclusion_context {
 
 bool mongory_matcher_validate_array_condition(mongory_value *condition) {
   if (condition == NULL) {
-    return false; // Condition must not be NULL.
+    return false;
   }
   if (condition->type != MONGORY_TYPE_ARRAY) {
-    return false; // Condition must be an array.
+    return false;
   }
   return true;
 }
@@ -22,7 +22,7 @@ bool mongory_matcher_inclusion_value_compare(mongory_value *a, void *ctx) {
   mongory_value *b = context->value;
 
   context->result = a->comp(a, b) == 0;
-  return !context->result; // Continue iteration if the values are not equal.
+  return !context->result;
 }
 
 bool mongory_matcher_inclusion_array_compare(mongory_value *a, void *ctx) {

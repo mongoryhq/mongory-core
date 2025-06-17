@@ -140,7 +140,9 @@ mongory_matcher* mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongo
 }
 
 bool mongory_matcher_multi_table_cond_validate(mongory_value *condition) {
-  if (condition->type != MONGORY_TYPE_ARRAY) return false;
+  if (condition->type != MONGORY_TYPE_ARRAY) {
+    return false;
+  }
 
   return condition->data.a->each(condition->data.a, NULL, mongory_matcher_table_cond_validate);
 }
@@ -217,7 +219,9 @@ bool mongory_matcher_elem_match_unit_compare(mongory_value *value, void *acc) {
 }
 
 bool mongory_matcher_elem_match_match(mongory_matcher *matcher, mongory_value *value) {
-  if (value->type != MONGORY_TYPE_ARRAY) return false;
+  if (value->type != MONGORY_TYPE_ARRAY) {
+    return false;
+  }
   mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
   mongory_array *array = value->data.a;
   return !array->each(array, composite->left, mongory_matcher_elem_match_unit_compare);
@@ -244,7 +248,9 @@ bool mongory_matcher_every_match_unit_compare(mongory_value *value, void *acc) {
 }
 
 bool mongory_matcher_every_match(mongory_matcher *matcher, mongory_value *value) {
-  if (value->type != MONGORY_TYPE_ARRAY) return false;
+  if (value->type != MONGORY_TYPE_ARRAY) {
+    return false;
+  }
   mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
   mongory_array *array = value->data.a;
   return array->each(array, composite->left, mongory_matcher_every_match_unit_compare);

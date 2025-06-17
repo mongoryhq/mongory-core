@@ -82,8 +82,12 @@ static inline mongory_matcher* mongory_matcher_array_record_right_delegate(mongo
 }
 
 static inline bool mongory_matcher_array_record_match(mongory_matcher *matcher, mongory_value *value) {
-  if (value == NULL) return false;
-  if (value->type != MONGORY_TYPE_ARRAY) return false;
+  if (value == NULL) {
+    return false;
+  }
+  if (value->type != MONGORY_TYPE_ARRAY) {
+    return false;
+  }
 
   return mongory_matcher_or_match(matcher, value);
 }

@@ -45,7 +45,9 @@ static inline mongory_value *cjson_to_mongory_value_primitive(mongory_memory_poo
 }
 
 mongory_value *cjson_to_mongory_value_deep_convert(mongory_memory_pool *pool, cJSON *root) {
-  if (!root) return NULL;
+  if (!root) {
+    return NULL;
+  }
 
   mongory_value *value = NULL;
   mongory_array *array = NULL;
@@ -83,7 +85,9 @@ mongory_value *cjson_to_mongory_value_deep_convert(mongory_memory_pool *pool, cJ
 }
 
 mongory_value *cjson_to_mongory_value_shallow_convert(mongory_memory_pool *pool, cJSON *root) {
-  if (!root) return NULL;
+  if (!root) {
+    return NULL;
+  }
 
   mongory_value *value = NULL;
   mongory_array *array = NULL;
@@ -115,7 +119,9 @@ mongory_value *cjson_to_mongory_value_shallow_convert(mongory_memory_pool *pool,
 }
 
 mongory_value *json_string_to_mongory_value(mongory_memory_pool *pool, const char *json) {
-  if (!json) return NULL;
+  if (!json) {
+    return NULL;
+  }
   
   cJSON *root = cJSON_Parse(json);
   if (!root) {
