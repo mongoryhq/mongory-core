@@ -2,7 +2,7 @@
 #define MONGORY_MATCHER_COMPOSITE_H
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
-#include "base_matcher.h"
+#include "mongory-core/matchers/matcher.h"
 
 typedef struct mongory_composite_matcher {
   mongory_matcher base;
