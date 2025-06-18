@@ -17,6 +17,36 @@ char* mongory_type_to_string(mongory_value *value) {
   }
 }
 
+char* mongory_value_to_string(mongory_value *value) {
+  char *buffer = NULL;
+  switch (value->type) {
+  case MONGORY_TYPE_INT:
+    buffer = value->pool->alloc(value->pool->ctx, 32);
+    snprintf(buffer, 32, "%d", value->data.i);
+    return buffer;
+  case MONGORY_TYPE_DOUBLE:
+    buffer = value->pool->alloc(value->pool->ctx, 32);
+    snprintf(buffer, 32, "%f", value->data.d);
+    return buffer;
+  case MONGORY_TYPE_STRING:
+    buffer = value->pool->alloc(value->pool->ctx, 32);
+    snprintf(buffer, 32, "\"%s\"", value->data.s);
+    return buffer;
+  case MONGORY_TYPE_ARRAY:
+    return "Array Value";
+  case MONGORY_TYPE_TABLE:
+    return "Table Value";
+  case MONGORY_TYPE_REGEX:
+    return "Regex";
+  case MONGORY_TYPE_POINTER:
+    return "Pointer Value";
+  case MONGORY_TYPE_UNSUPPORTED:
+    return "Unsupported";
+  default:
+      return "UnknownType";
+  }
+}
+
 void* mongory_value_extract(mongory_value *value) {
   switch (value->type) {
 #define EXTRACT_CASE(name, num, str, field) case name: return (void *)&value->data.field;
