@@ -5,47 +5,47 @@
 #define MONGORY_INITIAL_CHUNK_SIZE 256
 #define MONGORY_ALIGN8(size) (((size) + 7) & ~((size_t)7))
 
-typedef struct mongory_memory_chunk {
-  void *start;
-  size_t capacity;
+typedef struct mongory_memory_node {
+  void *ptr;
+  size_t size;
   size_t used;
-  struct mongory_memory_chunk *next;
-} mongory_memory_chunk;
-
+  struct mongory_memory_node *next;
+} mongory_memory_node;
+ 
 typedef struct mongory_memory_pool_ctx {
   size_t chunk_size;
-  mongory_memory_chunk *head;
-  mongory_memory_chunk *current;
-  mongory_memory_chunk *extra;
+  mongory_memory_node *head;
+  mongory_memory_node *current;
+  mongory_memory_node *extra;
 } mongory_memory_pool_ctx;
 
-static inline mongory_memory_chunk* mongory_memory_chunk_new(size_t chunk_size) {
-  mongory_memory_chunk *chunk = calloc(1, sizeof(mongory_memory_chunk));
-  if (!chunk) {
+static inline mongory_memory_node* mongory_memory_chunk_new(size_t chunk_size) {
+  mongory_memory_node *node = calloc(1, sizeof(mongory_memory_node));
+  if (!node) {
     return NULL;
   }
 
   void *mem = calloc(1, chunk_size);
   if (!mem) {
-    free(chunk);
+    free(node);
     return NULL;
   }
 
-  chunk->start = mem;
-  chunk->capacity = chunk_size;
-  chunk->used = 0;
-  chunk->next = NULL;
+  node->ptr = mem;
+  node->size = chunk_size;
+  node->used = 0;
+  node->next = NULL;
 
-  return chunk;
+  return node;
 }
 
-static inline bool mongory_memory_pool_add_chunk(mongory_memory_pool_ctx *ctx, size_t request_size) {
+static inline bool mongory_memory_pool_grow(mongory_memory_pool_ctx *ctx, size_t request_size) {
   ctx->chunk_size *= 2;
   while (request_size > ctx->chunk_size) {
     ctx->chunk_size *= 2;
   }
 
-  mongory_memory_chunk *new_chunk = mongory_memory_chunk_new(ctx->chunk_size);
+  mongory_memory_node *new_chunk = mongory_memory_chunk_new(ctx->chunk_size);
   if (!new_chunk) {
     return false;
   }
@@ -58,35 +58,35 @@ static inline bool mongory_memory_pool_add_chunk(mongory_memory_pool_ctx *ctx, s
 static inline void* mongory_memory_pool_alloc(void *ctx, size_t size) {
   mongory_memory_pool_ctx *pool_ctx = (mongory_memory_pool_ctx *)ctx;
   size = MONGORY_ALIGN8(size);
-  size_t balance = pool_ctx->current->capacity - pool_ctx->current->used;
-  if (size > balance && !mongory_memory_pool_add_chunk(pool_ctx, size)) {
+  size_t balance = pool_ctx->current->size - pool_ctx->current->used;
+  if (size > balance && !mongory_memory_pool_grow(pool_ctx, size)) {
     return NULL;
   }
 
-  void *ptr = (char *)pool_ctx->current->start + pool_ctx->current->used;
+  void *ptr = (char *)pool_ctx->current->ptr + pool_ctx->current->used;
   pool_ctx->current->used += size;
 
   return ptr;
 }
 
-static inline void mongory_memory_pool_chunk_list_free(mongory_memory_chunk *head) {
-  mongory_memory_chunk *chunk = head;
-  while (chunk) {
-    mongory_memory_chunk *next = chunk->next;
-    if (chunk->start) {
-      memset(chunk->start, 0, chunk->capacity); // Clear memory for safety
-      free(chunk->start);
+static inline void mongory_memory_pool_node_list_free(mongory_memory_node *head) {
+  mongory_memory_node *node = head;
+  while (node) {
+    mongory_memory_node *next = node->next;
+    if (node->ptr) {
+      memset(node->ptr, 0, node->size); // Clear memory for safety
+      free(node->ptr);
     }
-    memset(chunk, 0, sizeof(mongory_memory_chunk)); // Clear the chunk structure
-    free(chunk);
-    chunk = next;
+    memset(node, 0, sizeof(mongory_memory_node)); // Clear the node structure
+    free(node);
+    node = next;
   }
 }
 
 static inline void mongory_memory_pool_destroy(mongory_memory_pool *pool) {
   mongory_memory_pool_ctx *ctx = (mongory_memory_pool_ctx *)pool->ctx;
-  mongory_memory_pool_chunk_list_free(ctx->head);
-  mongory_memory_pool_chunk_list_free(ctx->extra);
+  mongory_memory_pool_node_list_free(ctx->head);
+  mongory_memory_pool_node_list_free(ctx->extra);
 
   memset(ctx, 0, sizeof(mongory_memory_pool_ctx)); // Clear the context structure
   free(ctx);
@@ -96,12 +96,12 @@ static inline void mongory_memory_pool_destroy(mongory_memory_pool *pool) {
 
 static inline void mongory_memory_pool_trace(void *ctx, void *ptr, size_t size) {
   mongory_memory_pool_ctx *pool_ctx = (mongory_memory_pool_ctx *)ctx;
-  mongory_memory_chunk *extra_alloc_tracer = calloc(1, sizeof(mongory_memory_chunk));
+  mongory_memory_node *extra_alloc_tracer = calloc(1, sizeof(mongory_memory_node));
   if (!extra_alloc_tracer) {
     return; // Handle allocation failure
   }
-  extra_alloc_tracer->start = ptr;
-  extra_alloc_tracer->capacity = size;
+  extra_alloc_tracer->ptr = ptr;
+  extra_alloc_tracer->size = size;
   extra_alloc_tracer->next = pool_ctx->extra;
   pool_ctx->extra = extra_alloc_tracer;
 }
@@ -118,7 +118,7 @@ mongory_memory_pool* mongory_memory_pool_new() {
     return NULL;
   }
 
-  mongory_memory_chunk *first_chunk = mongory_memory_chunk_new(MONGORY_INITIAL_CHUNK_SIZE);
+  mongory_memory_node *first_chunk = mongory_memory_chunk_new(MONGORY_INITIAL_CHUNK_SIZE);
   if (!first_chunk) {
     free(ctx);
     free(pool);
