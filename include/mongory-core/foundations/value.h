@@ -13,6 +13,7 @@ enum mongory_type; // forward declaration
 typedef enum mongory_type mongory_type; // alias
 typedef int (*mongory_value_compare_func)(mongory_value *a, mongory_value *b); // compare function
 char* mongory_type_to_string(mongory_value *value); // convert type to string
+char* mongory_value_to_string(mongory_value *value); // convert value to string
 void* mongory_value_extract(mongory_value *value); // extract value
 
 mongory_value* mongory_value_wrap_n(mongory_memory_pool *pool, void *n); // wrap null
