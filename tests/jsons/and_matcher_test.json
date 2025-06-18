@@ -1,0 +1,107 @@
+[
+  {
+    "description": "basic field test",
+    "condition": [
+      {
+        "name": "John"
+      },
+      {
+        "age": 30
+      }
+    ],
+    "records": [
+      {
+        "data": {
+          "name": "John",
+          "age": 30
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "name": "Frank",
+          "age": 30
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "name": "John",
+          "age": 20
+        },
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "All match",
+    "condition": [],
+    "records": [
+      {
+        "data": {},
+        "expected": true
+      },
+      {
+        "data": [],
+        "expected": true
+      },
+      {
+        "data": "lalala",
+        "expected": true
+      }
+    ]
+  },
+  {
+    "description": "multiple conditions",
+    "condition": [
+      {
+        "name": "John",
+        "age": 30
+      },
+      {
+        "tags": "engineer",
+        "salary": {
+          "$gt": 100000
+        }
+      }
+    ],
+    "records": [
+      {
+        "data": {
+          "name": "John",
+          "age": 30,
+          "tags": ["engineer", "developer"],
+          "salary": 200000
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "name": "John",
+          "age": 30,
+          "tags": ["engineer", "developer"],
+          "salary": 100000
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "name": "John",
+          "age": 30,
+          "tags": ["developer"],
+          "salary": 100000
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "name": "Frank",
+          "age": 30,
+          "tags": ["engineer", "developer"],
+          "salary": 100000
+        },
+        "expected": false
+      }
+    ]
+  }
+]

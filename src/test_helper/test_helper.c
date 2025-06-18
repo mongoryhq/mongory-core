@@ -133,6 +133,7 @@ bool execute_test_record(mongory_value *test_record, void *acc) {
   bool expected = expected_value->data.b;
   TEST_ASSERT_NOT_NULL(data_value);
   TEST_ASSERT_NOT_NULL(expected_value);
+
   bool result = matcher->match(matcher, data_value);
   if (expected != result) {
     printf("Test failed\n");

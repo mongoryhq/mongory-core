@@ -11,12 +11,12 @@ void tearDown(void) {
   teardown_test_environment();
 }
 
-void test_table_cond_matcher(void) {
-  execute_test_case("tests/jsons/table_condition_matcher_test.json", mongory_matcher_table_cond_new);
+void test_and_matcher(void) {
+  execute_test_case("tests/jsons/and_matcher_test.json", mongory_matcher_and_new);
 }
 
 int main(void) {
   UNITY_BEGIN();
-  RUN_TEST(test_table_cond_matcher);
+  RUN_TEST(test_and_matcher);
   return UNITY_END();
 }
