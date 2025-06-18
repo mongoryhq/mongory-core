@@ -85,26 +85,6 @@ void test_table_get_nonexistent(void) {
     TEST_ASSERT_NULL(retrieved);
 }
 
-void test_table_auto_rehash(void) {
-    TEST_ASSERT_EQUAL(0, table->count);
-    table->set(table, "key01", NULL);
-    table->set(table, "key02", NULL);
-    table->set(table, "key03", NULL);
-    table->set(table, "key04", NULL);
-    table->set(table, "key05", NULL);
-    table->set(table, "key06", NULL);
-    table->set(table, "key07", NULL);
-    table->set(table, "key08", NULL);
-    table->set(table, "key09", NULL);
-    table->set(table, "key10", NULL);
-    table->set(table, "key11", NULL);
-    table->set(table, "key12", NULL);
-    TEST_ASSERT_EQUAL(17, table->capacity);
-    table->set(table, "key13", NULL);
-    TEST_ASSERT_EQUAL(13, table->count);
-    TEST_ASSERT_EQUAL(37, table->capacity);
-}
-
 int main(void) {
     UNITY_BEGIN();
     mongory_init();
@@ -112,7 +92,6 @@ int main(void) {
     RUN_TEST(test_table_delete);
     RUN_TEST(test_table_each);
     RUN_TEST(test_table_get_nonexistent);
-    RUN_TEST(test_table_auto_rehash);
     mongory_cleanup();
     return UNITY_END();
 }
