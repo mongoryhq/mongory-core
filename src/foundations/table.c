@@ -2,6 +2,7 @@
 #include <mongory-core/foundations/value.h>
 #include <mongory-core/foundations/table.h>
 #include <mongory-core/foundations/array.h>
+#include <mongory-core/foundations/config.h>
 
 #define MONGORY_TABLE_INIT_SIZE 17
 #define MONGORY_TABLE_LOAD_FACTOR 0.75
@@ -152,6 +153,11 @@ bool mongory_table_set(mongory_table *self, char *key, mongory_value *value) {
 
   mongory_table_node *new_node = mongory_table_node_new(self);
   if (!new_node) {
+    return false;
+  }
+
+  key = mongory_string_cpy(self->pool, key);
+  if (!key) {
     return false;
   }
 

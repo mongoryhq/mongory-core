@@ -1,3 +1,4 @@
+#include <string.h>
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
 #include "mongory-core/foundations/table.h"
@@ -103,6 +104,22 @@ void mongory_value_converter_shallow_convert_set(mongory_shallow_convert_func sh
 
 void mongory_value_converter_recover_set(mongory_recover_func recover) {
   mongory_internal_value_converter->recover = recover;
+}
+
+char* mongory_string_cpy(mongory_memory_pool *pool, char *str) {
+  if (str == NULL) {
+    return NULL;
+  }
+
+  size_t len = strlen(str);
+  char *new_str = pool->alloc(pool->ctx, len + 1);
+  if (new_str == NULL) {
+    return NULL;
+  }
+
+  strcpy(new_str, str);
+
+  return new_str;
 }
 
 void mongory_init() {
