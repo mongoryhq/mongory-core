@@ -5,6 +5,7 @@
 #include <mongory-core/foundations/value.h>
 #include <mongory-core/foundations/table.h>
 #include <mongory-core/foundations/array.h>
+#include <mongory-core/foundations/config.h>
 
 char* mongory_type_to_string(mongory_value *value) {
   switch (value->type) {
@@ -143,7 +144,7 @@ mongory_value* mongory_value_wrap_s(mongory_memory_pool *pool, char *s) {
     return NULL;
   }
   value->type = MONGORY_TYPE_STRING;
-  value->data.s = s;
+  value->data.s = mongory_string_cpy(pool, s);
   value->comp = mongory_value_string_compare;
   return value;
 }

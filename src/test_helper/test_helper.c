@@ -32,15 +32,11 @@ static inline mongory_value *cjson_to_mongory_value_convert_recursive(mongory_me
       table = mongory_table_new(pool);
       value = mongory_value_wrap_t(pool, table);
       for (cJSON *item = root->child; item; item = item->next) {
-        char *key_copy = pool->alloc(pool->ctx, strlen(item->string) + 1);
-        strcpy(key_copy, item->string);
-        table->set(table, key_copy, convert_func(pool, item));
+        table->set(table, item->string, convert_func(pool, item));
       }
       break;
     case cJSON_String: {
-      char *str_copy = pool->alloc(pool->ctx, strlen(root->valuestring) + 1);
-      strcpy(str_copy, root->valuestring);
-      value = mongory_value_wrap_s(pool, str_copy);
+      value = mongory_value_wrap_s(pool, root->valuestring);
       break;
     }
     case cJSON_Number:

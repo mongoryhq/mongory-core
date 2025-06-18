@@ -15,5 +15,6 @@ void mongory_regex_func_set(mongory_regex_func func); // set regex function
 void mongory_value_converter_deep_convert_set(mongory_deep_convert_func deep_convert); // set deep convert function
 void mongory_value_converter_shallow_convert_set(mongory_shallow_convert_func shallow_convert); // set shallow convert function
 void mongory_value_converter_recover_set(mongory_recover_func recover); // set recover function
+char* mongory_string_cpy(mongory_memory_pool *pool, char *str);
 
 #endif
