@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <mongory-core/foundations/memory_pool.h>
@@ -22,7 +23,7 @@ char* mongory_value_to_string(mongory_value *value) {
   switch (value->type) {
   case MONGORY_TYPE_INT:
     buffer = value->pool->alloc(value->pool->ctx, 32);
-    snprintf(buffer, 32, "%d", value->data.i);
+    snprintf(buffer, 32, "%lld", value->data.i);
     return buffer;
   case MONGORY_TYPE_DOUBLE:
     buffer = value->pool->alloc(value->pool->ctx, 32);
