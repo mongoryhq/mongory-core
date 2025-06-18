@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
-#include "base_matcher.h"
+#include "mongory-core/matchers/matcher.h"
 
 mongory_matcher* mongory_matcher_equal_new(mongory_memory_pool *pool, mongory_value *condition);
 mongory_matcher* mongory_matcher_not_equal_new(mongory_memory_pool *pool, mongory_value *condition);

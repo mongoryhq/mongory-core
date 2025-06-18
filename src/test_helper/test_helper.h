@@ -3,7 +3,7 @@
 
 #include <mongory-core.h>
 #include <cjson/cJSON.h>
-#include "../matchers/base_matcher.h"
+#include "../src/foundations/config_private.h"
 
 // JSON convert functions
 mongory_value *json_string_to_mongory_value(mongory_memory_pool *pool, const char *json);
