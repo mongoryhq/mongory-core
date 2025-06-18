@@ -17,10 +17,8 @@ typedef bool (*mongory_table_del_func)(mongory_table *self, char *key); // delet
 mongory_table* mongory_table_new(mongory_memory_pool *pool); // create new table
 
 struct mongory_table {
-  mongory_array *base; // base array
   mongory_memory_pool *pool; // memory pool
-  size_t capacity; // capacity
-  size_t count; // count
+  size_t count; // read only!
   mongory_table_get_func get; // get function
   mongory_table_each_func each; // each function
   mongory_table_set_func set; // set function
