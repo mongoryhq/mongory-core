@@ -12,7 +12,7 @@ void tearDown(void) {
 }
 
 void test_table_cond_matcher(void) {
-  execute_test_case("tests/jsons/table_condition_test.json", mongory_matcher_table_cond_new);
+  execute_test_case("tests/jsons/table_condition_matcher_test.json", mongory_matcher_table_cond_new);
 }
 
 int main(void) {
