@@ -4,8 +4,6 @@
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
 
-
-struct mongory_array; // forward declaration
 typedef struct mongory_array mongory_array; // alias
 
 typedef bool (*mongory_array_callback_func)(mongory_value *item, void *acc); // callback function
@@ -15,11 +13,8 @@ typedef mongory_value* (*mongory_array_get_func)(mongory_array *self, size_t ind
 typedef bool (*mongory_array_set_func)(mongory_array *self, size_t index, mongory_value *value); // set function
 
 mongory_array* mongory_array_new(mongory_memory_pool *pool); // create new array
-bool mongory_array_resize(mongory_array *self, size_t size); // resize array
 
 struct mongory_array {
-  mongory_value **items; // items pointer
-  size_t capacity; // capacity
   size_t count; // count
   mongory_memory_pool *pool; // memory pool
   mongory_array_each_func each; // each function

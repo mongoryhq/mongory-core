@@ -1,29 +1,32 @@
 #include <mongory-core/foundations/value.h>
 #include <mongory-core/foundations/array.h>
 #include <mongory-core/foundations/memory_pool.h>
+#include "array_private.h"
 #define MONGORY_ARRAY_INIT_SIZE 4
 
 bool mongory_array_resize(mongory_array *self, size_t size) {
+  mongory_array_private *internal = (mongory_array_private *)self;
   mongory_value **new_items = self->pool->alloc(self->pool->ctx, sizeof(mongory_value *) * size);
   if (!new_items) {
     return false;
   }
 
   for (size_t i = 0; i < self->count; i++) {
-    new_items[i] = self->items[i];
+    new_items[i] = internal->items[i];
   }
 
-  self->items = new_items;
-  self->capacity = size;
+  internal->items = new_items;
+  internal->capacity = size;
   return true;
 }
 
 static inline bool mongory_array_grow_if_needed(mongory_array *self, size_t size) {
-  if (size < self->capacity) {
+  mongory_array_private *internal = (mongory_array_private *)self;
+  if (size < internal->capacity) {
     return true;
   }
 
-  size_t new_capacity = self->capacity * 2;
+  size_t new_capacity = internal->capacity * 2;
   while (new_capacity <= size) {
     new_capacity *= 2;
   }
@@ -32,8 +35,9 @@ static inline bool mongory_array_grow_if_needed(mongory_array *self, size_t size
 }
 
 static inline bool mongory_array_each(mongory_array *self, void *acc, mongory_array_callback_func func) {
+  mongory_array_private *internal = (mongory_array_private *)self;
   for (size_t i = 0; i < self->count; i++) {
-    mongory_value *item = self->items[i];
+    mongory_value *item = internal->items[i];
     if (!func(item, acc)) {
       return false;
     }
@@ -43,34 +47,37 @@ static inline bool mongory_array_each(mongory_array *self, void *acc, mongory_ar
 }
 
 static inline bool mongory_array_push(mongory_array *self, mongory_value *value) {
+  mongory_array_private *internal = (mongory_array_private *)self;
   if (!mongory_array_grow_if_needed(self, self->count)) {
     return false;
   }
 
-  self->items[self->count++] = value;
+  internal->items[self->count++] = value;
   return true;
 }
 
 static inline mongory_value* mongory_array_get(mongory_array *self, size_t index) {
+  mongory_array_private *internal = (mongory_array_private *)self;
   if (index >= self->count) {
     return NULL;
   }
-  return self->items[index];
+  return internal->items[index];
 }
 
 static inline bool mongory_array_set(mongory_array *self, size_t index, mongory_value *value) {
+  mongory_array_private *internal = (mongory_array_private *)self;
   if (!mongory_array_grow_if_needed(self, index + 1)) {
     return false;
   }
 
   if (index >= self->count) {
     for (size_t i = self->count; i < index; i++) {
-      self->items[i] = NULL;
+      internal->items[i] = NULL;
     }
     self->count = index + 1;
   }
 
-  self->items[index] = value;
+  internal->items[index] = value;
   return true;
 }
 
@@ -80,19 +87,19 @@ mongory_array* mongory_array_new(mongory_memory_pool *pool) {
     return NULL;
   }
 
-  mongory_array *array = pool->alloc(pool->ctx, sizeof(mongory_array));
-  if (!array) {
+  mongory_array_private *internal = pool->alloc(pool->ctx, sizeof(mongory_array_private));
+  if (!internal) {
     return NULL;
   }
 
-  array->pool = pool;
-  array->items = items;
-  array->capacity = MONGORY_ARRAY_INIT_SIZE;
-  array->count = 0;
-  array->each = mongory_array_each;
-  array->get = mongory_array_get;
-  array->push = mongory_array_push;
-  array->set = mongory_array_set;
+  internal->base.pool = pool;
+  internal->items = items;
+  internal->capacity = MONGORY_ARRAY_INIT_SIZE;
+  internal->base.count = 0;
+  internal->base.each = mongory_array_each;
+  internal->base.get = mongory_array_get;
+  internal->base.push = mongory_array_push;
+  internal->base.set = mongory_array_set;
 
-  return array;
+  return &internal->base;
 }

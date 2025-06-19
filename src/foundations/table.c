@@ -3,14 +3,15 @@
 #include <mongory-core/foundations/table.h>
 #include <mongory-core/foundations/array.h>
 #include <mongory-core/foundations/config.h>
+#include "array_private.h"
 
 #define MONGORY_TABLE_INIT_SIZE 17
 #define MONGORY_TABLE_LOAD_FACTOR 0.75
 
 typedef struct mongory_table_internal {
-  mongory_table public; // public table structure
+  mongory_table base; // public table structure
   size_t capacity; // current capacity of the table
-  mongory_array *base; // base array to hold table nodes
+  mongory_array *array; // base array to hold table nodes
 } mongory_table_internal;
 
 typedef struct mongory_table_node {
@@ -67,7 +68,7 @@ static inline bool mongory_table_node_walk(mongory_table_node *head, void *acc, 
 
 static inline bool mongory_table_rehash_on_node(mongory_table_node *node, void *acc) {
   mongory_table_internal *internal = (mongory_table_internal *)acc;
-  mongory_array *array = internal->base;
+  mongory_array *array = internal->array;
   size_t new_index = hash_string(node->key) % internal->capacity;
   mongory_table_node *root_node = (mongory_table_node *)array->get(array, new_index);
   node->next = root_node;
@@ -77,13 +78,13 @@ static inline bool mongory_table_rehash_on_node(mongory_table_node *node, void *
 
 static inline bool mongory_table_rehash(mongory_table *self) {
   mongory_table_internal *internal = (mongory_table_internal *)self;
-  mongory_array *array = internal->base;
-  mongory_value **origin_items = array->items; // Capture old items array
+  mongory_array_private *array = (mongory_array_private *)internal->array;
+  mongory_value **origin_items = array->items;
   size_t origin_size = internal->capacity; // This is also old iter->capacity and iter->count
   size_t new_size = next_prime(origin_size * 2); // New table capacity
-  array->count = 0; // Ignore reassign elements in array resize
+  array->base.count = 0; // Ignore reassign elements in array resize
 
-  if (!mongory_array_resize(array, new_size)) {
+  if (!mongory_array_resize(internal->array, new_size)) {
     return false;
   }
 
@@ -112,7 +113,7 @@ static inline bool mongory_table_get_on_node(mongory_table_node *node, void *acc
 
 mongory_value* mongory_table_get(mongory_table *self, char *key) {
   mongory_table_internal *internal = (mongory_table_internal *)self;
-  mongory_array *array = internal->base;
+  mongory_array *array = internal->array;
   size_t index = hash_string(key) % internal->capacity;
   mongory_table_node *root_node = (mongory_table_node *)array->get(array, index);
   mongory_table_kv_context ctx = { key, NULL };
@@ -132,7 +133,7 @@ static inline bool mongory_table_set_on_node(mongory_table_node *node, void *acc
 
 bool mongory_table_set(mongory_table *self, char *key, mongory_value *value) {
   mongory_table_internal *internal = (mongory_table_internal *)self;
-  mongory_array *array = internal->base;
+  mongory_array *array = internal->array;
   size_t index = hash_string(key) % internal->capacity;
   mongory_table_node *root_node = (mongory_table_node *)array->get(array, index);
   mongory_table_kv_context ctx = { key, value };
@@ -164,7 +165,7 @@ bool mongory_table_set(mongory_table *self, char *key, mongory_value *value) {
 
 bool mongory_table_del(mongory_table *self, char *key) {
   mongory_table_internal *internal = (mongory_table_internal *)self;
-  mongory_array *array = internal->base;
+  mongory_array *array = internal->array;
   size_t index = hash_string(key) % internal->capacity;
   mongory_table_node *node = (mongory_table_node *)array->get(array, index);
   mongory_table_node *prev = NULL;
@@ -204,7 +205,7 @@ static inline bool mongory_table_each_pair_on_root(mongory_value *value, void *a
 bool mongory_table_each_pair(mongory_table *self, void *acc, mongory_table_each_pair_callback_func callback) {
   mongory_table_internal *internal = (mongory_table_internal *)self;
   mongory_table_each_pair_context each_ctx = { acc, callback };
-  return internal->base->each(internal->base, &each_ctx, mongory_table_each_pair_on_root);
+  return internal->array->each(internal->array, &each_ctx, mongory_table_each_pair_on_root);
 }
 
 mongory_table* mongory_table_new(mongory_memory_pool *pool) {
@@ -220,16 +221,16 @@ mongory_table* mongory_table_new(mongory_memory_pool *pool) {
     return NULL;
   }
 
-  internal->public.pool = pool;
-  internal->base = array;
+  internal->base.pool = pool;
+  internal->array = array;
   internal->capacity = init_size;
-  internal->public.count = 0;
+  internal->base.count = 0;
 
-  internal->public.each = mongory_table_each_pair;
-  internal->public.get = mongory_table_get;
-  internal->public.set = mongory_table_set;
-  internal->public.del = mongory_table_del;
+  internal->base.each = mongory_table_each_pair;
+  internal->base.get = mongory_table_get;
+  internal->base.set = mongory_table_set;
+  internal->base.del = mongory_table_del;
 
-  return &internal->public;
+  return &internal->base;
 }
 
