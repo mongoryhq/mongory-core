@@ -101,7 +101,7 @@ mongory_value *json_string_to_mongory_value(mongory_memory_pool *pool,
   return value;
 }
 
-mongory_value *json_to_value_from_file(mongory_memory_pool *pool,
+mongory_value *json_to_mongory_value_from_file(mongory_memory_pool *pool,
                                        const char *filename) {
   FILE *file = fopen(filename, "r");
   if (!file) {
@@ -128,13 +128,13 @@ mongory_value *json_to_value_from_file(mongory_memory_pool *pool,
   return value;
 }
 
-typedef struct test_execute_context {
+typedef struct mongory_test_execute_context {
   mongory_matcher *matcher;
   int index;
-} test_execute_context;
+} mongory_test_execute_context;
 
 bool execute_test_record(mongory_value *test_record, void *acc) {
-  test_execute_context *context = (test_execute_context *)acc;
+  mongory_test_execute_context *context = (mongory_test_execute_context *)acc;
   printf("Running test record: %d\n", context->index);
   mongory_matcher *matcher = context->matcher;
   mongory_value *data_value =
@@ -167,19 +167,21 @@ bool execute_each_test_case(mongory_value *test_case, void *acc) {
   printf("Running test case: %s\n", description_value->data.s);
   TEST_ASSERT_NOT_NULL(condition_value);
   TEST_ASSERT_NOT_NULL(records_value);
+  mongory_memory_pool *matcher_pool = mongory_memory_pool_new();
   mongory_matcher *matcher =
-      matcher_build_func(get_test_pool(), condition_value);
+      matcher_build_func(matcher_pool, condition_value);
   TEST_ASSERT_NOT_NULL(matcher);
-  TEST_ASSERT_NULL(get_test_pool()->error);
+  TEST_ASSERT_NULL(matcher_pool->error);
   mongory_array *records = records_value->data.a;
-  test_execute_context context = {matcher, 0};
+  mongory_test_execute_context context = {matcher, 0};
   records->each(records, &context, execute_test_record);
+  matcher->pool->free(matcher->pool);
   return true;
 }
 
 void execute_test_case(char *file_name,
                        mongory_matcher_build_func matcher_build_func) {
-  mongory_value *parsed = json_to_value_from_file(get_test_pool(), file_name);
+  mongory_value *parsed = json_to_mongory_value_from_file(get_test_pool(), file_name);
   TEST_ASSERT_NOT_NULL(parsed);
   mongory_array *test_cases = parsed->data.a;
   TEST_ASSERT_NOT_NULL(test_cases);
