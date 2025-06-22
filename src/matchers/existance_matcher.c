@@ -1,6 +1,6 @@
-#include <mongory-core.h>
-#include "base_matcher.h"
 #include "existance_matcher.h"
+#include "base_matcher.h"
+#include <mongory-core.h>
 
 bool mongory_matcher_validate_bool_condition(mongory_value *condition) {
   if (condition == NULL) {
@@ -12,12 +12,14 @@ bool mongory_matcher_validate_bool_condition(mongory_value *condition) {
   return true;
 }
 
-static inline bool mongory_matcher_exists_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_exists_match(mongory_matcher *matcher,
+                                                mongory_value *value) {
   bool condition = matcher->condition->data.b;
   return condition == (value != NULL);
 }
 
-mongory_matcher* mongory_matcher_exists_new(mongory_memory_pool *pool, mongory_value *condition) {
+mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool,
+                                            mongory_value *condition) {
   if (!mongory_matcher_validate_bool_condition(condition)) {
     pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
     pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
@@ -30,32 +32,37 @@ mongory_matcher* mongory_matcher_exists_new(mongory_memory_pool *pool, mongory_v
   return matcher;
 }
 
-static inline bool mongory_matcher_present_match(mongory_matcher *matcher, mongory_value *value) {
+static inline bool mongory_matcher_present_match(mongory_matcher *matcher,
+                                                 mongory_value *value) {
   bool condition = matcher->condition->data.b;
   if (value == NULL) {
-    return !condition; // If value is NULL, it can only match if condition is false.
+    return !condition; // If value is NULL, it can only match if condition is
+                       // false.
   }
-  // Check the type of the value and determine if it is "present" based on its type.
+  // Check the type of the value and determine if it is "present" based on its
+  // type.
   switch (value->type) {
-    case MONGORY_TYPE_ARRAY: {
-      return condition == (value->data.a->count > 0);
-    }
-    case MONGORY_TYPE_TABLE:
-      return condition == (value->data.t->count > 0);
-    case MONGORY_TYPE_STRING: {
-      char *str = (char *)value->data.s;
-      return condition == (str != NULL && *str != '\0');
-    }
-    case MONGORY_TYPE_NULL:
-      return condition == false;
-    case MONGORY_TYPE_BOOL:
-      return condition == value->data.b;
-    default:
-      return condition; // For other types, we assume the condition is true if the value is not NULL.
+  case MONGORY_TYPE_ARRAY: {
+    return condition == (value->data.a->count > 0);
+  }
+  case MONGORY_TYPE_TABLE:
+    return condition == (value->data.t->count > 0);
+  case MONGORY_TYPE_STRING: {
+    char *str = (char *)value->data.s;
+    return condition == (str != NULL && *str != '\0');
+  }
+  case MONGORY_TYPE_NULL:
+    return condition == false;
+  case MONGORY_TYPE_BOOL:
+    return condition == value->data.b;
+  default:
+    return condition; // For other types, we assume the condition is true if the
+                      // value is not NULL.
   }
 }
 
-mongory_matcher* mongory_matcher_present_new(mongory_memory_pool *pool, mongory_value *condition) {
+mongory_matcher *mongory_matcher_present_new(mongory_memory_pool *pool,
+                                             mongory_value *condition) {
   if (!mongory_matcher_validate_bool_condition(condition)) {
     pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
     pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;

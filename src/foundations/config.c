@@ -1,16 +1,16 @@
-#include <string.h>
-#include "mongory-core/foundations/memory_pool.h"
-#include "mongory-core/foundations/value.h"
-#include "mongory-core/foundations/table.h"
 #include "mongory-core/foundations/config.h"
 #include "../matchers/base_matcher.h"
-#include "config_private.h"
-#include "../matchers/inclusion_matcher.h"
 #include "../matchers/compare_matcher.h"
-#include "../matchers/existance_matcher.h"
-#include "../matchers/regex_matcher.h"
 #include "../matchers/composite_matcher.h"
+#include "../matchers/existance_matcher.h"
+#include "../matchers/inclusion_matcher.h"
 #include "../matchers/literal_matcher.h"
+#include "../matchers/regex_matcher.h"
+#include "config_private.h"
+#include "mongory-core/foundations/memory_pool.h"
+#include "mongory-core/foundations/table.h"
+#include "mongory-core/foundations/value.h"
+#include <string.h>
 
 mongory_memory_pool *mongory_internal_pool = NULL;
 mongory_regex_adapter *mongory_internal_regex_adapter = NULL;
@@ -25,7 +25,9 @@ static inline void mongory_internal_pool_init() {
   mongory_internal_pool = mongory_memory_pool_new();
 }
 
-static inline bool mongory_regex_default_func(mongory_memory_pool *pool, mongory_value *pattern, mongory_value *value) {
+static inline bool mongory_regex_default_func(mongory_memory_pool *pool,
+                                              mongory_value *pattern,
+                                              mongory_value *value) {
   (void)pool;
   (void)pattern;
   (void)value;
@@ -37,7 +39,8 @@ static inline void mongory_internal_regex_adapter_init() {
     return;
   }
 
-  mongory_internal_regex_adapter = mongory_internal_pool->alloc(mongory_internal_pool->ctx, sizeof(mongory_regex_adapter));
+  mongory_internal_regex_adapter = mongory_internal_pool->alloc(
+      mongory_internal_pool->ctx, sizeof(mongory_regex_adapter));
   if (mongory_internal_regex_adapter == NULL) {
     return;
   }
@@ -65,8 +68,10 @@ static inline void mongory_matcher_mapping_init() {
   }
 }
 
-void mongory_matcher_register(char *name, mongory_matcher_build_func build_func) {
-  mongory_value *value = mongory_value_wrap_ptr(mongory_internal_pool, build_func);
+void mongory_matcher_register(char *name,
+                              mongory_matcher_build_func build_func) {
+  mongory_value *value =
+      mongory_value_wrap_ptr(mongory_internal_pool, build_func);
   if (value == NULL) {
     return;
   }
@@ -75,7 +80,8 @@ void mongory_matcher_register(char *name, mongory_matcher_build_func build_func)
 }
 
 mongory_matcher_build_func mongory_matcher_build_func_get(char *name) {
-  mongory_value *value = mongory_matcher_mapping->get(mongory_matcher_mapping, name);
+  mongory_value *value =
+      mongory_matcher_mapping->get(mongory_matcher_mapping, name);
   if (value == NULL) {
     return NULL;
   }
@@ -88,17 +94,20 @@ static inline void mongory_internal_value_converter_init() {
     return;
   }
 
-  mongory_internal_value_converter = mongory_internal_pool->alloc(mongory_internal_pool->ctx, sizeof(mongory_value_converter));
+  mongory_internal_value_converter = mongory_internal_pool->alloc(
+      mongory_internal_pool->ctx, sizeof(mongory_value_converter));
   if (mongory_internal_value_converter == NULL) {
     return;
   }
 }
 
-void mongory_value_converter_deep_convert_set(mongory_deep_convert_func deep_convert) {
+void mongory_value_converter_deep_convert_set(
+    mongory_deep_convert_func deep_convert) {
   mongory_internal_value_converter->deep_convert = deep_convert;
 }
 
-void mongory_value_converter_shallow_convert_set(mongory_shallow_convert_func shallow_convert) {
+void mongory_value_converter_shallow_convert_set(
+    mongory_shallow_convert_func shallow_convert) {
   mongory_internal_value_converter->shallow_convert = shallow_convert;
 }
 
@@ -106,7 +115,7 @@ void mongory_value_converter_recover_set(mongory_recover_func recover) {
   mongory_internal_value_converter->recover = recover;
 }
 
-char* mongory_string_cpy(mongory_memory_pool *pool, char *str) {
+char *mongory_string_cpy(mongory_memory_pool *pool, char *str) {
   if (str == NULL) {
     return NULL;
   }

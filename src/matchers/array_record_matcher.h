@@ -4,6 +4,7 @@
 #include "mongory-core/foundations/value.h"
 #include "mongory-core/matchers/matcher.h"
 
-mongory_matcher* mongory_matcher_array_record_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_array_record_new(mongory_memory_pool *pool,
+                                                  mongory_value *condition);
 
 #endif
