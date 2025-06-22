@@ -10,7 +10,7 @@ SRC = $(wildcard $(SRC_FOLDER)/**/*.c)
 OBJ = $(SRC:.c=.o)
 CORE = mongory-core.a
 
-# 顏色代碼
+# color code
 RED = \033[0;31m
 GREEN = \033[0;32m
 NC = \033[0m # No Color
