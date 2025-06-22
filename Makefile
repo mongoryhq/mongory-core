@@ -1,6 +1,10 @@
 COMMAND = gcc -Iinclude -I/opt/homebrew/include -Wall -Wextra -std=c99
-TEST_COMMAND = $(COMMAND) -I. -Itests -I/opt/homebrew/Cellar/cjson/1.7.18/include -DUNITY_USE_COLOR -DUNITY_OUTPUT_COLOR
-LDFLAGS = -L/opt/homebrew/Cellar/cjson/1.7.18/lib -lcjson
+CJSON_PREFIX := $(shell brew --prefix cjson)
+CJSON_CFLAGS := -I$(CJSON_PREFIX)/include
+CJSON_LDFLAGS := -L$(CJSON_PREFIX)/lib -lcjson
+
+TEST_COMMAND = $(COMMAND) -I. -Itests -I$(CJSON_CFLAGS) -DUNITY_USE_COLOR -DUNITY_OUTPUT_COLOR
+LDFLAGS = -L$(CJSON_PREFIX)/lib -lcjson
 SRC_FOLDER = src
 SRC = $(wildcard $(SRC_FOLDER)/**/*.c)
 OBJ = $(SRC:.c=.o)
@@ -47,6 +51,9 @@ test: setup-unity $(TEST_OBJ)
 clean:
 	rm -f $(OBJ) $(TEST_OBJ) $(CORE) $(UNITY_OBJ)
 	rm -rf $(TEST_OBJ_FOLDER)
+
+format:
+	@find . \( -name '*.c' -o -name '*.h' \) -exec clang-format -i {} +
 
 $(CORE): $(OBJ)
 	ar rcs $@ $^
