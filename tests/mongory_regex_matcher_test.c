@@ -1,13 +1,14 @@
-#include "mongory-core.h"
-#include "unity.h"
+#include "../src/foundations/config_private.h"
 #include "../src/matchers/base_matcher.h"
 #include "../src/matchers/regex_matcher.h"
-#include "../src/foundations/config_private.h"
+#include "mongory-core.h"
 #include "mongory-core/foundations/config.h"
+#include "unity.h"
 
 mongory_memory_pool *pool;
 bool mock_regex_match_result = false;
-bool mock_regex_match(mongory_memory_pool *pool, mongory_value *condition, mongory_value *value) {
+bool mock_regex_match(mongory_memory_pool *pool, mongory_value *condition,
+                      mongory_value *value) {
   (void)pool;
   (void)condition;
   (void)value;
@@ -15,16 +16,16 @@ bool mock_regex_match(mongory_memory_pool *pool, mongory_value *condition, mongo
 }
 
 void setUp(void) {
-    pool = mongory_memory_pool_new();
-    TEST_ASSERT_NOT_NULL(pool);
-    mongory_regex_func_set(mock_regex_match);
+  pool = mongory_memory_pool_new();
+  TEST_ASSERT_NOT_NULL(pool);
+  mongory_regex_func_set(mock_regex_match);
 }
 
 void tearDown(void) {
-    if (pool != NULL) {
-        pool->free(pool);
-        pool = NULL;
-    }
+  if (pool != NULL) {
+    pool->free(pool);
+    pool = NULL;
+  }
 }
 
 void test_regex_matcher_match(void) {
@@ -49,7 +50,8 @@ void test_regex_matcher_match_with_invalid_condition(void) {
   TEST_ASSERT_NULL(matcher);
   TEST_ASSERT_NOT_NULL(pool->error);
   TEST_ASSERT_EQUAL(MONGORY_ERROR_INVALID_ARGUMENT, pool->error->type);
-  TEST_ASSERT_EQUAL_STRING("Condition must be a string or regex.", pool->error->message);
+  TEST_ASSERT_EQUAL_STRING("Condition must be a string or regex.",
+                           pool->error->message);
 }
 
 void test_regex_matcher_match_with_invalid_value(void) {

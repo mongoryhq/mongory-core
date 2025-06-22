@@ -19,8 +19,10 @@ extern mongory_regex_adapter *mongory_internal_regex_adapter;
 extern mongory_table *mongory_matcher_mapping;
 extern mongory_value_converter *mongory_internal_value_converter;
 
-typedef mongory_matcher *(*mongory_matcher_build_func)(mongory_memory_pool *pool, mongory_value *condition); // build function
-void mongory_matcher_register(char *name, mongory_matcher_build_func build_func);
+typedef mongory_matcher *(*mongory_matcher_build_func)(
+    mongory_memory_pool *pool, mongory_value *condition); // build function
+void mongory_matcher_register(char *name,
+                              mongory_matcher_build_func build_func);
 mongory_matcher_build_func mongory_matcher_build_func_get(char *name);
 
 #endif
