@@ -1,4 +1,4 @@
-COMMAND = gcc -Iinclude -I/opt/homebrew/include -Wall -Wextra -std=c99
+COMMAND = gcc -Iinclude -I/opt/homebrew/include -Wall -Wextra -std=c99 -fsanitize=address -fno-omit-frame-pointer
 CJSON_PREFIX := $(shell brew --prefix cjson)
 CJSON_CFLAGS := -I$(CJSON_PREFIX)/include
 CJSON_LDFLAGS := -L$(CJSON_PREFIX)/lib -lcjson
@@ -21,6 +21,11 @@ TEST_OBJ_FOLDER = test_runner
 TEST_OBJ = $(patsubst $(TEST_SRC_FOLDER)/%.c,$(TEST_OBJ_FOLDER)/%,$(TEST_SRC))
 UNITY_SRC = $(TEST_SRC_FOLDER)/unity/unity.c
 UNITY_OBJ = $(TEST_OBJ_FOLDER)/unity.o
+
+BENCHMARK_SRC_FOLDER = benchmarks
+BENCHMARK_SRC = $(wildcard $(BENCHMARK_SRC_FOLDER)/*.c)
+BENCHMARK_OBJ_FOLDER = benchmark_runner
+BENCHMARK_OBJ = $(patsubst $(BENCHMARK_SRC_FOLDER)/%.c,$(BENCHMARK_OBJ_FOLDER)/%,$(BENCHMARK_SRC))
 
 all: $(CORE)
 
@@ -48,9 +53,17 @@ test: setup-unity $(TEST_OBJ)
 		echo "$(RED)$$failed_tests"; \
 	fi
 
+benchmark: $(BENCHMARK_OBJ)
+	@echo "\nRunning benchmarks:"
+	@for file in $(BENCHMARK_OBJ); do \
+		echo "\nRun benchmark $$file:"; \
+		$$file; \
+		echo "Benchmark done."; \
+	done
+
 clean:
-	rm -f $(OBJ) $(TEST_OBJ) $(CORE) $(UNITY_OBJ)
-	rm -rf $(TEST_OBJ_FOLDER)
+	rm -f $(OBJ) $(TEST_OBJ) $(CORE) $(UNITY_OBJ) $(BENCHMARK_OBJ)
+	rm -rf $(TEST_OBJ_FOLDER) $(BENCHMARK_OBJ_FOLDER)
 
 format:
 	@find . \( -name '*.c' -o -name '*.h' \) -exec clang-format -i {} +
@@ -64,9 +77,15 @@ $(SRC_FOLDER)/**/%.o: $(SRC_FOLDER)/**/%.c
 $(TEST_OBJ_FOLDER):
 	mkdir -p $(TEST_OBJ_FOLDER)
 
+$(BENCHMARK_OBJ_FOLDER):
+	mkdir -p $(BENCHMARK_OBJ_FOLDER)
+
 $(UNITY_OBJ): $(UNITY_SRC) $(TEST_OBJ_FOLDER)
 	$(TEST_COMMAND) -I$(TEST_SRC_FOLDER)/unity -c -o $@ $<
 
 $(TEST_OBJ_FOLDER)/%: $(TEST_SRC_FOLDER)/%.c $(CORE) $(UNITY_OBJ) $(TEST_OBJ_FOLDER)
+	$(TEST_COMMAND) -I$(TEST_SRC_FOLDER)/unity -o $@ $< $(UNITY_OBJ) $(CORE) $(LDFLAGS)
+
+$(BENCHMARK_OBJ_FOLDER)/%: $(BENCHMARK_SRC_FOLDER)/%.c $(CORE) $(UNITY_OBJ) $(BENCHMARK_OBJ_FOLDER)
 	$(TEST_COMMAND) -I$(TEST_SRC_FOLDER)/unity -o $@ $< $(UNITY_OBJ) $(CORE) $(LDFLAGS)
 
