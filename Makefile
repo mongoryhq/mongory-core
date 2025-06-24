@@ -1,4 +1,4 @@
-COMMAND = gcc -Iinclude -I/opt/homebrew/include -Wall -Wextra -std=c99 -fsanitize=address -fno-omit-frame-pointer
+COMMAND = gcc -Iinclude -I/opt/homebrew/include -Wall -Wextra -std=c99
 CJSON_PREFIX := $(shell brew --prefix cjson)
 CJSON_CFLAGS := -I$(CJSON_PREFIX)/include
 CJSON_LDFLAGS := -L$(CJSON_PREFIX)/lib -lcjson
