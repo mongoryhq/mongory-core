@@ -15,20 +15,28 @@ cJSON* mongory_create_json_test_record(void) {
   int age = rand() % 100 + 1;
   int status_index = rand() % 2;
   char *status = valid_statuses[status_index];
-  int expected = age >= 18 || strcmp(status, "active") == 0;
   cJSON_AddNumberToObject(root, "age", age);
   cJSON_AddStringToObject(root, "status", status);
-  cJSON_AddBoolToObject(root, "expected", expected);
+  if (age >= 18 || strcmp(status, "active") == 0) {
+    cJSON_AddTrueToObject(root, "expected");
+  } else {
+    cJSON_AddFalseToObject(root, "expected");
+  }
   return root;
 }
 
 bool mongory_array_benchmark_match_test(mongory_value *item, void *acc) {
   mongory_matcher *matcher = (mongory_matcher *)acc;
   cJSON *json_record = (cJSON *)item;
-  int expected = cJSON_GetObjectItem(json_record, "expected")->valueint;
+  cJSON *expected_item = cJSON_GetObjectItem(json_record, "expected");
+  if (expected_item == NULL) {
+    printf("Expected item is NULL\n");
+    return false;
+  }
   mongory_memory_pool *record_pool = mongory_memory_pool_new();
   mongory_value *json_value = cjson_to_mongory_value_shallow_convert(record_pool, json_record);
   bool result = matcher->match(matcher, json_value);
+  int expected = cJSON_IsTrue(expected_item);
   if (result != expected) {
     printf("Result: %d, Expected: %d\n", result, expected);
     char *json_string = cJSON_Print(json_record);
