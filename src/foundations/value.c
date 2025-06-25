@@ -198,7 +198,8 @@ static inline int mongory_value_array_compare(mongory_value *a,
   mongory_array *array_a = a->data.a;
   mongory_array *array_b = b->data.a;
   if (array_a->count != array_b->count) {
-    return mongory_value_compare_fail;
+    int diff = array_a->count - array_b->count;
+    return (diff > 0) - (diff < 0);
   }
   for (size_t i = 0; i < array_a->count; i++) {
     mongory_value *item_a = array_a->get(array_a, i);
@@ -206,7 +207,7 @@ static inline int mongory_value_array_compare(mongory_value *a,
     bool a_is_null = item_a == NULL;
     bool b_is_null = item_b == NULL;
     if (a_is_null != b_is_null) {
-      return mongory_value_compare_fail;
+      return b_is_null - a_is_null; // b_is_null ? 1 : -1
     }
     if (a_is_null && b_is_null) {
       continue;
