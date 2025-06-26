@@ -50,7 +50,7 @@ void test_regex_matcher_match_with_invalid_condition(void) {
   TEST_ASSERT_NULL(matcher);
   TEST_ASSERT_NOT_NULL(pool->error);
   TEST_ASSERT_EQUAL(MONGORY_ERROR_INVALID_ARGUMENT, pool->error->type);
-  TEST_ASSERT_EQUAL_STRING("Condition must be a string or regex.",
+  TEST_ASSERT_EQUAL_STRING("$regex condition must be a string or a regex object.",
                            pool->error->message);
 }
 

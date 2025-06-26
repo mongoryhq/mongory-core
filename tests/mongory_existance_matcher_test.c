@@ -48,7 +48,7 @@ void test_exists_matcher_invalid_condition(void) {
   TEST_ASSERT_NULL(matcher);
   TEST_ASSERT_NOT_NULL(pool->error);
   TEST_ASSERT_EQUAL(MONGORY_ERROR_INVALID_ARGUMENT, pool->error->type);
-  TEST_ASSERT_EQUAL_STRING("Condition must be a boolean value.",
+  TEST_ASSERT_EQUAL_STRING("$exists condition must be a boolean value.",
                            pool->error->message);
 }
 
@@ -83,7 +83,7 @@ void test_present_matcher_invalid_condition(void) {
   TEST_ASSERT_NULL(matcher);
   TEST_ASSERT_NOT_NULL(pool->error);
   TEST_ASSERT_EQUAL(MONGORY_ERROR_INVALID_ARGUMENT, pool->error->type);
-  TEST_ASSERT_EQUAL_STRING("Condition must be a boolean value.",
+  TEST_ASSERT_EQUAL_STRING("$present condition must be a boolean value.",
                            pool->error->message);
 }
 
