@@ -47,6 +47,15 @@ typedef enum mongory_type mongory_type;
  */
 typedef int (*mongory_value_compare_func)(mongory_value *a, mongory_value *b);
 
+// Forward declaration for mongory_string_buffer
+struct mongory_string_buffer;
+/**
+ * @brief Function pointer type for converting a mongory_value to a string representation.
+ * @param value The mongory_value to convert.
+ * @param buffer The string buffer to append the string to.
+ */
+typedef void (*mongory_value_to_str_func)(mongory_value *value, struct mongory_string_buffer *buffer);
+
 /**
  * @brief Converts the type of a mongory_value to its string representation.
  * @param value A pointer to the mongory_value.
@@ -159,6 +168,8 @@ struct mongory_value {
   mongory_type type;         /**< The type of data stored in the union. */
   mongory_value_compare_func comp; /**< Function to compare this value with
                                       another. */
+  mongory_value_to_str_func to_str; /**< Function to convert this value to a
+                                      string representation. */
   union {
     bool b;                  /**< Boolean data. */
     int64_t i;               /**< Integer data (64-bit). */

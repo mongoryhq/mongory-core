@@ -12,6 +12,7 @@
 #include <mongory-core/foundations/memory_pool.h>
 #include <mongory-core/foundations/table.h>
 #include <mongory-core/foundations/value.h>
+#include "string_buffer.h"
 #include <stddef.h> // For NULL
 #include <stdio.h>  // For snprintf
 #include <stdlib.h> // For general utilities (not directly used here but common)
@@ -123,6 +124,15 @@ void *mongory_value_extract(mongory_value *value) {
   }
 }
 
+static void mongory_value_null_to_str(mongory_value *value, mongory_string_buffer *buffer);
+static void mongory_value_bool_to_str(mongory_value *value, mongory_string_buffer *buffer);
+static void mongory_value_int_to_str(mongory_value *value, mongory_string_buffer *buffer);
+static void mongory_value_double_to_str(mongory_value *value, mongory_string_buffer *buffer);
+static void mongory_value_string_to_str(mongory_value *value, mongory_string_buffer *buffer);
+static void mongory_value_array_to_str(mongory_value *value, mongory_string_buffer *buffer);
+static void mongory_value_table_to_str(mongory_value *value, mongory_string_buffer *buffer);
+static void mongory_value_generic_ptr_to_str(mongory_value *value, mongory_string_buffer *buffer);
+
 /**
  * @brief Internal helper to allocate a new mongory_value structure from a pool.
  * @param pool The memory pool to allocate from.
@@ -159,6 +169,7 @@ mongory_value *mongory_value_wrap_n(mongory_memory_pool *pool, void *n) {
   if (!value) return NULL;
   value->type = MONGORY_TYPE_NULL;
   value->comp = mongory_value_null_compare;
+  value->to_str = mongory_value_null_to_str;
   // data union is not explicitly set for NULL.
   return value;
 }
@@ -178,6 +189,7 @@ mongory_value *mongory_value_wrap_b(mongory_memory_pool *pool, bool b_val) {
   value->type = MONGORY_TYPE_BOOL;
   value->data.b = b_val;
   value->comp = mongory_value_bool_compare;
+  value->to_str = mongory_value_bool_to_str;
   return value;
 }
 
@@ -206,6 +218,7 @@ mongory_value *mongory_value_wrap_i(mongory_memory_pool *pool, int i_val) {
   value->type = MONGORY_TYPE_INT;
   value->data.i = (int64_t)i_val; // Store as int64_t.
   value->comp = mongory_value_int_compare;
+  value->to_str = mongory_value_int_to_str;
   return value;
 }
 
@@ -233,6 +246,7 @@ mongory_value *mongory_value_wrap_d(mongory_memory_pool *pool, double d_val) {
   value->type = MONGORY_TYPE_DOUBLE;
   value->data.d = d_val;
   value->comp = mongory_value_double_compare;
+  value->to_str = mongory_value_double_to_str;
   return value;
 }
 
@@ -271,6 +285,7 @@ mongory_value *mongory_value_wrap_s(mongory_memory_pool *pool, char *s_val) {
       // So, the string field remains NULL.
   }
   value->comp = mongory_value_string_compare;
+  value->to_str = mongory_value_string_to_str;
   return value;
 }
 
@@ -322,6 +337,7 @@ mongory_value *mongory_value_wrap_a(mongory_memory_pool *pool,
   value->type = MONGORY_TYPE_ARRAY;
   value->data.a = a_val;
   value->comp = mongory_value_array_compare;
+  value->to_str = mongory_value_array_to_str;
   return value;
 }
 
@@ -343,6 +359,7 @@ mongory_value *mongory_value_wrap_t(mongory_memory_pool *pool,
   value->type = MONGORY_TYPE_TABLE;
   value->data.t = t_val;
   value->comp = mongory_value_table_compare;
+  value->to_str = mongory_value_table_to_str;
   return value;
 }
 
@@ -363,6 +380,7 @@ mongory_value *mongory_value_wrap_u(mongory_memory_pool *pool,
   value->type = MONGORY_TYPE_UNSUPPORTED;
   value->data.u = u_val;
   value->comp = mongory_value_generic_ptr_compare; // Unsupported types are not comparable.
+  value->to_str = mongory_value_generic_ptr_to_str;
   return value;
 }
 
@@ -375,6 +393,7 @@ mongory_value *mongory_value_wrap_regex(mongory_memory_pool *pool,
   value->type = MONGORY_TYPE_REGEX;
   value->data.regex = regex_val;
   value->comp = mongory_value_generic_ptr_compare; // Regex values are not directly comparable.
+  value->to_str = mongory_value_generic_ptr_to_str;
   return value;
 }
 
@@ -385,5 +404,86 @@ mongory_value *mongory_value_wrap_ptr(mongory_memory_pool *pool, void *ptr_val) 
   value->type = MONGORY_TYPE_POINTER;
   value->data.ptr = ptr_val;
   value->comp = mongory_value_generic_ptr_compare; // Generic pointers are not comparable.
+  value->to_str = mongory_value_generic_ptr_to_str;
   return value;
+}
+
+// --- Stringify Functions ---
+
+static void mongory_value_null_to_str(mongory_value *value, mongory_string_buffer *buffer) {
+  (void)value;
+  mongory_string_buffer_append(buffer, "null");
+}
+
+static void mongory_value_bool_to_str(mongory_value *value, mongory_string_buffer *buffer) {
+    mongory_string_buffer_append(buffer, value->data.b ? "true" : "false");
+}
+
+static void mongory_value_int_to_str(mongory_value *value, mongory_string_buffer *buffer) {
+    mongory_string_buffer_appendf(buffer, "%lld", (long long)value->data.i);
+}
+
+static void mongory_value_double_to_str(mongory_value *value, mongory_string_buffer *buffer) {
+    mongory_string_buffer_appendf(buffer, "%f", value->data.d);
+}
+
+static void mongory_value_string_to_str(mongory_value *value, mongory_string_buffer *buffer) {
+    mongory_string_buffer_appendf(buffer, "\"%s\"", value->data.s);
+}
+
+typedef struct mongory_value_container_to_str_ctx {
+  size_t count;
+  size_t total;
+  mongory_string_buffer *buffer; /**< The string buffer to append to. */
+} mongory_value_container_to_str_ctx;
+
+static bool mongory_value_array_to_str_each(mongory_value *value, void *ctx) {
+  mongory_value_container_to_str_ctx *context = (mongory_value_container_to_str_ctx *)ctx;
+  mongory_string_buffer *buffer = context->buffer;
+  value->to_str(value, buffer);
+  context->count++;
+  if (context->count < context->total) {
+    mongory_string_buffer_append(buffer, ",");
+  }
+  return true;
+}
+
+static void mongory_value_array_to_str(mongory_value *value, mongory_string_buffer *buffer) {
+    mongory_string_buffer_append(buffer, "[");
+    struct mongory_array *array = value->data.a;
+    mongory_value_container_to_str_ctx ctx = {
+        .count = 0,
+        .total = array->count,
+        .buffer = buffer
+    };
+    array->each(array, &ctx, mongory_value_array_to_str_each);
+    mongory_string_buffer_append(buffer, "]");
+}
+
+static bool mongory_value_table_to_str_each(char *key, mongory_value *value, void *ctx) {
+  mongory_value_container_to_str_ctx *context = (mongory_value_container_to_str_ctx *)ctx;
+  mongory_string_buffer *buffer = context->buffer;
+  mongory_string_buffer_appendf(buffer, "\"%s\":", key);
+  value->to_str(value, buffer);
+  context->count++;
+  if (context->count < context->total) {
+    mongory_string_buffer_append(buffer, ",");
+  }
+  return true;
+}
+
+static void mongory_value_table_to_str(mongory_value *value, mongory_string_buffer *buffer) {
+    mongory_string_buffer_append(buffer, "{");
+    struct mongory_table *table = value->data.t;
+    mongory_value_container_to_str_ctx ctx = {
+        .count = 0,
+        .total = table->count,
+        .buffer = buffer
+    };
+    table->each(table, &ctx, mongory_value_table_to_str_each);
+    mongory_string_buffer_append(buffer, "}");
+}
+
+static void mongory_value_generic_ptr_to_str(mongory_value *value, mongory_string_buffer *buffer) {
+    mongory_string_buffer_appendf(buffer, "%p", value->data.ptr);
 }
