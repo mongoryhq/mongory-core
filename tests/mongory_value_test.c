@@ -1,6 +1,7 @@
 #include "../src/test_helper/test_helper.h"
 #include "unity.h"
-#include <mongory-core.h>
+#include "../src/foundations/string_buffer.h"
+#include "mongory-core.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -227,6 +228,28 @@ void test_json_to_value_object(void) {
   TEST_ASSERT_EQUAL_INT(30, age->data.i);
 }
 
+void test_value_stringify(void) {
+    mongory_memory_pool *pool = get_test_pool();
+    mongory_table *table = mongory_table_new(pool);
+    mongory_array *array = mongory_array_new(pool);
+
+    array->push(array, mongory_value_wrap_i(pool, 1));
+    array->push(array, mongory_value_wrap_s(pool, "two"));
+    array->push(array, mongory_value_wrap_b(pool, true));
+
+    table->set(table, "name", mongory_value_wrap_s(pool, "John"));
+    table->set(table, "age", mongory_value_wrap_i(pool, 30));
+    table->set(table, "isStudent", mongory_value_wrap_b(pool, false));
+    table->set(table, "courses", mongory_value_wrap_a(pool, array));
+
+    mongory_value *value = mongory_value_wrap_t(pool, table);
+    mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
+    value->to_str(value, buffer);
+
+    const char *expected = "{\"age\":30,\"isStudent\":false,\"name\":\"John\",\"courses\":[1,\"two\",true]}";
+    TEST_ASSERT_EQUAL_STRING(expected, mongory_string_buffer_cstr(buffer));
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_boolean_value);
@@ -247,5 +270,6 @@ int main(void) {
   RUN_TEST(test_json_to_value_number);
   RUN_TEST(test_json_to_value_array);
   RUN_TEST(test_json_to_value_object);
+  RUN_TEST(test_value_stringify);
   return UNITY_END();
 }
