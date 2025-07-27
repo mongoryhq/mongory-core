@@ -34,4 +34,13 @@ struct mongory_matcher;
 struct mongory_matcher *
 mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition);
 
+/**
+ * @brief Matches a value against a matcher.
+ * @param matcher The matcher to match against.
+ * @param value The value to match.
+ * @return True if the value matches the matcher, false otherwise.
+ */
+bool mongory_matcher_match(struct mongory_matcher *matcher,
+                           mongory_value *value);
+
 #endif /* MONGORY_MATCHER_H */
