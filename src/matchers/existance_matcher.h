@@ -10,6 +10,7 @@
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
 #include "mongory-core/matchers/matcher.h" // For mongory_matcher structure
+#include "base_matcher.h"
 
 /**
  * @brief Creates an "exists" ($exists) matcher.

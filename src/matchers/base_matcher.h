@@ -18,6 +18,54 @@
 #include <stdbool.h>
 
 /**
+ * @brief Function pointer type for a matcher's core matching logic.
+ *
+ * @param matcher A pointer to the `mongory_matcher` instance itself.
+ * @param value A pointer to the `mongory_value` to be evaluated against the
+ * matcher's condition.
+ * @return bool True if the `value` matches the condition, false otherwise.
+ */
+typedef bool (*mongory_matcher_match_func)(struct mongory_matcher *matcher,
+                                           mongory_value *value);
+
+/**
+ * @struct mongory_matcher_context
+ * @brief Context associated with a matcher instance.
+ *
+ * This can store the original match function (useful if the `match` function
+ * pointer in `mongory_matcher` is dynamically changed, e.g., for decorators)
+ * and a trace array for debugging purposes (currently not extensively used).
+ */
+typedef struct mongory_matcher_context {
+  mongory_matcher_match_func
+      original_match; /**< Stores the original match function, potentially for
+                         restoration or delegation. */
+  mongory_array *trace; /**< An array that can be used for tracing matcher
+                           execution (for debugging). */
+} mongory_matcher_context;
+
+/**
+ * @struct mongory_matcher
+ * @brief Represents a generic matcher in the Mongory system.
+ *
+ * Each matcher has a name (optional, for identification), a condition value
+ * that defines its criteria, a function pointer to its matching logic,
+ * a memory pool for its allocations, and a context.
+ */
+typedef struct mongory_matcher {
+  char *name;                 /**< Optional name for the matcher (e.g., "$eq").
+                                 String is typically allocated from the pool. */
+  mongory_value *condition;   /**< The condition (a `mongory_value`) that this
+                                 matcher evaluates against. */
+  mongory_matcher_match_func match; /**< Function pointer to the specific matching
+                                       logic for this matcher type. */
+  mongory_memory_pool *pool;  /**< The memory pool used for allocations related
+                                 to this matcher instance. */
+  mongory_matcher_context context; /**< Additional context for the matcher, like
+                                      tracing or original function pointers. */
+} mongory_matcher;
+
+/**
  * @brief Creates a new base `mongory_matcher` instance and initializes its
  * common fields.
  *
