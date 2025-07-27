@@ -3,6 +3,7 @@
 #include "mongory-core/foundations/config.h"
 #include "mongory-core/foundations/table.h"
 #include "mongory-core/matchers/matcher.h"
+#include "../matchers/base_matcher.h"
 
 typedef struct mongory_regex_adapter {
   mongory_regex_func func;

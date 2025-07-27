@@ -13,6 +13,7 @@
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
 #include "mongory-core/matchers/matcher.h" // For mongory_matcher structure
+#include "base_matcher.h"
 #include <stdbool.h>
 
 /** @name Comparison Matcher Constructors
