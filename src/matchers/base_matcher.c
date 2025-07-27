@@ -11,6 +11,16 @@
 #include <stdlib.h>          // For strtol
 
 /**
+ * @brief Matches a value against a matcher.
+ * @param matcher The matcher to match against.
+ * @param value The value to match.
+ * @return True if the value matches the matcher, false otherwise.
+ */
+bool mongory_matcher_match(mongory_matcher *matcher, mongory_value *value) {
+  return matcher->match(matcher, value);
+}
+
+/**
  * @brief Allocates and initializes common fields of a `mongory_matcher`.
  *
  * This function serves as a common initializer for all specific matcher types.
