@@ -66,7 +66,12 @@ static inline void mongory_matcher_traverse_explain(mongory_matcher *matcher, mo
 
 void mongory_matcher_composite_explain(mongory_matcher *matcher, mongory_matcher_explain_context *ctx) {
   mongory_matcher_base_explain(matcher, ctx);
-  char *addon_prefix = ctx->count < ctx->total ? "│  " : "   ";
+  char *addon_prefix = "   ";
+  if (ctx->count < ctx->total) {
+    addon_prefix = "│  ";
+  } else if (ctx->total == 0) {
+    addon_prefix = "";
+  }
   mongory_string_buffer *prefix_buffer = mongory_string_buffer_new(ctx->pool);
   mongory_string_buffer_append(prefix_buffer, ctx->prefix);
   mongory_string_buffer_append(prefix_buffer, addon_prefix);
