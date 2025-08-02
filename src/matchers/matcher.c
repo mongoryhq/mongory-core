@@ -37,6 +37,9 @@
 mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition) {
   // Delegate to table_cond_new, assuming conditions are typically tables.
   mongory_matcher *matcher = mongory_matcher_table_cond_new(pool, condition);
+  if (matcher == NULL) {
+    return NULL;
+  }
   matcher->name = mongory_string_cpy(pool, "Intro");
   return matcher;
 }
