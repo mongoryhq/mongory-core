@@ -32,7 +32,7 @@ void mongory_string_buffer_appendf(mongory_string_buffer *buffer, const char *fo
  * @param buffer The buffer to get the C string from.
  * @return A C string representation of the buffer.
  */
-char* mongory_string_buffer_cstr(mongory_string_buffer *buffer);
+char *mongory_string_buffer_cstr(mongory_string_buffer *buffer);
 
 /**
  * @brief Clears the buffer.

@@ -1,5 +1,5 @@
-#include <mongory-core.h>
 #include "../src/test_helper/test_helper.h"
+#include <mongory-core.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,7 +10,7 @@ void tearDown(void) {}
 
 char *valid_statuses[] = {"active", "inactive"};
 
-cJSON* mongory_create_json_test_record(void) {
+cJSON *mongory_create_json_test_record(void) {
   cJSON *root = cJSON_CreateObject();
   int age = rand() % 100 + 1;
   int status_index = rand() % 2;
@@ -61,7 +61,8 @@ int main() {
   mongory_value_converter_deep_convert_set((mongory_deep_convert_func)cjson_to_mongory_value_deep_convert);
 
   mongory_memory_pool *matcher_pool = mongory_memory_pool_new();
-  mongory_value *condition = json_string_to_mongory_value(matcher_pool, "{\"$or\": [{\"age\": {\"$gte\": 18}}, {\"status\": \"active\"}]}");
+  mongory_value *condition =
+      json_string_to_mongory_value(matcher_pool, "{\"$or\": [{\"age\": {\"$gte\": 18}}, {\"status\": \"active\"}]}");
   mongory_matcher *matcher = mongory_matcher_new(matcher_pool, condition);
   mongory_array *json_array = mongory_array_new(matcher_pool);
 

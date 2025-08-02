@@ -53,10 +53,10 @@ typedef struct mongory_memory_node {
  * for traced external allocations.
  */
 typedef struct mongory_memory_pool_ctx {
-  size_t chunk_size;                /**< Current preferred size for new chunks. */
-  mongory_memory_node *head;        /**< Head of the list of memory chunks. */
-  mongory_memory_node *current;     /**< Current chunk to allocate from. */
-  mongory_memory_node *extra; /**< Head of list for externally traced memory. */
+  size_t chunk_size;            /**< Current preferred size for new chunks. */
+  mongory_memory_node *head;    /**< Head of the list of memory chunks. */
+  mongory_memory_node *current; /**< Current chunk to allocate from. */
+  mongory_memory_node *extra;   /**< Head of list for externally traced memory. */
 } mongory_memory_pool_ctx;
 
 /**
@@ -76,7 +76,7 @@ static inline mongory_memory_node *mongory_memory_chunk_new(size_t chunk_size) {
 
   void *mem = calloc(1, chunk_size);
   if (!mem) {
-    free(node); // Clean up allocated node structure.
+    free(node);  // Clean up allocated node structure.
     return NULL; // Failed to allocate memory block for the chunk.
   }
 
@@ -99,8 +99,7 @@ static inline mongory_memory_node *mongory_memory_chunk_new(size_t chunk_size) {
  * upcoming allocation.
  * @return true if growth was successful, false otherwise.
  */
-static inline bool mongory_memory_pool_grow(mongory_memory_pool_ctx *ctx,
-                                            size_t request_size) {
+static inline bool mongory_memory_pool_grow(mongory_memory_pool_ctx *ctx, size_t request_size) {
   // Double the chunk size, ensuring it's at least as large as request_size.
   ctx->chunk_size *= 2;
   while (request_size > ctx->chunk_size) {
@@ -159,14 +158,13 @@ static inline void *mongory_memory_pool_alloc(void *ctx, size_t size) {
  *
  * @param head Pointer to the head of the memory node list to free.
  */
-static inline void
-mongory_memory_pool_node_list_free(mongory_memory_node *head) {
+static inline void mongory_memory_pool_node_list_free(mongory_memory_node *head) {
   mongory_memory_node *node = head;
   while (node) {
     mongory_memory_node *next = node->next;
     if (node->ptr) {
       memset(node->ptr, 0, node->size); // Clear memory for safety.
-      free(node->ptr);                 // Free the actual memory block.
+      free(node->ptr);                  // Free the actual memory block.
     }
     memset(node, 0,
            sizeof(mongory_memory_node)); // Clear the node structure itself.
@@ -186,7 +184,8 @@ mongory_memory_pool_node_list_free(mongory_memory_node *head) {
  * @param pool Pointer to the `mongory_memory_pool` to destroy.
  */
 static inline void mongory_memory_pool_destroy(mongory_memory_pool *pool) {
-  if (!pool) return;
+  if (!pool)
+    return;
   mongory_memory_pool_ctx *ctx = (mongory_memory_pool_ctx *)pool->ctx;
 
   if (ctx) {
@@ -217,22 +216,20 @@ static inline void mongory_memory_pool_destroy(mongory_memory_pool *pool) {
  * @param ptr Pointer to the externally allocated memory.
  * @param size Size of the externally allocated memory.
  */
-static inline void mongory_memory_pool_trace(void *ctx, void *ptr,
-                                             size_t size) {
+static inline void mongory_memory_pool_trace(void *ctx, void *ptr, size_t size) {
   mongory_memory_pool_ctx *pool_ctx = (mongory_memory_pool_ctx *)ctx;
 
   // Create a new node to trace this external allocation.
-  mongory_memory_node *extra_alloc_tracer =
-      calloc(1, sizeof(mongory_memory_node));
+  mongory_memory_node *extra_alloc_tracer = calloc(1, sizeof(mongory_memory_node));
   if (!extra_alloc_tracer) {
     // Allocation of tracer node failed; cannot trace.
     // This might lead to a leak of 'ptr' if the caller expects the pool to
     // manage it. Consider error reporting.
     return;
   }
-  extra_alloc_tracer->ptr = ptr; // This is the externally allocated memory.
-  extra_alloc_tracer->size = size; // Its size.
-  extra_alloc_tracer->used = size; // Mark as fully "used" in context of tracing.
+  extra_alloc_tracer->ptr = ptr;              // This is the externally allocated memory.
+  extra_alloc_tracer->size = size;            // Its size.
+  extra_alloc_tracer->used = size;            // Mark as fully "used" in context of tracing.
   extra_alloc_tracer->next = pool_ctx->extra; // Prepend to extra list.
   pool_ctx->extra = extra_alloc_tracer;
 }
@@ -261,8 +258,7 @@ mongory_memory_pool *mongory_memory_pool_new() {
   }
 
   // Allocate the first memory chunk.
-  mongory_memory_node *first_chunk =
-      mongory_memory_chunk_new(MONGORY_INITIAL_CHUNK_SIZE);
+  mongory_memory_node *first_chunk = mongory_memory_chunk_new(MONGORY_INITIAL_CHUNK_SIZE);
   if (!first_chunk) {
     free(ctx);  // Clean up context.
     free(pool); // Clean up pool structure.

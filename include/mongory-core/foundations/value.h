@@ -97,10 +97,8 @@ mongory_value *mongory_value_wrap_b(mongory_memory_pool *pool, bool b);
 mongory_value *mongory_value_wrap_i(mongory_memory_pool *pool, int i);
 mongory_value *mongory_value_wrap_d(mongory_memory_pool *pool, double d);
 mongory_value *mongory_value_wrap_s(mongory_memory_pool *pool, char *s);
-mongory_value *mongory_value_wrap_a(mongory_memory_pool *pool,
-                                    struct mongory_array *a);
-mongory_value *mongory_value_wrap_t(mongory_memory_pool *pool,
-                                    struct mongory_table *t);
+mongory_value *mongory_value_wrap_a(mongory_memory_pool *pool, struct mongory_array *a);
+mongory_value *mongory_value_wrap_t(mongory_memory_pool *pool, struct mongory_table *t);
 mongory_value *mongory_value_wrap_regex(mongory_memory_pool *pool, void *regex);
 mongory_value *mongory_value_wrap_ptr(mongory_memory_pool *pool, void *ptr);
 mongory_value *mongory_value_wrap_u(mongory_memory_pool *pool, void *u);
@@ -115,16 +113,16 @@ mongory_value *mongory_value_wrap_u(mongory_memory_pool *pool, void *u);
  * Note: For MONGORY_TYPE_NULL, the 'i' field (int64_t) is arbitrarily used in
  * the macro as the union needs a field, but it's not meaningful for null.
  */
-#define MONGORY_TYPE_MACRO(_)                                                  \
-  _(MONGORY_TYPE_NULL, 0, "Null", i) /* Field 'i' is arbitrary for NULL */    \
-  _(MONGORY_TYPE_BOOL, 10, "Bool", b)                                          \
-  _(MONGORY_TYPE_INT, 11, "Int", i)                                            \
-  _(MONGORY_TYPE_DOUBLE, 12, "Double", d)                                      \
-  _(MONGORY_TYPE_STRING, 13, "String", s)                                      \
-  _(MONGORY_TYPE_ARRAY, 14, "Array", a)                                        \
-  _(MONGORY_TYPE_TABLE, 15, "Table", t)                                        \
-  _(MONGORY_TYPE_REGEX, 16, "Regex", regex) /* Custom regex object pointer */  \
-  _(MONGORY_TYPE_POINTER, 17, "Pointer", ptr) /* Generic void pointer */       \
+#define MONGORY_TYPE_MACRO(_)                                                                                          \
+  _(MONGORY_TYPE_NULL, 0, "Null", i) /* Field 'i' is arbitrary for NULL */                                             \
+  _(MONGORY_TYPE_BOOL, 10, "Bool", b)                                                                                  \
+  _(MONGORY_TYPE_INT, 11, "Int", i)                                                                                    \
+  _(MONGORY_TYPE_DOUBLE, 12, "Double", d)                                                                              \
+  _(MONGORY_TYPE_STRING, 13, "String", s)                                                                              \
+  _(MONGORY_TYPE_ARRAY, 14, "Array", a)                                                                                \
+  _(MONGORY_TYPE_TABLE, 15, "Table", t)                                                                                \
+  _(MONGORY_TYPE_REGEX, 16, "Regex", regex)          /* Custom regex object pointer */                                 \
+  _(MONGORY_TYPE_POINTER, 17, "Pointer", ptr)        /* Generic void pointer */                                        \
   _(MONGORY_TYPE_UNSUPPORTED, 999, "Unsupported", u) /* External/unknown type pointer */
 
 /**
@@ -164,10 +162,10 @@ static const int mongory_value_compare_fail = 97;
  * wrapper.
  */
 struct mongory_value {
-  mongory_memory_pool *pool; /**< Memory pool associated with this value. */
-  mongory_type type;         /**< The type of data stored in the union. */
-  mongory_value_compare_func comp; /**< Function to compare this value with
-                                      another. */
+  mongory_memory_pool *pool;        /**< Memory pool associated with this value. */
+  mongory_type type;                /**< The type of data stored in the union. */
+  mongory_value_compare_func comp;  /**< Function to compare this value with
+                                       another. */
   mongory_value_to_str_func to_str; /**< Function to convert this value to a
                                       string representation. */
   union {
@@ -182,8 +180,8 @@ struct mongory_value {
     void *ptr;               /**< Generic void pointer for other data. */
     void *u;                 /**< Pointer for unsupported/external types. */
   } data;                    /**< Union holding the actual data based on type. */
-  void *origin; /**< Optional pointer to an original external value, useful for
-                   bridging with other data systems. */
+  void *origin;              /**< Optional pointer to an original external value, useful for
+                                bridging with other data systems. */
 };
 
 #endif /* MONGORY_VALUE */

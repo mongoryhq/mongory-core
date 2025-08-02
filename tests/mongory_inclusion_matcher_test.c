@@ -60,16 +60,13 @@ void test_in_matcher_with_array_target(void) {
   TEST_ASSERT_NOT_NULL(matcher);
   TEST_ASSERT_NULL(pool->error);
 
-  TEST_ASSERT_FALSE(
-      matcher->match(matcher, mongory_value_wrap_a(pool, value_array)));
+  TEST_ASSERT_FALSE(matcher->match(matcher, mongory_value_wrap_a(pool, value_array)));
 
   value_array->push(value_array, mongory_value_wrap_i(pool, 77));
-  TEST_ASSERT_FALSE(
-      matcher->match(matcher, mongory_value_wrap_a(pool, value_array)));
+  TEST_ASSERT_FALSE(matcher->match(matcher, mongory_value_wrap_a(pool, value_array)));
 
   value_array->push(value_array, mongory_value_wrap_i(pool, 42));
-  TEST_ASSERT_TRUE(
-      matcher->match(matcher, mongory_value_wrap_a(pool, value_array)));
+  TEST_ASSERT_TRUE(matcher->match(matcher, mongory_value_wrap_a(pool, value_array)));
 }
 
 void test_in_matcher_invalid_condition(void) {
@@ -94,12 +91,10 @@ void test_not_in_matcher(void) {
   TEST_ASSERT_TRUE(matcher->match(matcher, mongory_value_wrap_i(pool, 77)));
 
   value_array->push(value_array, mongory_value_wrap_i(pool, 42));
-  TEST_ASSERT_FALSE(
-      matcher->match(matcher, mongory_value_wrap_a(pool, value_array)));
+  TEST_ASSERT_FALSE(matcher->match(matcher, mongory_value_wrap_a(pool, value_array)));
 
   value_array->push(value_array, mongory_value_wrap_i(pool, 55));
-  TEST_ASSERT_FALSE(
-      matcher->match(matcher, mongory_value_wrap_a(pool, value_array)));
+  TEST_ASSERT_FALSE(matcher->match(matcher, mongory_value_wrap_a(pool, value_array)));
 }
 
 void test_not_in_matcher_with_array_target(void) {
@@ -112,16 +107,13 @@ void test_not_in_matcher_with_array_target(void) {
   TEST_ASSERT_NOT_NULL(matcher);
   TEST_ASSERT_NULL(pool->error);
 
-  TEST_ASSERT_TRUE(
-      matcher->match(matcher, mongory_value_wrap_a(pool, value_array)));
+  TEST_ASSERT_TRUE(matcher->match(matcher, mongory_value_wrap_a(pool, value_array)));
 
   value_array->push(value_array, mongory_value_wrap_i(pool, 77));
-  TEST_ASSERT_TRUE(
-      matcher->match(matcher, mongory_value_wrap_a(pool, value_array)));
+  TEST_ASSERT_TRUE(matcher->match(matcher, mongory_value_wrap_a(pool, value_array)));
 
   value_array->push(value_array, mongory_value_wrap_i(pool, 42));
-  TEST_ASSERT_FALSE(
-      matcher->match(matcher, mongory_value_wrap_a(pool, value_array)));
+  TEST_ASSERT_FALSE(matcher->match(matcher, mongory_value_wrap_a(pool, value_array)));
 }
 
 void test_not_in_matcher_invalid_condition(void) {

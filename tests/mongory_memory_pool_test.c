@@ -28,9 +28,7 @@ void signal_handler(int sig) {
   longjmp(jmp, 1);
 }
 
-void test_initial_pool_size(void) {
-  TEST_ASSERT_EQUAL(256, pool_ctx->chunk_size);
-}
+void test_initial_pool_size(void) { TEST_ASSERT_EQUAL(256, pool_ctx->chunk_size); }
 
 void test_pool_allocation(void) {
   for (int i = 0; i < 1000; i++) {

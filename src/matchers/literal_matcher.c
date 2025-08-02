@@ -11,19 +11,19 @@
  * - $size checks the number of elements in an array against a condition.
  */
 #include "literal_matcher.h"
-#include "../foundations/config_private.h" // For mongory_internal_value_converter, mongory_string_cpy
-#include "array_record_matcher.h" // For handling array-specific matching logic
-#include "base_matcher.h"     // For mongory_try_parse_int, mongory_matcher_base_new
-#include "compare_matcher.h"  // For mongory_matcher_equal_new
-#include "composite_matcher.h" // For mongory_matcher_composite_new, mongory_matcher_table_cond_new
-#include "existance_matcher.h" // For mongory_matcher_exists_new (used by null_new)
+#include "../foundations/config_private.h"  // For mongory_internal_value_converter, mongory_string_cpy
+#include "../foundations/string_buffer.h"   // For mongory_string_buffer_appendf
+#include "array_record_matcher.h"           // For handling array-specific matching logic
+#include "base_matcher.h"                   // For mongory_try_parse_int, mongory_matcher_base_new
+#include "compare_matcher.h"                // For mongory_matcher_equal_new
+#include "composite_matcher.h"              // For mongory_matcher_composite_new, mongory_matcher_table_cond_new
+#include "existance_matcher.h"              // For mongory_matcher_exists_new (used by null_new)
 #include "mongory-core/foundations/array.h" // For mongory_array access
 #include "mongory-core/foundations/table.h" // For mongory_table access
 #include "mongory-core/foundations/value.h" // For mongory_value types and wrappers
-#include "regex_matcher.h"    // For mongory_matcher_regex_new
-#include <mongory-core.h>     // General include
-#include "../foundations/string_buffer.h" // For mongory_string_buffer_appendf
-#include <stdio.h> // For printf
+#include "regex_matcher.h"                  // For mongory_matcher_regex_new
+#include <mongory-core.h>                   // General include
+#include <stdio.h>                          // For printf
 
 /**
  * @brief Core matching logic for literal-based conditions.
@@ -46,10 +46,10 @@
  * @param value The `mongory_value` to evaluate against the matcher's condition.
  * @return True if the value matches, false otherwise.
  */
-static inline bool mongory_matcher_literal_match(mongory_matcher *matcher,
-                                                 mongory_value *value) {
+static inline bool mongory_matcher_literal_match(mongory_matcher *matcher, mongory_value *value) {
   mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
-  if (!composite || !composite->base.pool) return false; // Basic safety check
+  if (!composite || !composite->base.pool)
+    return false; // Basic safety check
 
   if (value != NULL && value->type == MONGORY_TYPE_ARRAY) {
     // If the value being matched is an array, there's special handling.
@@ -58,17 +58,14 @@ static inline bool mongory_matcher_literal_match(mongory_matcher *matcher,
     if (composite->right == NULL) {
       // Lazily create the array_record_matcher if needed.
       // The condition for array_record_new is the original condition of the literal matcher.
-      composite->right = mongory_matcher_array_record_new(
-          composite->base.pool, composite->base.condition);
+      composite->right = mongory_matcher_array_record_new(composite->base.pool, composite->base.condition);
     }
     // If right child exists (or was successfully created), use it.
-    return composite->right ? composite->right->match(composite->right, value)
-                            : false;
+    return composite->right ? composite->right->match(composite->right, value) : false;
   } else {
     // For non-array values, or if array-specific path wasn't taken.
     // The `left` child handles the general literal condition.
-    return composite->left ? composite->left->match(composite->left, value)
-                           : false;
+    return composite->left ? composite->left->match(composite->left, value) : false;
   }
 }
 
@@ -85,26 +82,27 @@ static inline bool mongory_matcher_literal_match(mongory_matcher *matcher,
  * @param condition The `mongory_value` which is of `MONGORY_TYPE_NULL`.
  * @return A composite matcher for the NULL condition, or NULL on failure.
  */
-static inline mongory_matcher *
-mongory_matcher_null_new(mongory_memory_pool *pool, mongory_value *condition) {
-  mongory_composite_matcher *composite =
-      mongory_matcher_composite_new(pool, condition);
-  if (!composite) return NULL;
+static inline mongory_matcher *mongory_matcher_null_new(mongory_memory_pool *pool, mongory_value *condition) {
+  mongory_composite_matcher *composite = mongory_matcher_composite_new(pool, condition);
+  if (!composite)
+    return NULL;
 
   // Left branch: checks for actual MONGORY_TYPE_NULL
   mongory_value *null_val = mongory_value_wrap_n(pool, NULL);
-  if (!null_val) return NULL; // Failed to wrap null value
+  if (!null_val)
+    return NULL; // Failed to wrap null value
   composite->left = mongory_matcher_equal_new(pool, null_val);
 
   // Right branch: checks if the field does not exist (value is NULL from get)
   // $exists: false
   mongory_value *exists_false_cond = mongory_value_wrap_b(pool, false);
-  if (!exists_false_cond) return NULL; // Failed to wrap bool
+  if (!exists_false_cond)
+    return NULL; // Failed to wrap bool
   composite->right = mongory_matcher_exists_new(pool, exists_false_cond);
 
   if (!composite->left || !composite->right) {
-      // Cleanup if one part failed? Pool should handle.
-      return NULL;
+    // Cleanup if one part failed? Pool should handle.
+    return NULL;
   }
 
   composite->base.match = mongory_matcher_or_match; // OR logic
@@ -127,10 +125,9 @@ mongory_matcher_null_new(mongory_memory_pool *pool, mongory_value *condition) {
  * @param condition The literal value or condition table.
  * @return The appropriate simple matcher for the condition, or NULL on failure.
  */
-static inline mongory_matcher *
-mongory_matcher_literal_delegate(mongory_memory_pool *pool,
-                                 mongory_value *condition) {
-  if (!condition) return mongory_matcher_equal_new(pool, NULL); // Or specific null matcher
+static inline mongory_matcher *mongory_matcher_literal_delegate(mongory_memory_pool *pool, mongory_value *condition) {
+  if (!condition)
+    return mongory_matcher_equal_new(pool, NULL); // Or specific null matcher
 
   switch (condition->type) {
   case MONGORY_TYPE_TABLE:
@@ -153,7 +150,7 @@ mongory_matcher_literal_delegate(mongory_memory_pool *pool,
  */
 typedef struct mongory_field_matcher {
   mongory_composite_matcher composite; /**< Base composite matcher structure. */
-  char *field; /**< Name/index of the field to match. Copied string. */
+  char *field;                         /**< Name/index of the field to match. Copied string. */
 } mongory_field_matcher;
 
 /**
@@ -169,13 +166,13 @@ typedef struct mongory_field_matcher {
  * @param value The input table or array to extract the field from.
  * @return True if the field's value matches the condition, false otherwise.
  */
-static inline bool mongory_matcher_field_match(mongory_matcher *matcher,
-                                               mongory_value *value) {
+static inline bool mongory_matcher_field_match(mongory_matcher *matcher, mongory_value *value) {
   if (value == NULL) { // Cannot extract field from NULL.
     return false;
   }
   mongory_field_matcher *field_matcher = (mongory_field_matcher *)matcher;
-  if (!field_matcher->field) return false; // No field specified.
+  if (!field_matcher->field)
+    return false; // No field specified.
 
   mongory_value *field_value = NULL;
   char *field_key = field_matcher->field;
@@ -191,10 +188,12 @@ static inline bool mongory_matcher_field_match(mongory_matcher *matcher,
         return false; // Field key is not a valid integer index for an array.
       }
       if (index < 0) { // Handle negative indexing (from end of array)
-        if ( (size_t)(-index) > value->data.a->count) return false; // Out of bounds
+        if ((size_t)(-index) > value->data.a->count)
+          return false; // Out of bounds
         index = value->data.a->count + index;
       }
-      if ( (size_t)index >= value->data.a->count) return false; // Out of bounds
+      if ((size_t)index >= value->data.a->count)
+        return false; // Out of bounds
       field_value = value->data.a->get(value->data.a, (size_t)index);
     }
   } else {
@@ -203,14 +202,12 @@ static inline bool mongory_matcher_field_match(mongory_matcher *matcher,
 
   // If the extracted field value is a pointer type that needs conversion
   // (e.g., from a language binding), convert it.
-  if (field_value && field_value->type == MONGORY_TYPE_POINTER &&
-      mongory_internal_value_converter &&
+  if (field_value && field_value->type == MONGORY_TYPE_POINTER && mongory_internal_value_converter &&
       mongory_internal_value_converter->shallow_convert) {
     // The pool for the converted value should ideally be the field_value's pool
     // or the matcher's pool.
-    mongory_memory_pool* conversion_pool = field_value->pool ? field_value->pool : matcher->pool;
-    field_value = mongory_internal_value_converter->shallow_convert(
-        conversion_pool, field_value->data.ptr);
+    mongory_memory_pool *conversion_pool = field_value->pool ? field_value->pool : matcher->pool;
+    field_value = mongory_internal_value_converter->shallow_convert(conversion_pool, field_value->data.ptr);
   }
   // Now, use the literal_match logic (which uses composite.left primarily)
   // to match the extracted field_value.
@@ -224,10 +221,10 @@ void mongory_matcher_literal_match_explain(mongory_matcher *matcher, mongory_mat
   mongory_string_buffer_append(prefix_buffer, ctx->prefix);
   mongory_string_buffer_append(prefix_buffer, addon_prefix);
   mongory_matcher_explain_context child_ctx = {
-    .pool = ctx->pool,
-    .count = 0,
-    .total = 1,
-    .prefix = mongory_string_buffer_cstr(prefix_buffer),
+      .pool = ctx->pool,
+      .count = 0,
+      .total = 1,
+      .prefix = mongory_string_buffer_cstr(prefix_buffer),
   };
   if (composite->right) {
     composite->right->explain(composite->right, &child_ctx);
@@ -256,21 +253,20 @@ void mongory_matcher_field_explain(mongory_matcher *matcher, mongory_matcher_exp
   mongory_matcher_literal_match_explain(matcher, ctx);
 }
 
-mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool,
-                                           char *field_name,
+mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *field_name,
                                            mongory_value *condition_for_field) {
-  if(!pool || !pool->alloc || !field_name) return NULL;
+  if (!pool || !pool->alloc || !field_name)
+    return NULL;
 
-  mongory_field_matcher *field_m =
-      pool->alloc(pool->ctx, sizeof(mongory_field_matcher));
+  mongory_field_matcher *field_m = pool->alloc(pool->ctx, sizeof(mongory_field_matcher));
   if (field_m == NULL) {
     return NULL;
   }
   field_m->field = mongory_string_cpy(pool, field_name);
   if (field_m->field == NULL) {
-      // pool->free(field_m) is not standard; pool manages its own memory.
-      // This indicates an error in string copy, likely pool allocation.
-      return NULL;
+    // pool->free(field_m) is not standard; pool manages its own memory.
+    // This indicates an error in string copy, likely pool allocation.
+    return NULL;
   }
 
   // Initialize the base composite matcher part
@@ -285,14 +281,13 @@ mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool,
 
   // The 'left' child of the composite is the actual matcher for the field's value,
   // determined by the type of 'condition_for_field'.
-  field_m->composite.left =
-      mongory_matcher_literal_delegate(pool, condition_for_field);
+  field_m->composite.left = mongory_matcher_literal_delegate(pool, condition_for_field);
   field_m->composite.right = NULL; // Not typically used by field_match directly,
-                                 // but literal_match might use it for arrays.
+                                   // but literal_match might use it for arrays.
 
   if (field_m->composite.left == NULL) {
-      // Failed to create the delegate matcher for the condition.
-      return NULL;
+    // Failed to create the delegate matcher for the condition.
+    return NULL;
   }
 
   return (mongory_matcher *)field_m;
@@ -305,23 +300,22 @@ mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool,
  * @param value The value to evaluate.
  * @return True if the literal match is false, false if it's true.
  */
-static inline bool mongory_matcher_not_match(mongory_matcher *matcher,
-                                             mongory_value *value) {
+static inline bool mongory_matcher_not_match(mongory_matcher *matcher, mongory_value *value) {
   // literal_match uses composite.left (and sometimes .right for arrays)
   return !mongory_matcher_literal_match(matcher, value);
 }
 
-mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool,
-                                         mongory_value *condition_to_negate) {
-  if (!pool) return NULL;
-  mongory_composite_matcher *composite =
-      mongory_matcher_composite_new(pool, condition_to_negate);
-  if (!composite) return NULL;
+mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool, mongory_value *condition_to_negate) {
+  if (!pool)
+    return NULL;
+  mongory_composite_matcher *composite = mongory_matcher_composite_new(pool, condition_to_negate);
+  if (!composite)
+    return NULL;
 
   // The 'left' child is the matcher for the condition being negated.
   composite->left = mongory_matcher_literal_delegate(pool, condition_to_negate);
   if (!composite->left) {
-      return NULL; // Failed to create delegate for the condition.
+    return NULL; // Failed to create delegate for the condition.
   }
   // composite->right remains NULL for $not, as literal_match's array path
   // via composite->right will use condition_to_negate if right is NULL.
@@ -341,19 +335,20 @@ mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool,
  * @param value The value to evaluate (must be an array).
  * @return True if array size matches condition, false otherwise.
  */
-static inline bool mongory_matcher_size_match(mongory_matcher *matcher,
-                                              mongory_value *value) {
+static inline bool mongory_matcher_size_match(mongory_matcher *matcher, mongory_value *value) {
   if (!value || value->type != MONGORY_TYPE_ARRAY || !value->data.a) {
     return false; // $size only applies to valid arrays.
   }
   mongory_array *array = value->data.a;
   // Wrap the array's count as a mongory_value (integer) to be matched.
   // The pool for this temporary size value should be from the input value or matcher.
-  mongory_memory_pool* temp_val_pool = value->pool ? value->pool : matcher->pool;
-  if (!temp_val_pool) return false; // Cannot create temp value without a pool
+  mongory_memory_pool *temp_val_pool = value->pool ? value->pool : matcher->pool;
+  if (!temp_val_pool)
+    return false; // Cannot create temp value without a pool
 
   mongory_value *size_value = mongory_value_wrap_i(temp_val_pool, array->count);
-  if (!size_value) return false; // Failed to wrap size.
+  if (!size_value)
+    return false; // Failed to wrap size.
 
   // Use literal_match with the matcher's original condition against the size_value.
   // The $size matcher's `composite.left` was set up by literal_delegate
@@ -365,19 +360,19 @@ static inline bool mongory_matcher_size_match(mongory_matcher *matcher,
   return result;
 }
 
-mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool,
-                                          mongory_value *size_condition) {
-  if (!pool) return NULL;
-  mongory_composite_matcher *composite =
-      mongory_matcher_composite_new(pool, size_condition);
-  if (!composite) return NULL;
+mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool, mongory_value *size_condition) {
+  if (!pool)
+    return NULL;
+  mongory_composite_matcher *composite = mongory_matcher_composite_new(pool, size_condition);
+  if (!composite)
+    return NULL;
 
   // The 'left' child is the matcher for the size_condition itself.
   // E.g., if {$size: {$gt: 5}}, size_condition is {$gt: 5}, and
   // composite.left becomes a "greater than 5" matcher.
   composite->left = mongory_matcher_literal_delegate(pool, size_condition);
   if (!composite->left) {
-      return NULL;
+    return NULL;
   }
   // composite->right typically NULL for $size, array path of literal_match not primary.
 
@@ -402,12 +397,12 @@ mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool,
  * @param condition The literal `mongory_value` or condition table.
  * @return A new literal matcher, or NULL on failure.
  */
-mongory_matcher *mongory_matcher_literal_new(mongory_memory_pool *pool,
-                                             mongory_value *condition) {
-  if (!pool) return NULL;
-  mongory_composite_matcher *composite =
-      mongory_matcher_composite_new(pool, condition);
-  if (!composite) return NULL;
+mongory_matcher *mongory_matcher_literal_new(mongory_memory_pool *pool, mongory_value *condition) {
+  if (!pool)
+    return NULL;
+  mongory_composite_matcher *composite = mongory_matcher_composite_new(pool, condition);
+  if (!composite)
+    return NULL;
 
   composite->left = mongory_matcher_literal_delegate(pool, condition);
   if (!composite->left) {

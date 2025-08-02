@@ -10,10 +10,10 @@
  * of values.
  */
 
+#include "base_matcher.h"
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
 #include "mongory-core/matchers/matcher.h" // For mongory_matcher structure
-#include "base_matcher.h"
 
 /**
  * @brief Creates an "in" ($in) matcher.
@@ -27,8 +27,7 @@
  * the set of values to check against.
  * @return A new `$in` matcher, or NULL on failure or invalid condition.
  */
-mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool,
-                                        mongory_value *condition);
+mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool, mongory_value *condition);
 
 /**
  * @brief Creates a "not in" ($nin) matcher.
@@ -42,7 +41,6 @@ mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool,
  * the set of values to check against.
  * @return A new `$nin` matcher, or NULL on failure or invalid condition.
  */
-mongory_matcher *mongory_matcher_not_in_new(mongory_memory_pool *pool,
-                                            mongory_value *condition);
+mongory_matcher *mongory_matcher_not_in_new(mongory_memory_pool *pool, mongory_value *condition);
 
 #endif /* MONGORY_MATCHER_INCLUSION_H */

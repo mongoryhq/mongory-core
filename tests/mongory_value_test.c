@@ -1,7 +1,7 @@
-#include "../src/test_helper/test_helper.h"
-#include "unity.h"
 #include "../src/foundations/string_buffer.h"
+#include "../src/test_helper/test_helper.h"
 #include "mongory-core.h"
+#include "unity.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -35,8 +35,7 @@ void test_double_value(void) {
   TEST_ASSERT_EQUAL(pool, value_d->pool);
   TEST_ASSERT_EQUAL_STRING("Double", mongory_type_to_string(value_d));
   double extracted_value = *(double *)mongory_value_extract(value_d);
-  TEST_ASSERT_TRUE(extracted_value >= test_value - 0.0001 &&
-                   extracted_value <= test_value + 0.0001);
+  TEST_ASSERT_TRUE(extracted_value >= test_value - 0.0001 && extracted_value <= test_value + 0.0001);
 }
 
 void test_string_value(void) {
@@ -78,8 +77,7 @@ void test_null_value(void) {
   TEST_ASSERT_EQUAL(pool, null_val->pool);
   TEST_ASSERT_EQUAL_STRING("Null", mongory_type_to_string(null_val));
   TEST_ASSERT_EQUAL(0, null_val->comp(null_val, null_val));
-  TEST_ASSERT_EQUAL(mongory_value_compare_fail,
-                    null_val->comp(null_val, mongory_value_wrap_b(pool, true)));
+  TEST_ASSERT_EQUAL(mongory_value_compare_fail, null_val->comp(null_val, mongory_value_wrap_b(pool, true)));
 }
 
 void test_unsupported_value(void) {
@@ -87,10 +85,8 @@ void test_unsupported_value(void) {
   mongory_value *unsupported_val = mongory_value_wrap_u(pool, NULL);
   TEST_ASSERT_NOT_NULL(unsupported_val);
   TEST_ASSERT_EQUAL(pool, unsupported_val->pool);
-  TEST_ASSERT_EQUAL_STRING("Unsupported",
-                           mongory_type_to_string(unsupported_val));
-  TEST_ASSERT_EQUAL(mongory_value_compare_fail,
-                    unsupported_val->comp(unsupported_val, unsupported_val));
+  TEST_ASSERT_EQUAL_STRING("Unsupported", mongory_type_to_string(unsupported_val));
+  TEST_ASSERT_EQUAL(mongory_value_compare_fail, unsupported_val->comp(unsupported_val, unsupported_val));
 }
 
 void test_boolean_comparison(void) {
@@ -103,8 +99,7 @@ void test_boolean_comparison(void) {
   TEST_ASSERT_EQUAL(0, true_val->comp(true_val, another_true));
   TEST_ASSERT_NOT_EQUAL(0, true_val->comp(true_val, false_val));
   TEST_ASSERT_NOT_EQUAL(0, false_val->comp(false_val, true_val));
-  TEST_ASSERT_EQUAL(mongory_value_compare_fail,
-                    true_val->comp(true_val, int_val));
+  TEST_ASSERT_EQUAL(mongory_value_compare_fail, true_val->comp(true_val, int_val));
 }
 
 void test_integer_comparison(void) {
@@ -134,8 +129,7 @@ void test_double_comparison(void) {
   TEST_ASSERT_EQUAL(-1, val_1_0->comp(val_1_0, val_1_5));
   TEST_ASSERT_EQUAL(1, val_1_5->comp(val_1_5, val_1_0));
   TEST_ASSERT_EQUAL(0, val_1_0->comp(val_1_0, int_val));
-  TEST_ASSERT_EQUAL(mongory_value_compare_fail,
-                    val_1_0->comp(val_1_0, bool_val));
+  TEST_ASSERT_EQUAL(mongory_value_compare_fail, val_1_0->comp(val_1_0, bool_val));
 }
 
 void test_string_comparison(void) {
@@ -176,16 +170,13 @@ void test_table_comparison(void) {
   table1->set(table1, "a", mongory_value_wrap_i(pool, 1));
   table2->set(table2, "a", mongory_value_wrap_i(pool, 2));
 
-  TEST_ASSERT_EQUAL(mongory_value_compare_fail,
-                    table_val1->comp(table_val1, table_val2));
-  TEST_ASSERT_EQUAL(mongory_value_compare_fail,
-                    table_val2->comp(table_val2, table_val1));
+  TEST_ASSERT_EQUAL(mongory_value_compare_fail, table_val1->comp(table_val1, table_val2));
+  TEST_ASSERT_EQUAL(mongory_value_compare_fail, table_val2->comp(table_val2, table_val1));
 }
 
 void test_json_to_value_string(void) {
   mongory_memory_pool *pool = get_test_pool();
-  mongory_value *value =
-      json_string_to_mongory_value(pool, "\"Hello, World!\"");
+  mongory_value *value = json_string_to_mongory_value(pool, "\"Hello, World!\"");
   TEST_ASSERT_NOT_NULL(value);
   TEST_ASSERT_EQUAL_STRING("Hello, World!", value->data.s);
 }
@@ -213,8 +204,7 @@ void test_json_to_value_array(void) {
 
 void test_json_to_value_object(void) {
   mongory_memory_pool *pool = get_test_pool();
-  mongory_value *value =
-      json_string_to_mongory_value(pool, "{\"name\": \"John\", \"age\": 30}");
+  mongory_value *value = json_string_to_mongory_value(pool, "{\"name\": \"John\", \"age\": 30}");
   TEST_ASSERT_NOT_NULL(value);
   TEST_ASSERT_EQUAL(MONGORY_TYPE_TABLE, value->type);
 
@@ -229,25 +219,25 @@ void test_json_to_value_object(void) {
 }
 
 void test_value_stringify(void) {
-    mongory_memory_pool *pool = get_test_pool();
-    mongory_table *table = mongory_table_new(pool);
-    mongory_array *array = mongory_array_new(pool);
+  mongory_memory_pool *pool = get_test_pool();
+  mongory_table *table = mongory_table_new(pool);
+  mongory_array *array = mongory_array_new(pool);
 
-    array->push(array, mongory_value_wrap_i(pool, 1));
-    array->push(array, mongory_value_wrap_s(pool, "two"));
-    array->push(array, mongory_value_wrap_b(pool, true));
+  array->push(array, mongory_value_wrap_i(pool, 1));
+  array->push(array, mongory_value_wrap_s(pool, "two"));
+  array->push(array, mongory_value_wrap_b(pool, true));
 
-    table->set(table, "name", mongory_value_wrap_s(pool, "John"));
-    table->set(table, "age", mongory_value_wrap_i(pool, 30));
-    table->set(table, "isStudent", mongory_value_wrap_b(pool, false));
-    table->set(table, "courses", mongory_value_wrap_a(pool, array));
+  table->set(table, "name", mongory_value_wrap_s(pool, "John"));
+  table->set(table, "age", mongory_value_wrap_i(pool, 30));
+  table->set(table, "isStudent", mongory_value_wrap_b(pool, false));
+  table->set(table, "courses", mongory_value_wrap_a(pool, array));
 
-    mongory_value *value = mongory_value_wrap_t(pool, table);
-    mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
-    value->to_str(value, buffer);
+  mongory_value *value = mongory_value_wrap_t(pool, table);
+  mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
+  value->to_str(value, buffer);
 
-    const char *expected = "{\"age\":30,\"isStudent\":false,\"name\":\"John\",\"courses\":[1,\"two\",true]}";
-    TEST_ASSERT_EQUAL_STRING(expected, mongory_string_buffer_cstr(buffer));
+  const char *expected = "{\"age\":30,\"isStudent\":false,\"name\":\"John\",\"courses\":[1,\"two\",true]}";
+  TEST_ASSERT_EQUAL_STRING(expected, mongory_string_buffer_cstr(buffer));
 }
 
 int main(void) {

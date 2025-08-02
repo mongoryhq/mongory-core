@@ -25,8 +25,7 @@
  * matcher's condition.
  * @return bool True if the `value` matches the condition, false otherwise.
  */
-typedef bool (*mongory_matcher_match_func)(struct mongory_matcher *matcher,
-                                           mongory_value *value);
+typedef bool (*mongory_matcher_match_func)(struct mongory_matcher *matcher, mongory_value *value);
 
 /**
  * @brief Context for explaining a matcher.
@@ -36,7 +35,7 @@ typedef bool (*mongory_matcher_match_func)(struct mongory_matcher *matcher,
  * @param total The total number of matchers.
  * @param prefix The prefix to use for the explanation.
  */
- typedef struct mongory_matcher_explain_context {
+typedef struct mongory_matcher_explain_context {
   mongory_memory_pool *pool;
   int count;
   int total;
@@ -60,12 +59,11 @@ typedef void (*mongory_matcher_explain_func)(struct mongory_matcher *matcher, mo
  * and a trace array for debugging purposes (currently not extensively used).
  */
 typedef struct mongory_matcher_context {
-  mongory_matcher_match_func
-      original_match; /**< Stores the original match function, potentially for
-                         restoration or delegation. */
-  mongory_array *trace; /**< An array that can be used for tracing matcher
-                           execution (for debugging). */
-  size_t sub_count; /**< The number of sub-matchers. */
+  mongory_matcher_match_func original_match; /**< Stores the original match function, potentially for
+                                                restoration or delegation. */
+  mongory_array *trace;                      /**< An array that can be used for tracing matcher
+                                                execution (for debugging). */
+  size_t sub_count;                          /**< The number of sub-matchers. */
 } mongory_matcher_context;
 
 /**
@@ -77,16 +75,16 @@ typedef struct mongory_matcher_context {
  * a memory pool for its allocations, and a context.
  */
 typedef struct mongory_matcher {
-  char *name;                 /**< Optional name for the matcher (e.g., "$eq").
-                                 String is typically allocated from the pool. */
-  mongory_value *condition;   /**< The condition (a `mongory_value`) that this
-                                 matcher evaluates against. */
-  mongory_matcher_match_func match; /**< Function pointer to the specific matching
-                                       logic for this matcher type. */
-  mongory_memory_pool *pool;  /**< The memory pool used for allocations related
-                                 to this matcher instance. */
-  mongory_matcher_context context; /**< Additional context for the matcher, like
-                                      tracing or original function pointers. */
+  char *name;                           /**< Optional name for the matcher (e.g., "$eq").
+                                           String is typically allocated from the pool. */
+  mongory_value *condition;             /**< The condition (a `mongory_value`) that this
+                                           matcher evaluates against. */
+  mongory_matcher_match_func match;     /**< Function pointer to the specific matching
+                                           logic for this matcher type. */
+  mongory_memory_pool *pool;            /**< The memory pool used for allocations related
+                                           to this matcher instance. */
+  mongory_matcher_context context;      /**< Additional context for the matcher, like
+                                           tracing or original function pointers. */
   mongory_matcher_explain_func explain; /**< Function pointer to the explanation
                                           logic for this matcher type. */
 } mongory_matcher;
@@ -106,8 +104,7 @@ typedef struct mongory_matcher {
  * @return mongory_matcher* A pointer to the newly allocated base matcher, or
  * NULL on allocation failure.
  */
-mongory_matcher *
-mongory_matcher_base_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool, mongory_value *condition);
 
 /**
  * @brief Creates a new matcher that always evaluates to true.
@@ -118,8 +115,7 @@ mongory_matcher_base_new(mongory_memory_pool *pool, mongory_value *condition);
  * @return mongory_matcher* A pointer to the "always true" matcher, or NULL on
  * failure.
  */
-mongory_matcher *mongory_matcher_always_true_new(mongory_memory_pool *pool,
-                                                 mongory_value *condition);
+mongory_matcher *mongory_matcher_always_true_new(mongory_memory_pool *pool, mongory_value *condition);
 
 /**
  * @brief Creates a new matcher that always evaluates to false.
@@ -130,8 +126,7 @@ mongory_matcher *mongory_matcher_always_true_new(mongory_memory_pool *pool,
  * @return mongory_matcher* A pointer to the "always false" matcher, or NULL on
  * failure.
  */
-mongory_matcher *mongory_matcher_always_false_new(mongory_memory_pool *pool,
-                                                  mongory_value *condition);
+mongory_matcher *mongory_matcher_always_false_new(mongory_memory_pool *pool, mongory_value *condition);
 
 /**
  * @brief Attempts to parse an integer from a string.

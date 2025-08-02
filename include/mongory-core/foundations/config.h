@@ -28,9 +28,7 @@
  * string).
  * @return bool True if the value matches the pattern, false otherwise.
  */
-typedef bool (*mongory_regex_func)(mongory_memory_pool *pool,
-                                   mongory_value *pattern,
-                                   mongory_value *value);
+typedef bool (*mongory_regex_func)(mongory_memory_pool *pool, mongory_value *pattern, mongory_value *value);
 
 /**
  * @brief Function pointer type for deep conversion of an external value to a
@@ -45,8 +43,7 @@ typedef bool (*mongory_regex_func)(mongory_memory_pool *pool,
  * @return mongory_value* A new mongory_value representing the converted data,
  * or NULL on failure.
  */
-typedef mongory_value *(*mongory_deep_convert_func)(mongory_memory_pool *pool,
-                                                    void *value);
+typedef mongory_value *(*mongory_deep_convert_func)(mongory_memory_pool *pool, void *value);
 
 /**
  * @brief Function pointer type for shallow conversion of an external value to a
@@ -60,8 +57,7 @@ typedef mongory_value *(*mongory_deep_convert_func)(mongory_memory_pool *pool,
  * @param value A pointer to the external value to convert.
  * @return mongory_value* A new mongory_value, or NULL on failure.
  */
-typedef mongory_value *(*mongory_shallow_convert_func)(
-    mongory_memory_pool *pool, void *value);
+typedef mongory_value *(*mongory_shallow_convert_func)(mongory_memory_pool *pool, void *value);
 
 /**
  * @brief Function pointer type for recovering an external value from a
@@ -76,8 +72,7 @@ typedef mongory_value *(*mongory_shallow_convert_func)(
  * @return void* A pointer to the recovered external value, or NULL if not
  * possible.
  */
-typedef void *(*mongory_recover_func)(mongory_memory_pool *pool,
-                                      mongory_value *value);
+typedef void *(*mongory_recover_func)(mongory_memory_pool *pool, mongory_value *value);
 
 /**
  * @brief Initializes the Mongory library.
@@ -110,15 +105,13 @@ void mongory_regex_func_set(mongory_regex_func func);
  * @brief Sets the custom deep value conversion function.
  * @param deep_convert The function to use for deep conversions.
  */
-void mongory_value_converter_deep_convert_set(
-    mongory_deep_convert_func deep_convert);
+void mongory_value_converter_deep_convert_set(mongory_deep_convert_func deep_convert);
 
 /**
  * @brief Sets the custom shallow value conversion function.
  * @param shallow_convert The function to use for shallow conversions.
  */
-void mongory_value_converter_shallow_convert_set(
-    mongory_shallow_convert_func shallow_convert);
+void mongory_value_converter_shallow_convert_set(mongory_shallow_convert_func shallow_convert);
 
 /**
  * @brief Sets the custom value recovery function.

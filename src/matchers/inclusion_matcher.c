@@ -4,7 +4,7 @@
  * array. This is an internal implementation file for the matcher module.
  */
 #include "inclusion_matcher.h"
-#include "base_matcher.h" // For mongory_matcher_base_new
+#include "base_matcher.h"                   // For mongory_matcher_base_new
 #include "mongory-core/foundations/array.h" // For mongory_array operations
 #include "mongory-core/foundations/error.h" // For mongory_error
 #include "mongory-core/foundations/value.h" // For mongory_value
@@ -29,8 +29,7 @@ typedef struct mongory_matcher_inclusion_context {
  * @return True if `condition` is not NULL, is of type `MONGORY_TYPE_ARRAY`,
  * and its internal array data `condition->data.a` is not NULL. False otherwise.
  */
-static inline bool
-mongory_matcher_validate_array_condition(mongory_value *condition) {
+static inline bool mongory_matcher_validate_array_condition(mongory_value *condition) {
   if (condition == NULL) {
     return false; // Condition must exist.
   }
@@ -55,21 +54,18 @@ mongory_matcher_validate_array_condition(mongory_value *condition) {
  * @return `false` (stop iteration) if `item_in_condition_array` equals
  * `context->value`, `true` (continue iteration) otherwise.
  */
-static inline bool mongory_matcher_inclusion_value_compare(
-    mongory_value *item_in_condition_array, void *acc) {
-  mongory_matcher_inclusion_context *context =
-      (mongory_matcher_inclusion_context *)acc;
+static inline bool mongory_matcher_inclusion_value_compare(mongory_value *item_in_condition_array, void *acc) {
+  mongory_matcher_inclusion_context *context = (mongory_matcher_inclusion_context *)acc;
   mongory_value *scalar_value_to_find = context->value;
 
   if (!item_in_condition_array || !scalar_value_to_find || !item_in_condition_array->comp) {
-      // Cannot compare if item or value is NULL, or if item has no compare function.
-      // Treat as not equal for safety, continue search.
-      return true;
+    // Cannot compare if item or value is NULL, or if item has no compare function.
+    // Treat as not equal for safety, continue search.
+    return true;
   }
 
   // Check if the item from condition array equals the scalar value we're looking for.
-  context->result =
-      (item_in_condition_array->comp(item_in_condition_array, scalar_value_to_find) == 0);
+  context->result = (item_in_condition_array->comp(item_in_condition_array, scalar_value_to_find) == 0);
 
   return !context->result; // Stop if found (result is true), continue if not found.
 }
@@ -88,10 +84,8 @@ static inline bool mongory_matcher_inclusion_value_compare(
  * @return `false` (stop iteration) if `b_scalar_in_condition_array` is found
  * in `context->value` (the input array), `true` (continue) otherwise.
  */
-static inline bool mongory_matcher_inclusion_array_compare(
-    mongory_value *b_scalar_in_condition_array, void *acc) {
-  mongory_matcher_inclusion_context *outer_context =
-      (mongory_matcher_inclusion_context *)acc;
+static inline bool mongory_matcher_inclusion_array_compare(mongory_value *b_scalar_in_condition_array, void *acc) {
+  mongory_matcher_inclusion_context *outer_context = (mongory_matcher_inclusion_context *)acc;
   // outer_context->value is the input array we are checking.
   mongory_array *input_array_a = outer_context->value->data.a;
 
@@ -102,18 +96,17 @@ static inline bool mongory_matcher_inclusion_array_compare(
   // Iterate through input_array_a to find b_scalar_in_condition_array.
   // mongory_matcher_inclusion_value_compare will set inner_search_ctx.result to true if found.
   // It returns !result, so if found (result=true), it returns false (stop).
-  bool iteration_stopped = !input_array_a->each(input_array_a, &inner_search_ctx,
-                                 mongory_matcher_inclusion_value_compare);
+  bool iteration_stopped =
+      !input_array_a->each(input_array_a, &inner_search_ctx, mongory_matcher_inclusion_value_compare);
 
   if (iteration_stopped && inner_search_ctx.result) {
-      // b_scalar_in_condition_array was found in input_array_a.
-      outer_context->result = true; // Mark overall $in as successful.
-      return false; // Stop iterating the outer (condition) array.
+    // b_scalar_in_condition_array was found in input_array_a.
+    outer_context->result = true; // Mark overall $in as successful.
+    return false;                 // Stop iterating the outer (condition) array.
   }
 
   return true; // b_scalar_in_condition_array was not in input_array_a, continue.
 }
-
 
 /**
  * @brief Match function for the $in matcher.
@@ -128,43 +121,40 @@ static inline bool mongory_matcher_inclusion_array_compare(
  * @return True if `value_to_check` (or one of its elements) is found in the
  * condition array, false otherwise.
  */
-static inline bool mongory_matcher_in_match(mongory_matcher *matcher,
-                                            mongory_value *value_to_check) {
+static inline bool mongory_matcher_in_match(mongory_matcher *matcher, mongory_value *value_to_check) {
   if (!value_to_check || !matcher->condition || !matcher->condition->data.a) {
-      // Invalid inputs or condition is not a proper array.
-      return false;
+    // Invalid inputs or condition is not a proper array.
+    return false;
   }
 
   mongory_matcher_inclusion_context ctx = {false, value_to_check};
   mongory_array *condition_array = matcher->condition->data.a;
 
   if (value_to_check->type == MONGORY_TYPE_ARRAY) {
-    if (value_to_check->data.a == NULL) return false; // Invalid input array
+    if (value_to_check->data.a == NULL)
+      return false; // Invalid input array
     // Case: $in: [c1, c2], input: [a1, a2]
     // We need to check if any c_i is in [a1, a2] OR if any a_i is in [c1, c2].
     // The current mongory_matcher_inclusion_array_compare checks if an element from
     // condition_array is present in value_to_check (the input array).
     // So, we iterate the condition_array, and for each element, check if it's in value_to_check.
-    condition_array->each(condition_array, &ctx,
-                          mongory_matcher_inclusion_array_compare);
+    condition_array->each(condition_array, &ctx, mongory_matcher_inclusion_array_compare);
   } else {
     // Case: $in: [c1, c2], input: scalar_value
     // Check if scalar_value is any of c_i.
-    condition_array->each(condition_array, &ctx,
-                          mongory_matcher_inclusion_value_compare);
+    condition_array->each(condition_array, &ctx, mongory_matcher_inclusion_value_compare);
   }
   return ctx.result; // True if any comparison led to result=true.
 }
 
-mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool,
-                                        mongory_value *condition) {
+mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool, mongory_value *condition) {
   if (!mongory_matcher_validate_array_condition(condition)) {
     if (pool && pool->alloc) {
-        pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
-        if (pool->error) {
-            pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
-            pool->error->message = "$in condition must be a valid array.";
-        }
+      pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
+      if (pool->error) {
+        pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
+        pool->error->message = "$in condition must be a valid array.";
+      }
     }
     return NULL;
   }
@@ -185,21 +175,19 @@ mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool,
  * @return True if the value is NOT found according to $in logic, false
  * otherwise.
  */
-static inline bool mongory_matcher_not_in_match(mongory_matcher *matcher,
-                                                mongory_value *value) {
+static inline bool mongory_matcher_not_in_match(mongory_matcher *matcher, mongory_value *value) {
   // $nin is true if $in is false.
   return !mongory_matcher_in_match(matcher, value);
 }
 
-mongory_matcher *mongory_matcher_not_in_new(mongory_memory_pool *pool,
-                                            mongory_value *condition) {
+mongory_matcher *mongory_matcher_not_in_new(mongory_memory_pool *pool, mongory_value *condition) {
   if (!mongory_matcher_validate_array_condition(condition)) {
     if (pool && pool->alloc) {
-        pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
-        if (pool->error) {
-            pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
-            pool->error->message = "$nin condition must be a valid array.";
-        }
+      pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
+      if (pool->error) {
+        pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
+        pool->error->message = "$nin condition must be a valid array.";
+      }
     }
     return NULL;
   }

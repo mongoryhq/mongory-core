@@ -39,8 +39,7 @@ typedef bool (*mongory_array_callback_func)(mongory_value *item, void *acc);
  * @return bool Returns true if the iteration completed fully, false if it was
  * stopped by a callback.
  */
-typedef bool (*mongory_array_each_func)(mongory_array *self, void *acc,
-                                        mongory_array_callback_func func);
+typedef bool (*mongory_array_each_func)(mongory_array *self, void *acc, mongory_array_callback_func func);
 
 /**
  * @brief Function pointer type for adding an element to the end of the array.
@@ -49,8 +48,7 @@ typedef bool (*mongory_array_each_func)(mongory_array *self, void *acc,
  * @return bool Returns true if the value was successfully added, false
  * otherwise (e.g., memory allocation failure).
  */
-typedef bool (*mongory_array_push_func)(mongory_array *self,
-                                        mongory_value *value);
+typedef bool (*mongory_array_push_func)(mongory_array *self, mongory_value *value);
 
 /**
  * @brief Function pointer type for retrieving an element at a specific index.
@@ -59,8 +57,7 @@ typedef bool (*mongory_array_push_func)(mongory_array *self,
  * @return mongory_value* A pointer to the mongory_value at the given index, or
  * NULL if the index is out of bounds.
  */
-typedef mongory_value *(*mongory_array_get_func)(mongory_array *self,
-                                                 size_t index);
+typedef mongory_value *(*mongory_array_get_func)(mongory_array *self, size_t index);
 
 /**
  * @brief Function pointer type for setting or replacing an element at a
@@ -75,8 +72,7 @@ typedef mongory_value *(*mongory_array_get_func)(mongory_array *self,
  * @return bool Returns true if the value was successfully set, false otherwise
  * (e.g., memory allocation failure).
  */
-typedef bool (*mongory_array_set_func)(mongory_array *self, size_t index,
-                                       mongory_value *value);
+typedef bool (*mongory_array_set_func)(mongory_array *self, size_t index, mongory_value *value);
 
 /**
  * @brief Creates a new mongory_array instance.
@@ -98,16 +94,12 @@ mongory_array *mongory_array_new(mongory_memory_pool *pool);
  * allowing for a somewhat object-oriented interface in C.
  */
 struct mongory_array {
-  size_t count;              /**< The current number of elements in the array. */
-  mongory_memory_pool *pool; /**< The memory pool used for allocations. */
-  mongory_array_each_func
-      each; /**< Function to iterate over elements in the array. */
-  mongory_array_push_func
-      push; /**< Function to add an element to the end of the array. */
-  mongory_array_get_func
-      get; /**< Function to retrieve an element by index. */
-  mongory_array_set_func
-      set; /**< Function to set or replace an element at an index. */
+  size_t count;                 /**< The current number of elements in the array. */
+  mongory_memory_pool *pool;    /**< The memory pool used for allocations. */
+  mongory_array_each_func each; /**< Function to iterate over elements in the array. */
+  mongory_array_push_func push; /**< Function to add an element to the end of the array. */
+  mongory_array_get_func get;   /**< Function to retrieve an element by index. */
+  mongory_array_set_func set;   /**< Function to set or replace an element at an index. */
 };
 
 #endif /* MONGORY_ARRAY */

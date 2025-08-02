@@ -9,9 +9,9 @@
 
 // Required internal headers for delegation
 #include "../foundations/config_private.h" // Potentially for global settings
-#include "base_matcher.h"        // For mongory_matcher_base_new if used directly
-#include "composite_matcher.h" // For mongory_matcher_table_cond_new
-#include "literal_matcher.h" // Potentially for other default constructions
+#include "base_matcher.h"                  // For mongory_matcher_base_new if used directly
+#include "composite_matcher.h"             // For mongory_matcher_table_cond_new
+#include "literal_matcher.h"               // Potentially for other default constructions
 
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
@@ -34,8 +34,7 @@
  * NULL if allocation fails or the condition is invalid for
  * `mongory_matcher_table_cond_new`.
  */
-mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool,
-                                     mongory_value *condition) {
+mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition) {
   // Delegate to table_cond_new, assuming conditions are typically tables.
   mongory_matcher *matcher = mongory_matcher_table_cond_new(pool, condition);
   matcher->name = mongory_string_cpy(pool, "Intro");
@@ -44,10 +43,10 @@ mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool,
 
 void mongory_matcher_explain(mongory_matcher *matcher, mongory_memory_pool *temp_pool) {
   mongory_matcher_explain_context ctx = {
-    .pool = temp_pool,
-    .count = 0,
-    .total = 1,
-    .prefix = "",
+      .pool = temp_pool,
+      .count = 0,
+      .total = 1,
+      .prefix = "",
   };
   matcher->explain(matcher, &ctx);
 }

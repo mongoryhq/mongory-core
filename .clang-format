@@ -3,3 +3,4 @@ IndentWidth: 2
 UseTab: Never
 AllowShortIfStatementsOnASingleLine: false
 BreakBeforeBraces: Attach
+ColumnLimit: 120

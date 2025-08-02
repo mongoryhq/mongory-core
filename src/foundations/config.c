@@ -9,14 +9,14 @@
  * setters for customizable components and a string copy utility.
  */
 #include "mongory-core/foundations/config.h"
-#include "../matchers/base_matcher.h"    // For mongory_matcher_build_func
-#include "../matchers/compare_matcher.h" // For specific matcher constructors
+#include "../matchers/base_matcher.h"      // For mongory_matcher_build_func
+#include "../matchers/compare_matcher.h"   // For specific matcher constructors
 #include "../matchers/composite_matcher.h" // For specific matcher constructors
 #include "../matchers/existance_matcher.h" // For specific matcher constructors
 #include "../matchers/inclusion_matcher.h" // For specific matcher constructors
 #include "../matchers/literal_matcher.h"   // For specific matcher constructors
-#include "../matchers/regex_matcher.h" // For specific matcher constructors
-#include "config_private.h" // For mongory_regex_adapter, mongory_value_converter, etc.
+#include "../matchers/regex_matcher.h"     // For specific matcher constructors
+#include "config_private.h"                // For mongory_regex_adapter, mongory_value_converter, etc.
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/table.h"
 #include "mongory-core/foundations/value.h"
@@ -51,9 +51,7 @@ static inline void mongory_internal_pool_init() {
  * @param value Unused.
  * @return Always false.
  */
-static inline bool mongory_regex_default_func(mongory_memory_pool *pool,
-                                              mongory_value *pattern,
-                                              mongory_value *value) {
+static inline bool mongory_regex_default_func(mongory_memory_pool *pool, mongory_value *pattern, mongory_value *value) {
   (void)pool;    // Mark as unused to prevent compiler warnings.
   (void)pattern; // Mark as unused.
   (void)value;   // Mark as unused.
@@ -77,8 +75,8 @@ static inline void mongory_internal_regex_adapter_init() {
     return;
   }
 
-  mongory_internal_regex_adapter = mongory_internal_pool->alloc(
-      mongory_internal_pool->ctx, sizeof(mongory_regex_adapter));
+  mongory_internal_regex_adapter =
+      mongory_internal_pool->alloc(mongory_internal_pool->ctx, sizeof(mongory_regex_adapter));
   if (mongory_internal_regex_adapter == NULL) {
     // TODO: Set error state (e.g., in mongory_internal_pool->error).
     return;
@@ -132,8 +130,7 @@ static inline void mongory_matcher_mapping_init() {
  * @param name The name of the matcher (e.g., "$eq", "$in").
  * @param build_func A function pointer to the matcher's constructor.
  */
-void mongory_matcher_register(char *name,
-                              mongory_matcher_build_func build_func) {
+void mongory_matcher_register(char *name, mongory_matcher_build_func build_func) {
   // Ensure mapping is initialized.
   if (mongory_matcher_mapping == NULL) {
     mongory_matcher_mapping_init();
@@ -144,8 +141,7 @@ void mongory_matcher_register(char *name,
   }
 
   // Wrap the function pointer in a mongory_value to store in the table.
-  mongory_value *value =
-      mongory_value_wrap_ptr(mongory_internal_pool, build_func);
+  mongory_value *value = mongory_value_wrap_ptr(mongory_internal_pool, build_func);
   if (value == NULL) {
     // TODO: Set error: Failed to wrap pointer.
     return;
@@ -167,8 +163,7 @@ mongory_matcher_build_func mongory_matcher_build_func_get(char *name) {
     return NULL; // Mapping not initialized or init failed.
   }
 
-  mongory_value *value =
-      mongory_matcher_mapping->get(mongory_matcher_mapping, name);
+  mongory_value *value = mongory_matcher_mapping->get(mongory_matcher_mapping, name);
   if (value == NULL || value->type != MONGORY_TYPE_POINTER) {
     return NULL; // Not found or not a pointer type as expected.
   }
@@ -190,8 +185,8 @@ static inline void mongory_internal_value_converter_init() {
     return; // Cannot proceed if pool init failed.
   }
 
-  mongory_internal_value_converter = mongory_internal_pool->alloc(
-      mongory_internal_pool->ctx, sizeof(mongory_value_converter));
+  mongory_internal_value_converter =
+      mongory_internal_pool->alloc(mongory_internal_pool->ctx, sizeof(mongory_value_converter));
   if (mongory_internal_value_converter == NULL) {
     // TODO: Set error state.
     return;
@@ -207,8 +202,7 @@ static inline void mongory_internal_value_converter_init() {
  * Initializes the value converter if necessary.
  * @param deep_convert The deep conversion function.
  */
-void mongory_value_converter_deep_convert_set(
-    mongory_deep_convert_func deep_convert) {
+void mongory_value_converter_deep_convert_set(mongory_deep_convert_func deep_convert) {
   if (mongory_internal_value_converter == NULL) {
     mongory_internal_value_converter_init();
   }
@@ -223,8 +217,7 @@ void mongory_value_converter_deep_convert_set(
  * Initializes the value converter if necessary.
  * @param shallow_convert The shallow conversion function.
  */
-void mongory_value_converter_shallow_convert_set(
-    mongory_shallow_convert_func shallow_convert) {
+void mongory_value_converter_shallow_convert_set(mongory_shallow_convert_func shallow_convert) {
   if (mongory_internal_value_converter == NULL) {
     mongory_internal_value_converter_init();
   }
@@ -334,6 +327,6 @@ void mongory_cleanup() {
   // Set other global pointers to NULL to indicate they are no longer valid.
   // The memory they pointed to should have been managed by the internal pool.
   mongory_internal_regex_adapter = NULL;
-  mongory_matcher_mapping = NULL;        // The table itself and its nodes.
+  mongory_matcher_mapping = NULL; // The table itself and its nodes.
   mongory_internal_value_converter = NULL;
 }

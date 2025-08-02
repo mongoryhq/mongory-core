@@ -11,10 +11,10 @@
  * table.
  */
 
+#include "base_matcher.h"
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
 #include "mongory-core/matchers/matcher.h" // For mongory_matcher structure
-#include "base_matcher.h"
 
 /**
  * @brief Creates a "field" matcher.
@@ -33,9 +33,7 @@
  * the actual sub-matcher (e.g., equality, regex, nested table condition).
  * @return A new field matcher, or NULL on failure.
  */
-mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool,
-                                           char *field,
-                                           mongory_value *condition);
+mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *field, mongory_value *condition);
 
 /**
  * @brief Creates a "NOT" ($not) matcher.
@@ -48,8 +46,7 @@ mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool,
  * @param condition The `mongory_value` condition whose result will be negated.
  * @return A new $not matcher, or NULL on failure.
  */
-mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool,
-                                         mongory_value *condition);
+mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool, mongory_value *condition);
 
 /**
  * @brief Creates a "size" ($size) matcher.
@@ -63,8 +60,7 @@ mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool,
  * @param condition The `mongory_value` condition to apply to the array's size.
  * @return A new $size matcher, or NULL on failure.
  */
-mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool,
-                                          mongory_value *condition);
+mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool, mongory_value *condition);
 
 /**
  * @brief Creates a "literal" matcher (deprecated or internal use).
@@ -79,7 +75,6 @@ mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool,
  * @param condition The literal `mongory_value` or condition table.
  * @return A new literal matcher, or NULL on failure.
  */
-mongory_matcher *mongory_matcher_literal_new(mongory_memory_pool *pool,
-                                             mongory_value *condition);
+mongory_matcher *mongory_matcher_literal_new(mongory_memory_pool *pool, mongory_value *condition);
 
 #endif /* MONGORY_MATCHER_LITERAL_H */

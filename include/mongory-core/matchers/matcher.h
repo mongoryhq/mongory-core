@@ -31,8 +31,7 @@ struct mongory_matcher;
  * @return mongory_matcher* A pointer to the newly created matcher, or NULL on
  * failure.
  */
-struct mongory_matcher *
-mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition);
+struct mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition);
 
 /**
  * @brief Matches a value against a matcher.
@@ -40,8 +39,7 @@ mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition);
  * @param value The value to match.
  * @return True if the value matches the matcher, false otherwise.
  */
-bool mongory_matcher_match(struct mongory_matcher *matcher,
-                           mongory_value *value);
+bool mongory_matcher_match(struct mongory_matcher *matcher, mongory_value *value);
 
 /**
  * @brief Explains a matcher.
