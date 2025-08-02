@@ -22,6 +22,8 @@
 #include "mongory-core/foundations/value.h" // For mongory_value types and wrappers
 #include "regex_matcher.h"    // For mongory_matcher_regex_new
 #include <mongory-core.h>     // General include
+#include "../foundations/string_buffer.h" // For mongory_string_buffer_appendf
+#include <stdio.h> // For printf
 
 /**
  * @brief Core matching logic for literal-based conditions.
@@ -107,6 +109,7 @@ mongory_matcher_null_new(mongory_memory_pool *pool, mongory_value *condition) {
 
   composite->base.match = mongory_matcher_or_match; // OR logic
   composite->base.context.original_match = mongory_matcher_or_match;
+  composite->base.name = mongory_string_cpy(pool, "Or");
   // composite->base.condition is already set by mongory_matcher_composite_new
   return (mongory_matcher *)composite;
 }
@@ -214,6 +217,45 @@ static inline bool mongory_matcher_field_match(mongory_matcher *matcher,
   return mongory_matcher_literal_match(matcher, field_value);
 }
 
+void mongory_matcher_literal_match_explain(mongory_matcher *matcher, mongory_matcher_explain_context *ctx) {
+  mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
+  char *addon_prefix = ctx->count < ctx->total ? "│  " : "   ";
+  mongory_string_buffer *prefix_buffer = mongory_string_buffer_new(ctx->pool);
+  mongory_string_buffer_append(prefix_buffer, ctx->prefix);
+  mongory_string_buffer_append(prefix_buffer, addon_prefix);
+  mongory_matcher_explain_context child_ctx = {
+    .pool = ctx->pool,
+    .count = 0,
+    .total = 1,
+    .prefix = mongory_string_buffer_cstr(prefix_buffer),
+  };
+  if (composite->right) {
+    composite->right->explain(composite->right, &child_ctx);
+  } else {
+    composite->left->explain(composite->left, &child_ctx);
+  }
+}
+
+void mongory_matcher_literal_explain(mongory_matcher *matcher, mongory_matcher_explain_context *ctx) {
+  mongory_matcher_base_explain(matcher, ctx);
+  mongory_matcher_literal_match_explain(matcher, ctx);
+}
+
+void mongory_matcher_field_explain(mongory_matcher *matcher, mongory_matcher_explain_context *ctx) {
+  char *connection = "├─ ";
+  if (ctx->count == ctx->total - 1) {
+    connection = "└─ ";
+  }
+  ctx->count++;
+  mongory_field_matcher *field_matcher = (mongory_field_matcher *)matcher;
+  mongory_string_buffer *title_buffer = mongory_string_buffer_new(ctx->pool);
+  mongory_string_buffer_appendf(title_buffer, "Field: \"%s\", to match: ", field_matcher->field);
+  mongory_value *condition = field_matcher->composite.base.condition;
+  condition->to_str(condition, title_buffer);
+  printf("%s%s%s\n", ctx->prefix, connection, mongory_string_buffer_cstr(title_buffer));
+  mongory_matcher_literal_match_explain(matcher, ctx);
+}
+
 mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool,
                                            char *field_name,
                                            mongory_value *condition_for_field) {
@@ -238,6 +280,8 @@ mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool,
   field_m->composite.base.context.original_match = mongory_matcher_field_match;
   field_m->composite.base.context.trace = NULL;
   field_m->composite.base.condition = condition_for_field; // Original condition for the field
+  field_m->composite.base.name = mongory_string_cpy(pool, "Field");
+  field_m->composite.base.explain = mongory_matcher_field_explain;
 
   // The 'left' child of the composite is the actual matcher for the field's value,
   // determined by the type of 'condition_for_field'.
@@ -284,6 +328,8 @@ mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool,
 
   composite->base.match = mongory_matcher_not_match;
   composite->base.context.original_match = mongory_matcher_not_match;
+  composite->base.name = mongory_string_cpy(pool, "Not");
+  composite->base.explain = mongory_matcher_literal_explain;
   return (mongory_matcher *)composite;
 }
 
@@ -337,6 +383,8 @@ mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool,
 
   composite->base.match = mongory_matcher_size_match;
   composite->base.context.original_match = mongory_matcher_size_match;
+  composite->base.name = mongory_string_cpy(pool, "Size");
+  composite->base.explain = mongory_matcher_literal_explain;
   return (mongory_matcher *)composite;
 }
 
@@ -369,5 +417,6 @@ mongory_matcher *mongory_matcher_literal_new(mongory_memory_pool *pool,
   // populate it with an array_record_matcher if it encounters an array value.
   composite->base.match = mongory_matcher_literal_match;
   composite->base.context.original_match = mongory_matcher_literal_match;
+  composite->base.explain = mongory_matcher_literal_explain;
   return (mongory_matcher *)composite;
 }

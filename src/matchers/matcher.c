@@ -37,5 +37,17 @@
 mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool,
                                      mongory_value *condition) {
   // Delegate to table_cond_new, assuming conditions are typically tables.
-  return mongory_matcher_table_cond_new(pool, condition);
+  mongory_matcher *matcher = mongory_matcher_table_cond_new(pool, condition);
+  matcher->name = mongory_string_cpy(pool, "Intro");
+  return matcher;
+}
+
+void mongory_matcher_explain(mongory_matcher *matcher, mongory_memory_pool *temp_pool) {
+  mongory_matcher_explain_context ctx = {
+    .pool = temp_pool,
+    .count = 0,
+    .total = 1,
+    .prefix = "",
+  };
+  matcher->explain(matcher, &ctx);
 }

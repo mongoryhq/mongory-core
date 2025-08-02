@@ -172,6 +172,7 @@ mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool,
   if (matcher) {
     matcher->match = mongory_matcher_in_match;
     matcher->context.original_match = mongory_matcher_in_match;
+    matcher->name = mongory_string_cpy(pool, "In");
   }
   return matcher;
 }
@@ -206,6 +207,7 @@ mongory_matcher *mongory_matcher_not_in_new(mongory_memory_pool *pool,
   if (matcher) {
     matcher->match = mongory_matcher_not_in_match;
     matcher->context.original_match = mongory_matcher_not_in_match;
+    matcher->name = mongory_string_cpy(pool, "Nin");
   }
   return matcher;
 }

@@ -172,6 +172,9 @@ bool execute_each_test_case(mongory_value *test_case, void *acc) {
       matcher_build_func(matcher_pool, condition_value);
   TEST_ASSERT_NOT_NULL(matcher);
   TEST_ASSERT_NULL(matcher_pool->error);
+  mongory_memory_pool *stdout_pool = mongory_memory_pool_new();
+  mongory_matcher_explain(matcher, stdout_pool);
+  stdout_pool->free(stdout_pool);
   mongory_array *records = records_value->data.a;
   mongory_test_execute_context context = {matcher, 0};
   records->each(records, &context, execute_test_record);

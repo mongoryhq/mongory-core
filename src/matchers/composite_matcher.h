@@ -129,4 +129,11 @@ mongory_matcher_composite_new(mongory_memory_pool *pool,
  */
 bool mongory_matcher_or_match(mongory_matcher *matcher, mongory_value *value);
 
+/**
+ * @brief Explains a composite matcher.
+ * @param matcher The matcher to explain.
+ * @param ctx The context to use for the explanation.
+ */
+void mongory_matcher_composite_explain(mongory_matcher *matcher, mongory_matcher_explain_context *ctx);
+
 #endif /* MONGORY_MATCHER_COMPOSITE_H */

@@ -20,7 +20,7 @@
  * @return mongory_matcher* A pointer to the newly created comparison matcher,
  * or NULL on failure.
  */
-static mongory_matcher *
+static inline mongory_matcher *
 mongory_matcher_compare_new(mongory_memory_pool *pool, mongory_value *condition,
                             mongory_matcher_match_func match_func) {
   mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
@@ -52,8 +52,12 @@ static inline bool mongory_matcher_equal_match(mongory_matcher *matcher,
 
 mongory_matcher *mongory_matcher_equal_new(mongory_memory_pool *pool,
                                            mongory_value *condition) {
-  return mongory_matcher_compare_new(pool, condition,
+  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition,
                                      mongory_matcher_equal_match);
+  if (matcher) {
+    matcher->name = mongory_string_cpy(pool, "Eq");
+  }
+  return matcher;
 }
 
 /**
@@ -76,8 +80,12 @@ static inline bool mongory_matcher_not_equal_match(mongory_matcher *matcher,
 
 mongory_matcher *mongory_matcher_not_equal_new(mongory_memory_pool *pool,
                                                mongory_value *condition) {
-  return mongory_matcher_compare_new(pool, condition,
+  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition,
                                      mongory_matcher_not_equal_match);
+  if (matcher) {
+    matcher->name = mongory_string_cpy(pool, "Ne");
+  }
+  return matcher;
 }
 
 /**
@@ -99,8 +107,12 @@ static inline bool mongory_matcher_greater_than_match(mongory_matcher *matcher,
 
 mongory_matcher *mongory_matcher_greater_than_new(mongory_memory_pool *pool,
                                                   mongory_value *condition) {
-  return mongory_matcher_compare_new(pool, condition,
+  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition,
                                      mongory_matcher_greater_than_match);
+  if (matcher) {
+    matcher->name = mongory_string_cpy(pool, "Gt");
+  }
+  return matcher;
 }
 
 /**
@@ -122,8 +134,12 @@ static inline bool mongory_matcher_less_than_match(mongory_matcher *matcher,
 
 mongory_matcher *mongory_matcher_less_than_new(mongory_memory_pool *pool,
                                                mongory_value *condition) {
-  return mongory_matcher_compare_new(pool, condition,
+  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition,
                                      mongory_matcher_less_than_match);
+  if (matcher) {
+    matcher->name = mongory_string_cpy(pool, "Lt");
+  }
+  return matcher;
 }
 
 /**
@@ -147,8 +163,12 @@ mongory_matcher_greater_than_or_equal_match(mongory_matcher *matcher,
 mongory_matcher *
 mongory_matcher_greater_than_or_equal_new(mongory_memory_pool *pool,
                                           mongory_value *condition) {
-  return mongory_matcher_compare_new(
+  mongory_matcher *matcher = mongory_matcher_compare_new(
       pool, condition, mongory_matcher_greater_than_or_equal_match);
+  if (matcher) {
+    matcher->name = mongory_string_cpy(pool, "Gte");
+  }
+  return matcher;
 }
 
 /**
@@ -172,6 +192,10 @@ mongory_matcher_less_than_or_equal_match(mongory_matcher *matcher,
 mongory_matcher *
 mongory_matcher_less_than_or_equal_new(mongory_memory_pool *pool,
                                        mongory_value *condition) {
-  return mongory_matcher_compare_new(pool, condition,
+  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition,
                                      mongory_matcher_less_than_or_equal_match);
+  if (matcher) {
+    matcher->name = mongory_string_cpy(pool, "Lte");
+  }
+  return matcher;
 }

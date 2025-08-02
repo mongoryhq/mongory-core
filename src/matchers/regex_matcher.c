@@ -9,6 +9,7 @@
 #include "mongory-core/foundations/error.h" // For MONGORY_ERROR_INVALID_ARGUMENT
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
+#include "mongory-core/foundations/config.h" // For mongory_string_cpy
 
 /**
  * @brief Match function for the $regex matcher.
@@ -70,6 +71,7 @@ mongory_matcher *mongory_matcher_regex_new(mongory_memory_pool *pool,
   if (matcher) {
     matcher->match = mongory_matcher_regex_match;
     matcher->context.original_match = mongory_matcher_regex_match;
+    matcher->name = mongory_string_cpy(pool, "Regex");
   }
   return matcher;
 }

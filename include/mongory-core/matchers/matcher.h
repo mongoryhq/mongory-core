@@ -43,4 +43,11 @@ mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition);
 bool mongory_matcher_match(struct mongory_matcher *matcher,
                            mongory_value *value);
 
+/**
+ * @brief Explains a matcher.
+ * @param matcher The matcher to explain.
+ * @param temp_pool The temporary pool to use for the explanation.
+ */
+void mongory_matcher_explain(struct mongory_matcher *matcher, mongory_memory_pool *temp_pool);
+
 #endif /* MONGORY_MATCHER_H */

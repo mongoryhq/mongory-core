@@ -66,6 +66,7 @@ mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool,
   if (matcher) {
     matcher->match = mongory_matcher_exists_match;
     matcher->context.original_match = mongory_matcher_exists_match;
+    matcher->name = mongory_string_cpy(pool, "Exists");
   }
   return matcher;
 }
@@ -143,6 +144,7 @@ mongory_matcher *mongory_matcher_present_new(mongory_memory_pool *pool,
   if (matcher) {
     matcher->match = mongory_matcher_present_match;
     matcher->context.original_match = mongory_matcher_present_match;
+    matcher->name = mongory_string_cpy(pool, "Present");
   }
   return matcher;
 }
