@@ -45,7 +45,7 @@ void mongory_matcher_explain(mongory_matcher *matcher, mongory_memory_pool *temp
   mongory_matcher_explain_context ctx = {
       .pool = temp_pool,
       .count = 0,
-      .total = 1,
+      .total = 0,
       .prefix = "",
   };
   matcher->explain(matcher, &ctx);

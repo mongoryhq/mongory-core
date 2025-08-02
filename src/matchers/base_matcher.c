@@ -32,6 +32,8 @@ void mongory_matcher_base_explain(mongory_matcher *matcher, mongory_matcher_expl
   char *connection = "├─ ";
   if (ctx->count == ctx->total - 1) {
     connection = "└─ ";
+  } else if (ctx->total == 0) {
+    connection = "";
   }
   ctx->count++;
   char *title = mongory_matcher_title(matcher, ctx->pool);

@@ -216,7 +216,12 @@ static inline bool mongory_matcher_field_match(mongory_matcher *matcher, mongory
 
 void mongory_matcher_literal_match_explain(mongory_matcher *matcher, mongory_matcher_explain_context *ctx) {
   mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
-  char *addon_prefix = ctx->count < ctx->total ? "│  " : "   ";
+  char *addon_prefix = "   ";
+  if (ctx->count < ctx->total) {
+    addon_prefix = "│  ";
+  } else if (ctx->total == 0) {
+    addon_prefix = "";
+  }
   mongory_string_buffer *prefix_buffer = mongory_string_buffer_new(ctx->pool);
   mongory_string_buffer_append(prefix_buffer, ctx->prefix);
   mongory_string_buffer_append(prefix_buffer, addon_prefix);
@@ -242,6 +247,8 @@ void mongory_matcher_field_explain(mongory_matcher *matcher, mongory_matcher_exp
   char *connection = "├─ ";
   if (ctx->count == ctx->total - 1) {
     connection = "└─ ";
+  } else if (ctx->total == 0) {
+    connection = "";
   }
   ctx->count++;
   mongory_field_matcher *field_matcher = (mongory_field_matcher *)matcher;
