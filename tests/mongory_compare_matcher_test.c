@@ -77,8 +77,7 @@ void test_compare_less_than(void) {
 
 void test_compare_greater_than_or_equal(void) {
   mongory_value *condition = mongory_value_wrap_i(pool, 42);
-  mongory_matcher *matcher =
-      mongory_matcher_greater_than_or_equal_new(pool, condition);
+  mongory_matcher *matcher = mongory_matcher_greater_than_or_equal_new(pool, condition);
 
   mongory_value *value1 = mongory_value_wrap_i(pool, 43);
   mongory_value *value2 = mongory_value_wrap_i(pool, 42);
@@ -93,8 +92,7 @@ void test_compare_greater_than_or_equal(void) {
 
 void test_compare_less_than_or_equal(void) {
   mongory_value *condition = mongory_value_wrap_i(pool, 42);
-  mongory_matcher *matcher =
-      mongory_matcher_less_than_or_equal_new(pool, condition);
+  mongory_matcher *matcher = mongory_matcher_less_than_or_equal_new(pool, condition);
 
   mongory_value *value1 = mongory_value_wrap_i(pool, 41);
   mongory_value *value2 = mongory_value_wrap_i(pool, 42);

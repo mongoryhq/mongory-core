@@ -35,9 +35,9 @@
  * Stores a key-value pair and a pointer to the next node in the chain.
  */
 typedef struct mongory_table_node {
-  char *key;                        /**< The string key for this entry. */
-  mongory_value *value;             /**< The mongory_value associated with the key. */
-  struct mongory_table_node *next;  /**< Pointer to the next node in the collision chain. */
+  char *key;                       /**< The string key for this entry. */
+  mongory_value *value;            /**< The mongory_value associated with the key. */
+  struct mongory_table_node *next; /**< Pointer to the next node in the collision chain. */
 } mongory_table_node;
 
 /**
@@ -47,11 +47,10 @@ typedef struct mongory_table_node {
  * and the underlying array used for buckets.
  */
 typedef struct mongory_table_internal {
-  mongory_table base;         /**< Public part of the table structure. */
-  size_t capacity;            /**< Current number of buckets in the table. */
-  mongory_array *array;       /**< Array of mongory_table_node pointers (the buckets). */
+  mongory_table base;   /**< Public part of the table structure. */
+  size_t capacity;      /**< Current number of buckets in the table. */
+  mongory_array *array; /**< Array of mongory_table_node pointers (the buckets). */
 } mongory_table_internal;
-
 
 /**
  * @brief Allocates a new mongory_table_node from the table's memory pool.
@@ -99,7 +98,7 @@ static inline size_t next_prime(size_t n) {
 static inline size_t hash_string(const char *str) {
   size_t hash = 5381; // Initial hash value.
   int c;
-  while ((c = *str++)) { // Iterate through characters of the string.
+  while ((c = *str++)) {             // Iterate through characters of the string.
     hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
   }
   return hash;
@@ -113,9 +112,8 @@ static inline size_t hash_string(const char *str) {
  * false.
  * @return true if iteration completed, false if callback stopped it.
  */
-static inline bool
-mongory_table_node_walk(mongory_table_node *head, void *acc,
-                        bool (*callback)(mongory_table_node *node, void *acc)) {
+static inline bool mongory_table_node_walk(mongory_table_node *head, void *acc,
+                                           bool (*callback)(mongory_table_node *node, void *acc)) {
   for (mongory_table_node *node = head; node;) {
     mongory_table_node *next = node->next; // Save next before callback modifies node
     if (!callback(node, acc)) {
@@ -135,16 +133,14 @@ mongory_table_node_walk(mongory_table_node *head, void *acc,
  * @param acc Pointer to the mongory_table_internal structure (cast from void*).
  * @return Always true to continue walking the old bucket list.
  */
-static inline bool mongory_table_rehash_on_node(mongory_table_node *node,
-                                                void *acc) {
+static inline bool mongory_table_rehash_on_node(mongory_table_node *node, void *acc) {
   mongory_table_internal *internal = (mongory_table_internal *)acc;
   mongory_array *new_bucket_array = internal->array;
   // Calculate index in the new array based on new capacity.
   size_t new_index = hash_string(node->key) % internal->capacity;
 
   // Get current head of the new bucket's list.
-  mongory_table_node *current_bucket_head =
-      (mongory_table_node *)new_bucket_array->get(new_bucket_array, new_index);
+  mongory_table_node *current_bucket_head = (mongory_table_node *)new_bucket_array->get(new_bucket_array, new_index);
   // Prepend the node to this list.
   node->next = current_bucket_head;
   new_bucket_array->set(new_bucket_array, new_index, (mongory_value *)node);
@@ -160,8 +156,7 @@ static inline bool mongory_table_rehash_on_node(mongory_table_node *node,
  */
 static inline bool mongory_table_rehash(mongory_table *self) {
   mongory_table_internal *internal = (mongory_table_internal *)self;
-  mongory_array_private *old_array_private_view =
-      (mongory_array_private *)internal->array;
+  mongory_array_private *old_array_private_view = (mongory_array_private *)internal->array;
 
   mongory_value **original_items_ptr = old_array_private_view->items;
   size_t original_capacity = internal->capacity;
@@ -186,8 +181,7 @@ static inline bool mongory_table_rehash(mongory_table *self) {
   // Iterate through all buckets of the old array structure.
   for (size_t i = 0; i < original_capacity; i++) {
     // Walk the linked list in each old bucket and rehash each node.
-    mongory_table_node_walk((mongory_table_node *)original_items_ptr[i], self,
-                            mongory_table_rehash_on_node);
+    mongory_table_node_walk((mongory_table_node *)original_items_ptr[i], self, mongory_table_rehash_on_node);
   }
   // The memory for original_items_ptr itself (the array of pointers) is now
   // stale / managed by the memory pool if mongory_array_resize reallocated.
@@ -212,8 +206,7 @@ typedef struct mongory_table_kv_context {
  * @param acc Pointer to mongory_table_kv_context.
  * @return true to continue search, false if key found.
  */
-static inline bool mongory_table_get_on_node(mongory_table_node *node,
-                                             void *acc) {
+static inline bool mongory_table_get_on_node(mongory_table_node *node, void *acc) {
   mongory_table_kv_context *ctx = (mongory_table_kv_context *)acc;
   if (strcmp(node->key, ctx->key) == 0) {
     ctx->value = node->value; // Key found, store value.
@@ -233,8 +226,7 @@ mongory_value *mongory_table_get(mongory_table *self, char *key) {
   mongory_array *bucket_array = internal->array;
   size_t index = hash_string(key) % internal->capacity;
 
-  mongory_table_node *bucket_head =
-      (mongory_table_node *)bucket_array->get(bucket_array, index);
+  mongory_table_node *bucket_head = (mongory_table_node *)bucket_array->get(bucket_array, index);
 
   mongory_table_kv_context ctx = {key, NULL};
   mongory_table_node_walk(bucket_head, &ctx, mongory_table_get_on_node);
@@ -250,8 +242,7 @@ mongory_value *mongory_table_get(mongory_table *self, char *key) {
  * @param acc Pointer to mongory_table_kv_context.
  * @return true to continue search (if key not matched), false if key updated.
  */
-static inline bool mongory_table_set_on_node(mongory_table_node *node,
-                                             void *acc) {
+static inline bool mongory_table_set_on_node(mongory_table_node *node, void *acc) {
   mongory_table_kv_context *ctx = (mongory_table_kv_context *)acc;
   if (strcmp(node->key, ctx->key) == 0) {
     node->value = ctx->value; // Key found, update value.
@@ -275,8 +266,7 @@ bool mongory_table_set(mongory_table *self, char *key, mongory_value *value) {
   mongory_array *bucket_array = internal->array;
   size_t index = hash_string(key) % internal->capacity;
 
-  mongory_table_node *bucket_head =
-      (mongory_table_node *)bucket_array->get(bucket_array, index);
+  mongory_table_node *bucket_head = (mongory_table_node *)bucket_array->get(bucket_array, index);
 
   mongory_table_kv_context ctx = {key, value};
   // Try to find and update existing key. If mongory_table_node_walk returns
@@ -327,8 +317,7 @@ bool mongory_table_del(mongory_table *self, char *key) {
   mongory_array *bucket_array = internal->array;
   size_t index = hash_string(key) % internal->capacity;
 
-  mongory_table_node *node =
-      (mongory_table_node *)bucket_array->get(bucket_array, index);
+  mongory_table_node *node = (mongory_table_node *)bucket_array->get(bucket_array, index);
   mongory_table_node *prev = NULL;
 
   while (node) {
@@ -357,7 +346,7 @@ bool mongory_table_del(mongory_table *self, char *key) {
  * @brief Context for iterating over table key-value pairs.
  */
 typedef struct mongory_table_each_pair_context {
-  void *acc;                                    /**< User-provided accumulator. */
+  void *acc;                                      /**< User-provided accumulator. */
   mongory_table_each_pair_callback_func callback; /**< User callback function. */
 } mongory_table_each_pair_context;
 
@@ -368,8 +357,7 @@ typedef struct mongory_table_each_pair_context {
  * @param acc Pointer to mongory_table_each_pair_context.
  * @return Result of the user's callback.
  */
-static inline bool mongory_table_each_pair_on_node(mongory_table_node *node,
-                                                   void *acc) {
+static inline bool mongory_table_each_pair_on_node(mongory_table_node *node, void *acc) {
   mongory_table_each_pair_context *ctx = (mongory_table_each_pair_context *)acc;
   return ctx->callback(node->key, node->value, ctx->acc);
 }
@@ -382,12 +370,10 @@ static inline bool mongory_table_each_pair_on_node(mongory_table_node *node,
  * @param acc Pointer to mongory_table_each_pair_context.
  * @return Result of mongory_table_node_walk on the bucket list.
  */
-static inline bool mongory_table_each_pair_on_root(mongory_value *value,
-                                                   void *acc) {
+static inline bool mongory_table_each_pair_on_root(mongory_value *value, void *acc) {
   mongory_table_node *node_head = (mongory_table_node *)value;
   // If bucket is empty (value is NULL from array->get), this will do nothing.
-  return mongory_table_node_walk(node_head, acc,
-                                 mongory_table_each_pair_on_node);
+  return mongory_table_node_walk(node_head, acc, mongory_table_each_pair_on_node);
 }
 
 /**
@@ -398,14 +384,12 @@ static inline bool mongory_table_each_pair_on_root(mongory_value *value,
  * @param callback User function to call for each pair.
  * @return true if iteration completed, false if callback stopped it.
  */
-bool mongory_table_each_pair(mongory_table *self, void *acc,
-                             mongory_table_each_pair_callback_func callback) {
+bool mongory_table_each_pair(mongory_table *self, void *acc, mongory_table_each_pair_callback_func callback) {
   mongory_table_internal *internal = (mongory_table_internal *)self;
   mongory_table_each_pair_context each_ctx = {acc, callback};
   // Iterate over the array of buckets. Each element in this array is the head
   // of a linked list of table nodes (or NULL if bucket is empty).
-  return internal->array->each(internal->array, &each_ctx,
-                               mongory_table_each_pair_on_root);
+  return internal->array->each(internal->array, &each_ctx, mongory_table_each_pair_on_root);
 }
 
 /**
@@ -416,7 +400,8 @@ bool mongory_table_each_pair(mongory_table *self, void *acc,
  * @return Pointer to the new mongory_table, or NULL on failure.
  */
 mongory_table *mongory_table_new(mongory_memory_pool *pool) {
-  if (!pool) return NULL; // Must have a valid pool.
+  if (!pool)
+    return NULL; // Must have a valid pool.
 
   size_t init_capacity = MONGORY_TABLE_INIT_SIZE;
   mongory_array *bucket_array = mongory_array_new(pool);
@@ -425,9 +410,8 @@ mongory_table *mongory_table_new(mongory_memory_pool *pool) {
   // bucket pointers are initially NULL. array->set will grow if needed,
   // filling intermediate slots with NULL. Setting the last element to NULL
   // effectively NULLs out all elements if it's a fresh array from resize(0 -> N).
-  bool array_init_success =
-      bucket_array && mongory_array_resize(bucket_array, init_capacity) &&
-      bucket_array->set(bucket_array, init_capacity - 1, NULL);
+  bool array_init_success = bucket_array && mongory_array_resize(bucket_array, init_capacity) &&
+                            bucket_array->set(bucket_array, init_capacity - 1, NULL);
 
   if (!array_init_success) {
     // TODO: If bucket_array was created, it should be freed/managed by pool if
@@ -441,9 +425,7 @@ mongory_table *mongory_table_new(mongory_memory_pool *pool) {
   // We need to reset it because table's count is 0, not array's.
   bucket_array->count = init_capacity;
 
-
-  mongory_table_internal *internal =
-      pool->alloc(pool->ctx, sizeof(mongory_table_internal));
+  mongory_table_internal *internal = pool->alloc(pool->ctx, sizeof(mongory_table_internal));
   if (!internal) {
     // TODO: Pool error. bucket_array might be leaked if pool is not tracing.
     return NULL;

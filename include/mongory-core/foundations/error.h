@@ -26,15 +26,15 @@
  * from a single list, promoting consistency.
  * Each entry takes the enum name, a numeric suffix, and a string description.
  */
-#define MONGORY_ERROR_TYPE_MACRO(_)                                            \
-  _(MONGORY_ERROR_NONE, 10, "No Error")                                        \
-  _(MONGORY_ERROR_MEMORY, 11, "Memory Allocation Error")                       \
-  _(MONGORY_ERROR_INVALID_TYPE, 12, "Invalid Type Error")                      \
-  _(MONGORY_ERROR_OUT_OF_BOUNDS, 13, "Out of Bounds Error")                    \
-  _(MONGORY_ERROR_UNSUPPORTED_OPERATION, 14, "Unsupported Operation Error")    \
-  _(MONGORY_ERROR_INVALID_ARGUMENT, 15, "Invalid Argument Error")              \
-  _(MONGORY_ERROR_IO, 16, "I/O Error")                                         \
-  _(MONGORY_ERROR_PARSE, 17, "Parse Error")                                    \
+#define MONGORY_ERROR_TYPE_MACRO(_)                                                                                    \
+  _(MONGORY_ERROR_NONE, 10, "No Error")                                                                                \
+  _(MONGORY_ERROR_MEMORY, 11, "Memory Allocation Error")                                                               \
+  _(MONGORY_ERROR_INVALID_TYPE, 12, "Invalid Type Error")                                                              \
+  _(MONGORY_ERROR_OUT_OF_BOUNDS, 13, "Out of Bounds Error")                                                            \
+  _(MONGORY_ERROR_UNSUPPORTED_OPERATION, 14, "Unsupported Operation Error")                                            \
+  _(MONGORY_ERROR_INVALID_ARGUMENT, 15, "Invalid Argument Error")                                                      \
+  _(MONGORY_ERROR_IO, 16, "I/O Error")                                                                                 \
+  _(MONGORY_ERROR_PARSE, 17, "Parse Error")                                                                            \
   _(MONGORY_ERROR_UNKNOWN, 99, "Unknown Error")
 
 /**

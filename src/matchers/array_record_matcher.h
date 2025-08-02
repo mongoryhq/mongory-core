@@ -13,10 +13,10 @@
  * an input array is equal to a condition array.
  */
 
+#include "base_matcher.h"
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
 #include "mongory-core/matchers/matcher.h" // For mongory_matcher structure
-#include "base_matcher.h"
 
 /**
  * @brief Creates an "array record" matcher.
@@ -42,7 +42,6 @@
  * array or its elements.
  * @return A new array record matcher, or NULL on failure.
  */
-mongory_matcher *mongory_matcher_array_record_new(mongory_memory_pool *pool,
-                                                  mongory_value *condition);
+mongory_matcher *mongory_matcher_array_record_new(mongory_memory_pool *pool, mongory_value *condition);
 
 #endif /* MONGORY_MATCHER_ARRAY_RECORD_H */

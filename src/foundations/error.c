@@ -18,8 +18,8 @@
 const char *mongory_error_type_to_string(enum mongory_error_type type) {
   switch (type) {
 // Use the X-Macro to generate case statements for each error type.
-#define DEFINE_ERROR_STRING(name, num, str)                                    \
-  case name:                                                                   \
+#define DEFINE_ERROR_STRING(name, num, str)                                                                            \
+  case name:                                                                                                           \
     return str;
     MONGORY_ERROR_TYPE_MACRO(DEFINE_ERROR_STRING)
 #undef DEFINE_ERROR_STRING // Undefine the macro after use.

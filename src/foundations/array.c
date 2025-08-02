@@ -35,8 +35,7 @@ bool mongory_array_resize(mongory_array *self, size_t size) {
   mongory_array_private *internal = (mongory_array_private *)self;
   // Allocate new memory for items. Note: The memory pool handles previous
   // allocations.
-  mongory_value **new_items =
-      self->pool->alloc(self->pool->ctx, sizeof(mongory_value *) * size);
+  mongory_value **new_items = self->pool->alloc(self->pool->ctx, sizeof(mongory_value *) * size);
   if (!new_items) {
     // TODO: Set self->pool->error
     return false;
@@ -65,8 +64,7 @@ bool mongory_array_resize(mongory_array *self, size_t size) {
  * @return true if the array has sufficient capacity (or was successfully
  * grown), false otherwise.
  */
-static inline bool mongory_array_grow_if_needed(mongory_array *self,
-                                                size_t size) {
+static inline bool mongory_array_grow_if_needed(mongory_array *self, size_t size) {
   mongory_array_private *internal = (mongory_array_private *)self;
   if (size < internal->capacity) {
     return true;
@@ -88,8 +86,7 @@ static inline bool mongory_array_grow_if_needed(mongory_array *self,
  * @param func Callback function executed for each item.
  * @return true if iteration completed, false if callback stopped it.
  */
-static inline bool mongory_array_each(mongory_array *self, void *acc,
-                                      mongory_array_callback_func func) {
+static inline bool mongory_array_each(mongory_array *self, void *acc, mongory_array_callback_func func) {
   mongory_array_private *internal = (mongory_array_private *)self;
   for (size_t i = 0; i < self->count; i++) {
     mongory_value *item = internal->items[i];
@@ -107,8 +104,7 @@ static inline bool mongory_array_each(mongory_array *self, void *acc,
  * @param value The mongory_value to add.
  * @return true if successful, false on failure (e.g., memory allocation).
  */
-static inline bool mongory_array_push(mongory_array *self,
-                                      mongory_value *value) {
+static inline bool mongory_array_push(mongory_array *self, mongory_value *value) {
   mongory_array_private *internal = (mongory_array_private *)self;
   // Ensure there's space for one more element (current count).
   if (!mongory_array_grow_if_needed(self, self->count)) {
@@ -125,8 +121,7 @@ static inline bool mongory_array_push(mongory_array *self,
  * @param index The index of the element.
  * @return Pointer to the mongory_value, or NULL if index is out of bounds.
  */
-static inline mongory_value *mongory_array_get(mongory_array *self,
-                                               size_t index) {
+static inline mongory_value *mongory_array_get(mongory_array *self, size_t index) {
   mongory_array_private *internal = (mongory_array_private *)self;
   if (index >= self->count) {
     return NULL; // Index out of bounds.
@@ -145,8 +140,7 @@ static inline mongory_value *mongory_array_get(mongory_array *self,
  * @param value The mongory_value to set.
  * @return true if successful, false on failure (e.g., memory allocation).
  */
-static inline bool mongory_array_set(mongory_array *self, size_t index,
-                                     mongory_value *value) {
+static inline bool mongory_array_set(mongory_array *self, size_t index, mongory_value *value) {
   mongory_array_private *internal = (mongory_array_private *)self;
   // Ensure capacity for the given index (index + 1 elements).
   if (!mongory_array_grow_if_needed(self, index + 1)) {
@@ -177,16 +171,14 @@ static inline bool mongory_array_set(mongory_array *self, size_t index,
  */
 mongory_array *mongory_array_new(mongory_memory_pool *pool) {
   // Allocate memory for the initial items storage.
-  mongory_value **items =
-      pool->alloc(pool->ctx, sizeof(mongory_value *) * MONGORY_ARRAY_INIT_SIZE);
+  mongory_value **items = pool->alloc(pool->ctx, sizeof(mongory_value *) * MONGORY_ARRAY_INIT_SIZE);
   if (!items) {
     // TODO: Set pool->error (if pool is not NULL)
     return NULL;
   }
 
   // Allocate memory for the private array structure.
-  mongory_array_private *internal =
-      pool->alloc(pool->ctx, sizeof(mongory_array_private));
+  mongory_array_private *internal = pool->alloc(pool->ctx, sizeof(mongory_array_private));
   if (!internal) {
     // Note: 'items' allocated above will be managed by the pool if it's a
     // tracing pool, otherwise it's a leak if pool operations are not atomic.

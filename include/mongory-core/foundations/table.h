@@ -32,9 +32,7 @@ typedef struct mongory_table mongory_table;
  * @param acc An accumulator or context pointer passed through the iteration.
  * @return bool Return true to continue iteration, false to stop.
  */
-typedef bool (*mongory_table_each_pair_callback_func)(char *key,
-                                                      mongory_value *value,
-                                                      void *acc);
+typedef bool (*mongory_table_each_pair_callback_func)(char *key, mongory_value *value, void *acc);
 
 /**
  * @brief Function pointer type for retrieving a value by its key.
@@ -43,8 +41,7 @@ typedef bool (*mongory_table_each_pair_callback_func)(char *key,
  * @return mongory_value* A pointer to the mongory_value associated with the
  * key, or NULL if the key is not found.
  */
-typedef mongory_value *(*mongory_table_get_func)(mongory_table *self,
-                                                 char *key);
+typedef mongory_value *(*mongory_table_get_func)(mongory_table *self, char *key);
 
 /**
  * @brief Function pointer type for setting (adding or updating) a key-value
@@ -56,8 +53,7 @@ typedef mongory_value *(*mongory_table_get_func)(mongory_table *self,
  * @return bool True if the operation was successful, false otherwise (e.g.,
  * memory allocation failure).
  */
-typedef bool (*mongory_table_set_func)(mongory_table *self, char *key,
-                                       mongory_value *value);
+typedef bool (*mongory_table_set_func)(mongory_table *self, char *key, mongory_value *value);
 
 /**
  * @brief Function pointer type for iterating over all key-value pairs in the
@@ -68,9 +64,7 @@ typedef bool (*mongory_table_set_func)(mongory_table *self, char *key,
  * @return bool True if the iteration completed fully, false if it was stopped
  * by a callback.
  */
-typedef bool (*mongory_table_each_func)(
-    mongory_table *self, void *acc,
-    mongory_table_each_pair_callback_func callback);
+typedef bool (*mongory_table_each_func)(mongory_table *self, void *acc, mongory_table_each_pair_callback_func callback);
 
 /**
  * @brief Function pointer type for deleting a key-value pair from the table.
@@ -102,9 +96,9 @@ mongory_table *mongory_table_new(mongory_memory_pool *pool);
  * users of the table.
  */
 struct mongory_table {
-  mongory_memory_pool *pool; /**< The memory pool used for allocations. */
-  size_t count; /**< Read-only. The current number of key-value pairs in the
-                   table. */
+  mongory_memory_pool *pool;    /**< The memory pool used for allocations. */
+  size_t count;                 /**< Read-only. The current number of key-value pairs in the
+                                   table. */
   mongory_table_get_func get;   /**< Function to get a value by key. */
   mongory_table_each_func each; /**< Function to iterate over key-value pairs. */
   mongory_table_set_func set;   /**< Function to set a key-value pair. */

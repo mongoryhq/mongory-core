@@ -7,10 +7,10 @@
  * $present). This is an internal header for the matcher module.
  */
 
+#include "base_matcher.h"
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
 #include "mongory-core/matchers/matcher.h" // For mongory_matcher structure
-#include "base_matcher.h"
 
 /**
  * @brief Creates an "exists" ($exists) matcher.
@@ -26,8 +26,7 @@
  * @param condition A `mongory_value` of type `MONGORY_TYPE_BOOL`.
  * @return A new `$exists` matcher, or NULL on failure or invalid condition.
  */
-mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool,
-                                            mongory_value *condition);
+mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool, mongory_value *condition);
 
 /**
  * @brief Creates a "present" ($present) matcher.
@@ -44,7 +43,6 @@ mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool,
  * @param condition A `mongory_value` of type `MONGORY_TYPE_BOOL`.
  * @return A new `$present` matcher, or NULL on failure or invalid condition.
  */
-mongory_matcher *mongory_matcher_present_new(mongory_memory_pool *pool,
-                                             mongory_value *condition);
+mongory_matcher *mongory_matcher_present_new(mongory_memory_pool *pool, mongory_value *condition);
 
 #endif /* MONGORY_MATCHER_EXISTANCE_H */

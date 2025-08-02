@@ -4,13 +4,13 @@
  * This is an internal implementation file for the matcher module.
  */
 #include "base_matcher.h"
-#include <errno.h>           // For errno, ERANGE
-#include <limits.h>          // For INT_MIN, INT_MAX
-#include <mongory-core.h>    // General include, for mongory_matcher types
-#include <stdbool.h>
-#include <stdlib.h>          // For strtol
-#include <stdio.h>           // For printf
 #include "../foundations/string_buffer.h"
+#include <errno.h>        // For errno, ERANGE
+#include <limits.h>       // For INT_MIN, INT_MAX
+#include <mongory-core.h> // General include, for mongory_matcher types
+#include <stdbool.h>
+#include <stdio.h>  // For printf
+#include <stdlib.h> // For strtol
 
 /**
  * @brief Matches a value against a matcher.
@@ -18,9 +18,7 @@
  * @param value The value to match.
  * @return True if the value matches the matcher, false otherwise.
  */
-bool mongory_matcher_match(mongory_matcher *matcher, mongory_value *value) {
-  return matcher->match(matcher, value);
-}
+bool mongory_matcher_match(mongory_matcher *matcher, mongory_value *value) { return matcher->match(matcher, value); }
 
 char *mongory_matcher_title(mongory_matcher *matcher, mongory_memory_pool *pool) {
   mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
@@ -56,8 +54,7 @@ void mongory_matcher_base_explain(mongory_matcher *matcher, mongory_matcher_expl
  * @return mongory_matcher* Pointer to the newly allocated and partially
  * initialized matcher, or NULL if allocation fails.
  */
-mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool,
-                                          mongory_value *condition) {
+mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool, mongory_value *condition) {
   if (!pool || !pool->alloc) {
     return NULL; // Invalid memory pool.
   }
@@ -72,8 +69,8 @@ mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool,
   matcher->context.trace = NULL;
   matcher->pool = pool;
   matcher->condition = condition;
-  matcher->name = NULL; // Name is not set by base_new.
-  matcher->match = NULL; // Specific match function must be set by derived type.
+  matcher->name = NULL;                            // Name is not set by base_new.
+  matcher->match = NULL;                           // Specific match function must be set by derived type.
   matcher->explain = mongory_matcher_base_explain; // Specific explain function must be set by derived type.
 
   return matcher;
@@ -85,8 +82,7 @@ mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool,
  * @param value Unused.
  * @return Always true.
  */
-static inline bool mongory_matcher_always_true_match(mongory_matcher *matcher,
-                                                     mongory_value *value) {
+static inline bool mongory_matcher_always_true_match(mongory_matcher *matcher, mongory_value *value) {
   (void)matcher; // Mark as unused to prevent compiler warnings.
   (void)value;   // Mark as unused.
   return true;   // This matcher always indicates a match.
@@ -99,8 +95,7 @@ static inline bool mongory_matcher_always_true_match(mongory_matcher *matcher,
  * @param condition Condition (typically ignored by this matcher).
  * @return A new `mongory_matcher` or NULL on failure.
  */
-mongory_matcher *mongory_matcher_always_true_new(mongory_memory_pool *pool,
-                                                 mongory_value *condition) {
+mongory_matcher *mongory_matcher_always_true_new(mongory_memory_pool *pool, mongory_value *condition) {
   mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
   if (matcher) {
     matcher->match = mongory_matcher_always_true_match;
@@ -118,8 +113,7 @@ mongory_matcher *mongory_matcher_always_true_new(mongory_memory_pool *pool,
  * @param value Unused.
  * @return Always false.
  */
-static inline bool mongory_matcher_always_false_match(mongory_matcher *matcher,
-                                                      mongory_value *value) {
+static inline bool mongory_matcher_always_false_match(mongory_matcher *matcher, mongory_value *value) {
   (void)matcher; // Mark as unused.
   (void)value;   // Mark as unused.
   return false;  // This matcher never indicates a match.
@@ -132,8 +126,7 @@ static inline bool mongory_matcher_always_false_match(mongory_matcher *matcher,
  * @param condition Condition (typically ignored by this matcher).
  * @return A new `mongory_matcher` or NULL on failure.
  */
-mongory_matcher *mongory_matcher_always_false_new(mongory_memory_pool *pool,
-                                                  mongory_value *condition) {
+mongory_matcher *mongory_matcher_always_false_new(mongory_memory_pool *pool, mongory_value *condition) {
   mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
   if (matcher) {
     matcher->match = mongory_matcher_always_false_match;
@@ -162,11 +155,11 @@ bool mongory_try_parse_int(const char *key, int *out) {
     return false; // Invalid input string.
   }
   if (out == NULL) {
-      return false; // Output pointer must be valid.
+    return false; // Output pointer must be valid.
   }
 
   char *endptr = NULL;
-  errno = 0; // Clear errno before calling strtol.
+  errno = 0;                           // Clear errno before calling strtol.
   long val = strtol(key, &endptr, 10); // Base 10 conversion.
 
   // Check for parsing errors reported by strtol.

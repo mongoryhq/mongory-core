@@ -7,10 +7,10 @@
  * This is an internal header for the matcher module.
  */
 
+#include "base_matcher.h"
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
 #include "mongory-core/matchers/matcher.h" // For mongory_matcher structure
-#include "base_matcher.h"
 
 /**
  * @brief Creates a regular expression ($regex) matcher.
@@ -29,7 +29,6 @@
  * @return A new $regex matcher, or NULL on failure or if the condition is
  * invalid.
  */
-mongory_matcher *mongory_matcher_regex_new(mongory_memory_pool *pool,
-                                           mongory_value *condition);
+mongory_matcher *mongory_matcher_regex_new(mongory_memory_pool *pool, mongory_value *condition);
 
 #endif /* MONGORY_MATCHER_REGEX_H */

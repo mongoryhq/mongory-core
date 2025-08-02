@@ -4,7 +4,7 @@
  * This is an internal implementation file for the matcher module.
  */
 #include "existance_matcher.h"
-#include "base_matcher.h" // For mongory_matcher_base_new
+#include "base_matcher.h"                   // For mongory_matcher_base_new
 #include "mongory-core/foundations/array.h" // For value->data.a->count
 #include "mongory-core/foundations/error.h" // For mongory_error types
 #include "mongory-core/foundations/table.h" // For value->data.t->count
@@ -41,8 +41,7 @@ static bool mongory_matcher_validate_bool_condition(mongory_value *condition) {
  *              the result of a field lookup.
  * @return True if the existence matches the condition, false otherwise.
  */
-static inline bool mongory_matcher_exists_match(mongory_matcher *matcher,
-                                                mongory_value *value) {
+static inline bool mongory_matcher_exists_match(mongory_matcher *matcher, mongory_value *value) {
   // The condition for $exists is a boolean (e.g., field: {$exists: true})
   bool condition_expects_existence = matcher->condition->data.b;
   bool actual_value_exists = (value != NULL);
@@ -50,15 +49,14 @@ static inline bool mongory_matcher_exists_match(mongory_matcher *matcher,
   return condition_expects_existence == actual_value_exists;
 }
 
-mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool,
-                                            mongory_value *condition) {
+mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool, mongory_value *condition) {
   if (!mongory_matcher_validate_bool_condition(condition)) {
     if (pool && pool->alloc) { // Ensure pool is valid before trying to set error
-        pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
-        if (pool->error) {
-            pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
-            pool->error->message = "$exists condition must be a boolean value.";
-        }
+      pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
+      if (pool->error) {
+        pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
+        pool->error->message = "$exists condition must be a boolean value.";
+      }
     }
     return NULL;
   }
@@ -88,8 +86,7 @@ mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool,
  * @param value The value to check for presence.
  * @return True if the presence status matches the condition, false otherwise.
  */
-static inline bool mongory_matcher_present_match(mongory_matcher *matcher,
-                                                 mongory_value *value) {
+static inline bool mongory_matcher_present_match(mongory_matcher *matcher, mongory_value *value) {
   bool condition_expects_presence = matcher->condition->data.b;
 
   if (value == NULL) {
@@ -128,15 +125,14 @@ static inline bool mongory_matcher_present_match(mongory_matcher *matcher,
   return condition_expects_presence == actual_value_is_present;
 }
 
-mongory_matcher *mongory_matcher_present_new(mongory_memory_pool *pool,
-                                             mongory_value *condition) {
+mongory_matcher *mongory_matcher_present_new(mongory_memory_pool *pool, mongory_value *condition) {
   if (!mongory_matcher_validate_bool_condition(condition)) {
     if (pool && pool->alloc) {
-        pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
-        if (pool->error) {
-            pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
-            pool->error->message = "$present condition must be a boolean value.";
-        }
+      pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
+      if (pool->error) {
+        pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
+        pool->error->message = "$present condition must be a boolean value.";
+      }
     }
     return NULL;
   }

@@ -4,8 +4,8 @@
  * This is an internal implementation file for the matcher module.
  */
 #include "compare_matcher.h"
-#include "base_matcher.h"    // For mongory_matcher_base_new
-#include <mongory-core.h>    // For mongory_value, mongory_matcher types
+#include "base_matcher.h" // For mongory_matcher_base_new
+#include <mongory-core.h> // For mongory_value, mongory_matcher types
 
 /**
  * @brief Generic constructor for comparison matchers.
@@ -20,9 +20,8 @@
  * @return mongory_matcher* A pointer to the newly created comparison matcher,
  * or NULL on failure.
  */
-static inline mongory_matcher *
-mongory_matcher_compare_new(mongory_memory_pool *pool, mongory_value *condition,
-                            mongory_matcher_match_func match_func) {
+static inline mongory_matcher *mongory_matcher_compare_new(mongory_memory_pool *pool, mongory_value *condition,
+                                                           mongory_matcher_match_func match_func) {
   mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
   if (matcher == NULL) {
     return NULL; // Base matcher allocation failed.
@@ -40,9 +39,9 @@ mongory_matcher_compare_new(mongory_memory_pool *pool, mongory_value *condition,
  * @return True if `value` is equal to `matcher->condition`, false otherwise or
  * if comparison fails.
  */
-static inline bool mongory_matcher_equal_match(mongory_matcher *matcher,
-                                               mongory_value *value) {
-  if (!value || !value->comp || !matcher->condition) return false; // Invalid inputs
+static inline bool mongory_matcher_equal_match(mongory_matcher *matcher, mongory_value *value) {
+  if (!value || !value->comp || !matcher->condition)
+    return false; // Invalid inputs
   int result = value->comp(value, matcher->condition);
   if (result == mongory_value_compare_fail) {
     return false; // Types are not comparable or other comparison error.
@@ -50,10 +49,8 @@ static inline bool mongory_matcher_equal_match(mongory_matcher *matcher,
   return result == 0; // 0 indicates equality.
 }
 
-mongory_matcher *mongory_matcher_equal_new(mongory_memory_pool *pool,
-                                           mongory_value *condition) {
-  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition,
-                                     mongory_matcher_equal_match);
+mongory_matcher *mongory_matcher_equal_new(mongory_memory_pool *pool, mongory_value *condition) {
+  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_equal_match);
   if (matcher) {
     matcher->name = mongory_string_cpy(pool, "Eq");
   }
@@ -68,9 +65,9 @@ mongory_matcher *mongory_matcher_equal_new(mongory_memory_pool *pool,
  * @return True if `value` is not equal to `matcher->condition`. If comparison
  * itself fails (types incompatible), it's also considered "not equal".
  */
-static inline bool mongory_matcher_not_equal_match(mongory_matcher *matcher,
-                                                   mongory_value *value) {
-  if (!value || !value->comp || !matcher->condition) return true; // Invalid inputs, treat as "not equal"
+static inline bool mongory_matcher_not_equal_match(mongory_matcher *matcher, mongory_value *value) {
+  if (!value || !value->comp || !matcher->condition)
+    return true; // Invalid inputs, treat as "not equal"
   int result = value->comp(value, matcher->condition);
   if (result == mongory_value_compare_fail) {
     return true; // Incomparable types are considered "not equal".
@@ -78,10 +75,8 @@ static inline bool mongory_matcher_not_equal_match(mongory_matcher *matcher,
   return result != 0; // Non-zero indicates inequality.
 }
 
-mongory_matcher *mongory_matcher_not_equal_new(mongory_memory_pool *pool,
-                                               mongory_value *condition) {
-  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition,
-                                     mongory_matcher_not_equal_match);
+mongory_matcher *mongory_matcher_not_equal_new(mongory_memory_pool *pool, mongory_value *condition) {
+  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_not_equal_match);
   if (matcher) {
     matcher->name = mongory_string_cpy(pool, "Ne");
   }
@@ -95,9 +90,9 @@ mongory_matcher *mongory_matcher_not_equal_new(mongory_memory_pool *pool,
  * @return True if `value` is greater than `matcher->condition`, false
  * otherwise or on comparison failure.
  */
-static inline bool mongory_matcher_greater_than_match(mongory_matcher *matcher,
-                                                      mongory_value *value) {
-  if (!value || !value->comp || !matcher->condition) return false;
+static inline bool mongory_matcher_greater_than_match(mongory_matcher *matcher, mongory_value *value) {
+  if (!value || !value->comp || !matcher->condition)
+    return false;
   int result = value->comp(value, matcher->condition);
   if (result == mongory_value_compare_fail) {
     return false;
@@ -105,10 +100,8 @@ static inline bool mongory_matcher_greater_than_match(mongory_matcher *matcher,
   return result == 1; // 1 indicates value > condition.
 }
 
-mongory_matcher *mongory_matcher_greater_than_new(mongory_memory_pool *pool,
-                                                  mongory_value *condition) {
-  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition,
-                                     mongory_matcher_greater_than_match);
+mongory_matcher *mongory_matcher_greater_than_new(mongory_memory_pool *pool, mongory_value *condition) {
+  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_greater_than_match);
   if (matcher) {
     matcher->name = mongory_string_cpy(pool, "Gt");
   }
@@ -122,9 +115,9 @@ mongory_matcher *mongory_matcher_greater_than_new(mongory_memory_pool *pool,
  * @return True if `value` is less than `matcher->condition`, false otherwise or
  * on comparison failure.
  */
-static inline bool mongory_matcher_less_than_match(mongory_matcher *matcher,
-                                                   mongory_value *value) {
-  if (!value || !value->comp || !matcher->condition) return false;
+static inline bool mongory_matcher_less_than_match(mongory_matcher *matcher, mongory_value *value) {
+  if (!value || !value->comp || !matcher->condition)
+    return false;
   int result = value->comp(value, matcher->condition);
   if (result == mongory_value_compare_fail) {
     return false;
@@ -132,10 +125,8 @@ static inline bool mongory_matcher_less_than_match(mongory_matcher *matcher,
   return result == -1; // -1 indicates value < condition.
 }
 
-mongory_matcher *mongory_matcher_less_than_new(mongory_memory_pool *pool,
-                                               mongory_value *condition) {
-  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition,
-                                     mongory_matcher_less_than_match);
+mongory_matcher *mongory_matcher_less_than_new(mongory_memory_pool *pool, mongory_value *condition) {
+  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_less_than_match);
   if (matcher) {
     matcher->name = mongory_string_cpy(pool, "Lt");
   }
@@ -149,10 +140,9 @@ mongory_matcher *mongory_matcher_less_than_new(mongory_memory_pool *pool,
  * @return True if `value` is >= `matcher->condition`, false otherwise or on
  * comparison failure.
  */
-static inline bool
-mongory_matcher_greater_than_or_equal_match(mongory_matcher *matcher,
-                                            mongory_value *value) {
-  if (!value || !value->comp || !matcher->condition) return false;
+static inline bool mongory_matcher_greater_than_or_equal_match(mongory_matcher *matcher, mongory_value *value) {
+  if (!value || !value->comp || !matcher->condition)
+    return false;
   int result = value->comp(value, matcher->condition);
   if (result == mongory_value_compare_fail) {
     return false;
@@ -160,11 +150,8 @@ mongory_matcher_greater_than_or_equal_match(mongory_matcher *matcher,
   return result >= 0; // 0 or 1 indicates value >= condition.
 }
 
-mongory_matcher *
-mongory_matcher_greater_than_or_equal_new(mongory_memory_pool *pool,
-                                          mongory_value *condition) {
-  mongory_matcher *matcher = mongory_matcher_compare_new(
-      pool, condition, mongory_matcher_greater_than_or_equal_match);
+mongory_matcher *mongory_matcher_greater_than_or_equal_new(mongory_memory_pool *pool, mongory_value *condition) {
+  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_greater_than_or_equal_match);
   if (matcher) {
     matcher->name = mongory_string_cpy(pool, "Gte");
   }
@@ -178,10 +165,9 @@ mongory_matcher_greater_than_or_equal_new(mongory_memory_pool *pool,
  * @return True if `value` is <= `matcher->condition`, false otherwise or on
  * comparison failure.
  */
-static inline bool
-mongory_matcher_less_than_or_equal_match(mongory_matcher *matcher,
-                                         mongory_value *value) {
-  if (!value || !value->comp || !matcher->condition) return false;
+static inline bool mongory_matcher_less_than_or_equal_match(mongory_matcher *matcher, mongory_value *value) {
+  if (!value || !value->comp || !matcher->condition)
+    return false;
   int result = value->comp(value, matcher->condition);
   if (result == mongory_value_compare_fail) {
     return false;
@@ -189,11 +175,8 @@ mongory_matcher_less_than_or_equal_match(mongory_matcher *matcher,
   return result <= 0; // 0 or -1 indicates value <= condition.
 }
 
-mongory_matcher *
-mongory_matcher_less_than_or_equal_new(mongory_memory_pool *pool,
-                                       mongory_value *condition) {
-  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition,
-                                     mongory_matcher_less_than_or_equal_match);
+mongory_matcher *mongory_matcher_less_than_or_equal_new(mongory_memory_pool *pool, mongory_value *condition) {
+  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_less_than_or_equal_match);
   if (matcher) {
     matcher->name = mongory_string_cpy(pool, "Lte");
   }
