@@ -218,8 +218,7 @@ static inline mongory_matcher *mongory_matcher_binary_construct(
   if (first_matcher_in_range == NULL)
     return NULL; // Should not happen if array is populated correctly
 
-  int count = tail - head + 1;
-  if (count == 1) {
+  if (head == tail) {
     return first_matcher_in_range;
   }
 
