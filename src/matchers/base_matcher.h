@@ -29,6 +29,29 @@ typedef bool (*mongory_matcher_match_func)(struct mongory_matcher *matcher,
                                            mongory_value *value);
 
 /**
+ * @brief Context for explaining a matcher.
+ *
+ * @param pool The pool to use for the explanation.
+ * @param count The count of the matcher.
+ * @param total The total number of matchers.
+ * @param prefix The prefix to use for the explanation.
+ */
+ typedef struct mongory_matcher_explain_context {
+  mongory_memory_pool *pool;
+  int count;
+  int total;
+  char *prefix;
+} mongory_matcher_explain_context;
+
+/**
+ * @brief Function pointer type for a matcher's explanation logic.
+ *
+ * @param matcher The matcher to explain.
+ * @param ctx The context to use for the explanation.
+ */
+typedef void (*mongory_matcher_explain_func)(struct mongory_matcher *matcher, mongory_matcher_explain_context *ctx);
+
+/**
  * @struct mongory_matcher_context
  * @brief Context associated with a matcher instance.
  *
@@ -42,6 +65,7 @@ typedef struct mongory_matcher_context {
                          restoration or delegation. */
   mongory_array *trace; /**< An array that can be used for tracing matcher
                            execution (for debugging). */
+  size_t sub_count; /**< The number of sub-matchers. */
 } mongory_matcher_context;
 
 /**
@@ -63,6 +87,8 @@ typedef struct mongory_matcher {
                                  to this matcher instance. */
   mongory_matcher_context context; /**< Additional context for the matcher, like
                                       tracing or original function pointers. */
+  mongory_matcher_explain_func explain; /**< Function pointer to the explanation
+                                          logic for this matcher type. */
 } mongory_matcher;
 
 /**
@@ -122,5 +148,12 @@ mongory_matcher *mongory_matcher_always_false_new(mongory_memory_pool *pool,
  * failure (e.g. `ERANGE`).
  */
 bool mongory_try_parse_int(const char *key, int *out);
+
+/**
+ * @brief Explains a matcher.
+ * @param matcher The matcher to explain.
+ * @param ctx The context to use for the explanation.
+ */
+void mongory_matcher_base_explain(mongory_matcher *matcher, mongory_matcher_explain_context *ctx);
 
 #endif /* MONGORY_MATCHER_BASE_H */

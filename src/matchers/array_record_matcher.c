@@ -305,9 +305,9 @@ mongory_matcher *mongory_matcher_array_record_new(mongory_memory_pool *pool,
   mongory_matcher *right_child =
       mongory_matcher_array_record_right_delegate(pool, condition);
 
-  if (!left_child && !right_child) return NULL; // Both delegates failed.
-  if (!left_child) return right_child; // Only whole-array equality possible.
-  if (!right_child) return left_child; // Only element-wise matching possible.
+  if (!(left_child && right_child)) {
+    return left_child ? left_child : right_child;
+  }
 
   // Both left (element-wise) and right (whole-array equality) are possible.
   // Combine them with an OR.
@@ -324,5 +324,6 @@ mongory_matcher *mongory_matcher_array_record_new(mongory_memory_pool *pool,
   final_or_composite->base.context.original_match =
       mongory_matcher_array_record_match;
 
+  final_or_composite->base.name = mongory_string_cpy(pool, "ArrayRecord");
   return (mongory_matcher *)final_or_composite;
 }

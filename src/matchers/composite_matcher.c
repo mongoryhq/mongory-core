@@ -13,6 +13,8 @@
 #include "mongory-core/foundations/table.h" // For mongory_table operations
 #include "mongory-core/foundations/value.h"
 #include <mongory-core.h> // General include
+#include <stdio.h> // For sprintf
+#include "../foundations/string_buffer.h" // For mongory_string_buffer_new
 
 /**
  * @brief Allocates and initializes a `mongory_composite_matcher` structure.
@@ -41,6 +43,7 @@ mongory_matcher_composite_new(mongory_memory_pool *pool,
   composite->base.pool = pool;
   composite->base.name = NULL; // Specific name to be set by derived type if any
   composite->base.match = NULL; // Specific match fn to be set by derived type
+  composite->base.explain = mongory_matcher_composite_explain; // Specific explain fn to be set by derived type
   composite->base.context.original_match = NULL;
   composite->base.context.trace = NULL;
   composite->base.condition = condition;
@@ -50,6 +53,31 @@ mongory_matcher_composite_new(mongory_memory_pool *pool,
   composite->right = NULL;
 
   return composite;
+}
+
+static inline void mongory_matcher_traverse_explain(mongory_matcher *matcher, mongory_matcher_explain_context *ctx) {
+  mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
+  if (composite->left) {
+    composite->left->explain(composite->left, ctx);
+  }
+  if (composite->right) {
+    composite->right->explain(composite->right, ctx);
+  }
+}
+
+void mongory_matcher_composite_explain(mongory_matcher *matcher, mongory_matcher_explain_context *ctx) {
+  mongory_matcher_base_explain(matcher, ctx);
+  char *addon_prefix = ctx->count < ctx->total ? "│  " : "   ";
+  mongory_string_buffer *prefix_buffer = mongory_string_buffer_new(ctx->pool);
+  mongory_string_buffer_append(prefix_buffer, ctx->prefix);
+  mongory_string_buffer_append(prefix_buffer, addon_prefix);
+  mongory_matcher_explain_context child_ctx = {
+    .pool = ctx->pool,
+    .count = 0,
+    .total = matcher->context.sub_count,
+    .prefix = mongory_string_buffer_cstr(prefix_buffer),
+  };
+  mongory_matcher_traverse_explain(matcher, &child_ctx);
 }
 
 /**
@@ -208,6 +236,7 @@ static inline mongory_matcher *mongory_matcher_binary_construct(
   mongory_matcher *base_composite_matcher = (mongory_matcher *)composite;
   base_composite_matcher->match = match_func;
   base_composite_matcher->context.original_match = match_func;
+  base_composite_matcher->explain = mongory_matcher_traverse_explain;
 
   composite->left = constructor_func(matchers_array, head, mid);
   composite->right = constructor_func(matchers_array, mid + 1, tail);
@@ -297,14 +326,20 @@ mongory_matcher *mongory_matcher_table_cond_new(mongory_memory_pool *pool,
       return mongory_matcher_always_true_new(pool, condition); // Or an error
   }
 
+  if (sub_matchers_array->count == 1) {
+    mongory_matcher *sub_matcher = (mongory_matcher *)sub_matchers_array->get(sub_matchers_array, 0);
+    temp_pool->free(temp_pool);
+    return sub_matcher;
+  }
+
   // Combine sub-matchers using AND logic.
   mongory_matcher *final_matcher = mongory_matcher_construct_by_and(
       sub_matchers_array, 0, sub_matchers_array->count - 1);
 
-  if (final_matcher && final_matcher->condition == NULL) {
-    final_matcher->condition = condition; // Assign original condition if not set by construct
-  }
-
+  final_matcher->condition = condition;
+  final_matcher->context.sub_count = sub_matchers_array->count;
+  final_matcher->explain = mongory_matcher_composite_explain;
+  final_matcher->name = mongory_string_cpy(pool, "Table");
   temp_pool->free(temp_pool); // Free the temporary pool and the sub_matchers_array.
   return final_matcher;
 }
@@ -394,12 +429,19 @@ mongory_matcher *mongory_matcher_and_new(mongory_memory_pool *pool,
       return mongory_matcher_always_true_new(pool, condition);
   }
 
+  if (all_sub_matchers->count == 1) {
+    mongory_matcher *sub_matcher = (mongory_matcher *)all_sub_matchers->get(all_sub_matchers, 0);
+    temp_pool->free(temp_pool);
+    return sub_matcher;
+  }
+
   mongory_matcher *final_matcher = mongory_matcher_construct_by_and(
       all_sub_matchers, 0, all_sub_matchers->count - 1);
 
-  if (final_matcher && final_matcher->condition == NULL) {
-    final_matcher->condition = condition; // Original $and condition
-  }
+  final_matcher->condition = condition;
+  final_matcher->context.sub_count = all_sub_matchers->count;
+  final_matcher->explain = mongory_matcher_composite_explain;
+  final_matcher->name = mongory_string_cpy(pool, "And");
   temp_pool->free(temp_pool);
   return final_matcher;
 }
@@ -477,12 +519,19 @@ mongory_matcher *mongory_matcher_or_new(mongory_memory_pool *pool,
       return mongory_matcher_always_false_new(pool, condition);
   }
 
+  if (or_branch_matchers->count == 1) {
+    mongory_matcher *sub_matcher = (mongory_matcher *)or_branch_matchers->get(or_branch_matchers, 0);
+    temp_pool->free(temp_pool);
+    return sub_matcher;
+  }
+
   mongory_matcher *final_matcher = mongory_matcher_construct_by_or(
       or_branch_matchers, 0, or_branch_matchers->count - 1);
 
-  if (final_matcher && final_matcher->condition == NULL) {
-    final_matcher->condition = condition; // Original $or condition
-  }
+  final_matcher->condition = condition;
+  final_matcher->context.sub_count = or_branch_matchers->count;
+  final_matcher->explain = mongory_matcher_composite_explain;
+  final_matcher->name = mongory_string_cpy(pool, "Or");
   temp_pool->free(temp_pool);
   return final_matcher;
 }
@@ -556,7 +605,8 @@ mongory_matcher *mongory_matcher_elem_match_new(mongory_memory_pool *pool,
   }
   composite->base.match = mongory_matcher_elem_match_match;
   composite->base.context.original_match = mongory_matcher_elem_match_match;
-
+  composite->base.name = mongory_string_cpy(pool, "ElemMatch");
+  composite->base.explain = mongory_matcher_composite_explain;
   return (mongory_matcher *)composite;
 }
 
@@ -631,6 +681,8 @@ mongory_matcher *mongory_matcher_every_new(mongory_memory_pool *pool,
   }
   composite->base.match = mongory_matcher_every_match;
   composite->base.context.original_match = mongory_matcher_every_match;
+  composite->base.name = mongory_string_cpy(pool, "Every");
+  composite->base.explain = mongory_matcher_composite_explain;
 
   return (mongory_matcher *)composite;
 }
