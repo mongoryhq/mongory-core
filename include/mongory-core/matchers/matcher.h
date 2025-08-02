@@ -15,7 +15,7 @@
 #include "mongory-core/foundations/value.h"
 
 // Forward declaration for the main matcher structure.
-struct mongory_matcher;
+typedef struct mongory_matcher mongory_matcher;
 
 /**
  * @brief Creates a new generic matcher instance.
@@ -31,7 +31,7 @@ struct mongory_matcher;
  * @return mongory_matcher* A pointer to the newly created matcher, or NULL on
  * failure.
  */
-struct mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition);
 
 /**
  * @brief Matches a value against a matcher.
@@ -39,13 +39,13 @@ struct mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_v
  * @param value The value to match.
  * @return True if the value matches the matcher, false otherwise.
  */
-bool mongory_matcher_match(struct mongory_matcher *matcher, mongory_value *value);
+bool mongory_matcher_match(mongory_matcher *matcher, mongory_value *value);
 
 /**
  * @brief Explains a matcher.
  * @param matcher The matcher to explain.
  * @param temp_pool The temporary pool to use for the explanation.
  */
-void mongory_matcher_explain(struct mongory_matcher *matcher, mongory_memory_pool *temp_pool);
+void mongory_matcher_explain(mongory_matcher *matcher, mongory_memory_pool *temp_pool);
 
 #endif /* MONGORY_MATCHER_H */
