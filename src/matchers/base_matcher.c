@@ -12,14 +12,6 @@
 #include <stdio.h>  // For printf
 #include <stdlib.h> // For strtol
 
-/**
- * @brief Matches a value against a matcher.
- * @param matcher The matcher to match against.
- * @param value The value to match.
- * @return True if the value matches the matcher, false otherwise.
- */
-bool mongory_matcher_match(mongory_matcher *matcher, mongory_value *value) { return matcher->match(matcher, value); }
-
 char *mongory_matcher_title(mongory_matcher *matcher, mongory_memory_pool *pool) {
   mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
   mongory_string_buffer_append(buffer, matcher->name);

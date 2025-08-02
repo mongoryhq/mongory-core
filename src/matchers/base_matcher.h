@@ -25,7 +25,7 @@
  * matcher's condition.
  * @return bool True if the `value` matches the condition, false otherwise.
  */
-typedef bool (*mongory_matcher_match_func)(struct mongory_matcher *matcher, mongory_value *value);
+typedef bool (*mongory_matcher_match_func)(mongory_matcher *matcher, mongory_value *value);
 
 /**
  * @brief Context for explaining a matcher.
@@ -48,7 +48,7 @@ typedef struct mongory_matcher_explain_context {
  * @param matcher The matcher to explain.
  * @param ctx The context to use for the explanation.
  */
-typedef void (*mongory_matcher_explain_func)(struct mongory_matcher *matcher, mongory_matcher_explain_context *ctx);
+typedef void (*mongory_matcher_explain_func)(mongory_matcher *matcher, mongory_matcher_explain_context *ctx);
 
 /**
  * @struct mongory_matcher_context
@@ -74,7 +74,7 @@ typedef struct mongory_matcher_context {
  * that defines its criteria, a function pointer to its matching logic,
  * a memory pool for its allocations, and a context.
  */
-typedef struct mongory_matcher {
+struct mongory_matcher {
   char *name;                           /**< Optional name for the matcher (e.g., "$eq").
                                            String is typically allocated from the pool. */
   mongory_value *condition;             /**< The condition (a `mongory_value`) that this
@@ -87,7 +87,7 @@ typedef struct mongory_matcher {
                                            tracing or original function pointers. */
   mongory_matcher_explain_func explain; /**< Function pointer to the explanation
                                           logic for this matcher type. */
-} mongory_matcher;
+};
 
 /**
  * @brief Creates a new base `mongory_matcher` instance and initializes its

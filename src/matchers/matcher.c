@@ -41,6 +41,19 @@ mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *c
   return matcher;
 }
 
+/**
+ * @brief Matches a value against a matcher.
+ * @param matcher The matcher to match against.
+ * @param value The value to match.
+ * @return True if the value matches the matcher, false otherwise.
+ */
+bool mongory_matcher_match(mongory_matcher *matcher, mongory_value *value) { return matcher->match(matcher, value); }
+
+/**
+ * @brief Explains a matcher.
+ * @param matcher The matcher to explain.
+ * @param temp_pool The temporary pool to use for the explanation.
+ */
 void mongory_matcher_explain(mongory_matcher *matcher, mongory_memory_pool *temp_pool) {
   mongory_matcher_explain_context ctx = {
       .pool = temp_pool,
