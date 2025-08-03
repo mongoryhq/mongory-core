@@ -42,7 +42,7 @@ setup-unity:
 test: setup-unity $(TEST_OBJ)
 	@failed_tests=""; \
 	for file in $(TEST_OBJ); do \
-		echo "\nRun test $$file:"; \
+		echo "\n👨‍💻Run test $$file:"; \
 		if $$file; then \
 			echo "$(GREEN)Test passed.$(NC)"; \
 		else \
