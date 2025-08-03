@@ -1,7 +1,12 @@
 /**
  * @file compare_matcher.c
- * @brief Implements various comparison matchers (e.g., $eq, $gt, $lt).
- * This is an internal implementation file for the matcher module.
+ * @brief Implements comparison matchers like `$eq`, `$gt`, `$lt`, etc.
+ *
+ * This file follows a factory pattern. A generic private constructor,
+ * `mongory_matcher_compare_new`, is used to create a base matcher.
+ * Each specific comparison operator (e.g., `$eq`, `$gt`) has its own public
+ * constructor (e.g., `mongory_matcher_equal_new`) that provides a specialized
+ * matching function to the generic constructor.
  */
 #include "compare_matcher.h"
 #include "base_matcher.h" // For mongory_matcher_base_new
@@ -31,13 +36,24 @@ static inline mongory_matcher *mongory_matcher_compare_new(mongory_memory_pool *
   return matcher;
 }
 
+// ============================================================================
+// Static Match Functions
+//
+// These functions contain the actual logic for each comparison operator.
+// They all follow the `mongory_matcher_match_func` signature and are passed
+// to the generic constructor.
+// ============================================================================
+
 /**
  * @brief Match function for equality ($eq).
- * Compares `value` with `matcher->condition` using `value->comp`.
+ *
+ * Compares the input `value` with the matcher's `condition` using the
+ * polymorphic `comp` function of the value.
+ *
  * @param matcher The equality matcher instance.
  * @param value The value to check.
- * @return True if `value` is equal to `matcher->condition`, false otherwise or
- * if comparison fails.
+ * @return True if `value` is equal to `matcher->condition`; false otherwise or
+ * if the types are not comparable.
  */
 static inline bool mongory_matcher_equal_match(mongory_matcher *matcher, mongory_value *value) {
   if (!value || !value->comp || !matcher->condition)
@@ -59,11 +75,15 @@ mongory_matcher *mongory_matcher_equal_new(mongory_memory_pool *pool, mongory_va
 
 /**
  * @brief Match function for inequality ($ne).
- * Compares `value` with `matcher->condition`.
+ *
+ * This is the logical inverse of the `equal_match` function.
+ * If the types are not comparable (comparison fails), it is considered "not
+ * equal", so this function returns true in that case.
+ *
  * @param matcher The inequality matcher instance.
  * @param value The value to check.
- * @return True if `value` is not equal to `matcher->condition`. If comparison
- * itself fails (types incompatible), it's also considered "not equal".
+ * @return True if `value` is not equal to `matcher->condition` or if they
+ * are not comparable.
  */
 static inline bool mongory_matcher_not_equal_match(mongory_matcher *matcher, mongory_value *value) {
   if (!value || !value->comp || !matcher->condition)
