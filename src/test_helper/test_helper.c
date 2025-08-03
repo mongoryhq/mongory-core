@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../foundations/string_buffer.h"
 
 static mongory_memory_pool *test_pool = NULL;
 
@@ -128,7 +129,9 @@ typedef struct mongory_test_execute_context {
 
 bool execute_test_record(mongory_value *test_record, void *acc) {
   mongory_test_execute_context *context = (mongory_test_execute_context *)acc;
-  printf("Running test record: %d\n", context->index);
+  mongory_string_buffer *record_buffer = mongory_string_buffer_new(test_record->pool);
+  test_record->to_str(test_record, record_buffer);
+  printf("Running test record: %d -> %s\n", context->index, mongory_string_buffer_cstr(record_buffer));
   mongory_matcher *matcher = context->matcher;
   mongory_value *data_value = test_record->data.t->get(test_record->data.t, "data");
   mongory_value *expected_value = test_record->data.t->get(test_record->data.t, "expected");
@@ -151,6 +154,7 @@ bool execute_each_test_case(mongory_value *test_case, void *acc) {
   mongory_value *condition_value = test_case->data.t->get(test_case->data.t, "condition");
   mongory_value *records_value = test_case->data.t->get(test_case->data.t, "records");
   TEST_ASSERT_NOT_NULL(description_value);
+  printf("====\n");
   printf("Running test case: %s\n", description_value->data.s);
   TEST_ASSERT_NOT_NULL(condition_value);
   TEST_ASSERT_NOT_NULL(records_value);
@@ -158,12 +162,12 @@ bool execute_each_test_case(mongory_value *test_case, void *acc) {
   mongory_matcher *matcher = matcher_build_func(matcher_pool, condition_value);
   TEST_ASSERT_NOT_NULL(matcher);
   TEST_ASSERT_NULL(matcher_pool->error);
-  mongory_memory_pool *stdout_pool = mongory_memory_pool_new();
-  mongory_matcher_explain(matcher, stdout_pool);
-  stdout_pool->free(stdout_pool);
   mongory_array *records = records_value->data.a;
   mongory_test_execute_context context = {matcher, 0};
   records->each(records, &context, execute_test_record);
+  mongory_memory_pool *stdout_pool = mongory_memory_pool_new();
+  mongory_matcher_explain(matcher, stdout_pool);
+  stdout_pool->free(stdout_pool);
   matcher->pool->free(matcher->pool);
   return true;
 }
