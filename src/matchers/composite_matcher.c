@@ -328,7 +328,7 @@ mongory_matcher *mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongo
   final_matcher->condition = condition;
   final_matcher->context.sub_count = sub_matchers_array->count;
   final_matcher->explain = mongory_matcher_composite_explain;
-  final_matcher->name = mongory_string_cpy(pool, "Table");
+  final_matcher->name = mongory_string_cpy(pool, "Condition");
   temp_pool->free(temp_pool); // Free the temporary pool and the sub_matchers_array.
   return final_matcher;
 }
@@ -579,6 +579,7 @@ mongory_matcher *mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongo
   }
   composite->base.match = mongory_matcher_elem_match_match;
   composite->base.context.original_match = mongory_matcher_elem_match_match;
+  composite->base.context.sub_count = 1;
   composite->base.name = mongory_string_cpy(pool, "ElemMatch");
   composite->base.explain = mongory_matcher_composite_explain;
   return (mongory_matcher *)composite;
@@ -652,6 +653,7 @@ mongory_matcher *mongory_matcher_every_new(mongory_memory_pool *pool, mongory_va
   }
   composite->base.match = mongory_matcher_every_match;
   composite->base.context.original_match = mongory_matcher_every_match;
+  composite->base.context.sub_count = 1;
   composite->base.name = mongory_string_cpy(pool, "Every");
   composite->base.explain = mongory_matcher_composite_explain;
 
