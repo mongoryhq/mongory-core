@@ -66,18 +66,6 @@ typedef void (*mongory_value_to_str_func)(mongory_value *value, struct mongory_s
 char *mongory_type_to_string(mongory_value *value);
 
 /**
- * @brief Converts a mongory_value to a string representation of its data.
- * The returned string is allocated from the value's memory pool.
- * @param value A pointer to the mongory_value.
- * @return char* A string representing the value's data (e.g., "123", "3.14",
- * "\"hello\""). For complex types like Array or Table, it may return a generic
- * string like "Array Value". Returns "UnknownType" for unrecognized types.
- * The caller should not free this string directly if it's from the pool;
- * it will be managed by the pool's lifecycle.
- */
-char *mongory_value_to_string(mongory_value *value);
-
-/**
  * @brief Extracts a pointer to the raw data stored within a mongory_value.
  * The type of the returned pointer depends on the `mongory_value`'s type.
  * For example, for an MONGORY_TYPE_INT, it returns `int64_t*`.
