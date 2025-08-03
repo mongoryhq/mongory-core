@@ -136,6 +136,16 @@ static inline mongory_value *mongory_matcher_array_record_parse_table(mongory_va
   return mongory_value_wrap_t(pool, parsed_table);
 }
 
+static inline mongory_value *mongory_matcher_array_record_parse_table_wrap(mongory_memory_pool *pool, char *key, mongory_value *value) {
+  if (!pool || !key || !value)
+    return NULL;
+  mongory_table *table = mongory_table_new(pool);
+  if (!table)
+    return NULL;
+  table->set(table, key, value);
+  return mongory_value_wrap_t(pool, table);
+}
+
 /**
  * @brief Helper to create an $elemMatch matcher with an inner $regex condition.
  * E.g., for matching an array where elements match a regex.
@@ -146,18 +156,9 @@ static inline mongory_value *mongory_matcher_array_record_parse_table(mongory_va
  */
 static inline mongory_matcher *mongory_matcher_array_record_elem_match_regex_new(mongory_memory_pool *pool,
                                                                                  mongory_value *regex_condition) {
-  if (!pool || !regex_condition)
-    return NULL;
-  mongory_table *condition_table_for_elem_match = mongory_table_new(pool);
-  if (!condition_table_for_elem_match)
-    return NULL;
-
-  // Build {$regex: regex_condition}
-  condition_table_for_elem_match->set(condition_table_for_elem_match, "$regex", regex_condition);
-  mongory_value *wrapped_table = mongory_value_wrap_t(pool, condition_table_for_elem_match);
+  mongory_value *wrapped_table = mongory_matcher_array_record_parse_table_wrap(pool, "$regex", regex_condition);
   if (!wrapped_table)
     return NULL;
-
   return mongory_matcher_elem_match_new(pool, wrapped_table);
 }
 
@@ -171,18 +172,9 @@ static inline mongory_matcher *mongory_matcher_array_record_elem_match_regex_new
  */
 static inline mongory_matcher *mongory_matcher_array_record_elem_match_equal_new(mongory_memory_pool *pool,
                                                                                  mongory_value *literal_condition) {
-  if (!pool || !literal_condition)
-    return NULL;
-  mongory_table *condition_table_for_elem_match = mongory_table_new(pool);
-  if (!condition_table_for_elem_match)
-    return NULL;
-
-  // Build {$eq: literal_condition}
-  condition_table_for_elem_match->set(condition_table_for_elem_match, "$eq", literal_condition);
-  mongory_value *wrapped_table = mongory_value_wrap_t(pool, condition_table_for_elem_match);
+  mongory_value *wrapped_table = mongory_matcher_array_record_parse_table_wrap(pool, "$eq", literal_condition);
   if (!wrapped_table)
     return NULL;
-
   return mongory_matcher_elem_match_new(pool, wrapped_table);
 }
 
