@@ -3,11 +3,14 @@ CJSON_PREFIX := $(shell brew --prefix cjson)
 CJSON_CFLAGS := -I$(CJSON_PREFIX)/include
 CJSON_LDFLAGS := -L$(CJSON_PREFIX)/lib -lcjson
 
-TEST_COMMAND = $(COMMAND) -I. -Itests -I$(CJSON_CFLAGS) -DUNITY_USE_COLOR -DUNITY_OUTPUT_COLOR
+TEST_COMMAND = $(COMMAND) -I. -Itests $(CJSON_CFLAGS) -DUNITY_USE_COLOR -DUNITY_OUTPUT_COLOR
 LDFLAGS = -L$(CJSON_PREFIX)/lib -lcjson
 SRC_FOLDER = src
 SRC = $(wildcard $(SRC_FOLDER)/**/*.c)
+# Exclude test_helper from the main library
+CORE_SRC = $(filter-out $(SRC_FOLDER)/test_helper/%.c, $(SRC))
 OBJ = $(SRC:.c=.o)
+CORE_OBJ = $(CORE_SRC:.c=.o)
 CORE = mongory-core.a
 
 # color code
@@ -68,8 +71,11 @@ clean:
 format:
 	@find . \( -name '*.c' -o -name '*.h' \) -exec clang-format -i {} +
 
-$(CORE): $(OBJ)
+$(CORE): $(CORE_OBJ)
 	ar rcs $@ $^
+
+$(SRC_FOLDER)/test_helper/%.o: $(SRC_FOLDER)/test_helper/%.c
+	$(TEST_COMMAND) -c -o $@ $<
 
 $(SRC_FOLDER)/**/%.o: $(SRC_FOLDER)/**/%.c
 	$(COMMAND) -c -o $@ $<
@@ -83,9 +89,8 @@ $(BENCHMARK_OBJ_FOLDER):
 $(UNITY_OBJ): $(UNITY_SRC) $(TEST_OBJ_FOLDER)
 	$(TEST_COMMAND) -I$(TEST_SRC_FOLDER)/unity -c -o $@ $<
 
-$(TEST_OBJ_FOLDER)/%: $(TEST_SRC_FOLDER)/%.c $(CORE) $(UNITY_OBJ) $(TEST_OBJ_FOLDER)
-	$(TEST_COMMAND) -I$(TEST_SRC_FOLDER)/unity -o $@ $< $(UNITY_OBJ) $(CORE) $(LDFLAGS)
+$(TEST_OBJ_FOLDER)/%: $(TEST_SRC_FOLDER)/%.c $(CORE) $(UNITY_OBJ) $(TEST_OBJ_FOLDER) src/test_helper/test_helper.o
+	$(TEST_COMMAND) -I$(TEST_SRC_FOLDER)/unity -o $@ $< $(UNITY_OBJ) $(CORE) src/test_helper/test_helper.o $(LDFLAGS)
 
-$(BENCHMARK_OBJ_FOLDER)/%: $(BENCHMARK_SRC_FOLDER)/%.c $(CORE) $(UNITY_OBJ) $(BENCHMARK_OBJ_FOLDER)
-	$(TEST_COMMAND) -I$(TEST_SRC_FOLDER)/unity -o $@ $< $(UNITY_OBJ) $(CORE) $(LDFLAGS)
-
+$(BENCHMARK_OBJ_FOLDER)/%: $(BENCHMARK_SRC_FOLDER)/%.c $(CORE) $(UNITY_OBJ) $(BENCHMARK_OBJ_FOLDER) src/test_helper/test_helper.o
+	$(TEST_COMMAND) -I$(TEST_SRC_FOLDER)/unity -o $@ $< $(UNITY_OBJ) $(CORE) src/test_helper/test_helper.o $(LDFLAGS)
