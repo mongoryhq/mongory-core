@@ -1,0 +1,255 @@
+[
+  {
+    "description": "basic $elemMatch test with simple field condition",
+    "condition": {
+      "name": "John"
+    },
+    "records": [
+      {
+        "data": [
+          {"name": "John", "age": 30},
+          {"name": "Frank", "age": 25}
+        ],
+        "expected": true
+      },
+      {
+        "data": [
+          {"name": "Frank", "age": 30},
+          {"name": "Alice", "age": 25}
+        ],
+        "expected": false
+      },
+      {
+        "data": [],
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "$elemMatch with complex nested condition",
+    "condition": {
+      "name": "John",
+      "age": {
+        "$gt": 25
+      }
+    },
+    "records": [
+      {
+        "data": [
+          {"name": "John", "age": 30},
+          {"name": "Frank", "age": 25}
+        ],
+        "expected": true
+      },
+      {
+        "data": [
+          {"name": "John", "age": 20},
+          {"name": "Frank", "age": 30}
+        ],
+        "expected": false
+      },
+      {
+        "data": [
+          {"name": "Alice", "age": 30},
+          {"name": "Bob", "age": 35}
+        ],
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "$elemMatch with multiple field conditions",
+    "condition": {
+      "name": "John",
+      "age": 30,
+      "title": "engineer"
+    },
+    "records": [
+      {
+        "data": [
+          {"name": "John", "age": 30, "title": "engineer"},
+          {"name": "Frank", "age": 25, "title": "designer"}
+        ],
+        "expected": true
+      },
+      {
+        "data": [
+          {"name": "John", "age": 30, "title": "designer"},
+          {"name": "Frank", "age": 25, "title": "engineer"}
+        ],
+        "expected": false
+      },
+      {
+        "data": [
+          {"name": "John", "age": 25, "title": "engineer"},
+          {"name": "Alice", "age": 30, "title": "engineer"}
+        ],
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "$elemMatch with range operators",
+    "condition": {
+      "score": {
+        "$gte": 80,
+        "$lte": 90
+      }
+    },
+    "records": [
+      {
+        "data": [
+          {"name": "John", "score": 85},
+          {"name": "Frank", "score": 75}
+        ],
+        "expected": true
+      },
+      {
+        "data": [
+          {"name": "John", "score": 95},
+          {"name": "Frank", "score": 70}
+        ],
+        "expected": false
+      },
+      {
+        "data": [
+          {"name": "Alice", "score": 80},
+          {"name": "Bob", "score": 90}
+        ],
+        "expected": true
+      }
+    ]
+  },
+  {
+    "description": "$elemMatch with nested object conditions",
+    "condition": {
+      "address": {
+        "city": "Taipei"
+      },
+      "age": {
+        "$gt": 25
+      }
+    },
+    "records": [
+      {
+        "data": [
+          {
+            "name": "John",
+            "age": 30,
+            "address": {
+              "city": "Taipei",
+              "street": "Main St"
+            }
+          },
+          {
+            "name": "Frank",
+            "age": 25,
+            "address": {
+              "city": "New York"
+            }
+          }
+        ],
+        "expected": true
+      },
+      {
+        "data": [
+          {
+            "name": "John",
+            "age": 20,
+            "address": {
+              "city": "Taipei"
+            }
+          },
+          {
+            "name": "Frank",
+            "age": 30,
+            "address": {
+              "city": "New York"
+            }
+          }
+        ],
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "$elemMatch with existence operators",
+    "condition": {
+      "name": {
+        "$exists": true
+      },
+      "email": {
+        "$exists": false
+      }
+    },
+    "records": [
+      {
+        "data": [
+          {"name": "John", "age": 30},
+          {"name": "Frank", "email": "frank@example.com"}
+        ],
+        "expected": true
+      },
+      {
+        "data": [
+          {"name": "John", "email": "john@example.com"},
+          {"age": 30}
+        ],
+        "expected": false
+      },
+      {
+        "data": [
+          {"age": 30},
+          {"title": "engineer"}
+        ],
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "$elemMatch on non-array should return false",
+    "condition": {
+      "name": "John"
+    },
+    "records": [
+      {
+        "data": {"name": "John", "age": 30},
+        "expected": false
+      },
+      {
+        "data": "not an array",
+        "expected": false
+      },
+      {
+        "data": null,
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "$elemMatch with array containing mixed types",
+    "condition": {
+      "value": {
+        "$gt": 10
+      }
+    },
+    "records": [
+      {
+        "data": [
+          {"value": 15},
+          {"value": "string"},
+          {"value": 5}
+        ],
+        "expected": true
+      },
+      {
+        "data": [
+          {"value": 5},
+          {"value": "string"},
+          {"other": 15}
+        ],
+        "expected": false
+      }
+    ]
+  }
+]
