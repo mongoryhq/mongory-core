@@ -1,0 +1,246 @@
+[
+  {
+    "description": "basic $or test with simple fields",
+    "condition": [
+      {
+        "name": "John"
+      },
+      {
+        "age": 30
+      }
+    ],
+    "records": [
+      {
+        "data": {
+          "name": "John",
+          "age": 25
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "name": "Frank",
+          "age": 30
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "name": "John",
+          "age": 30
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "name": "Frank",
+          "age": 25
+        },
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "empty $or condition (should always be false)",
+    "condition": [],
+    "records": [
+      {
+        "data": {},
+        "expected": false
+      },
+      {
+        "data": {
+          "name": "John"
+        },
+        "expected": false
+      },
+      {
+        "data": "anything",
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "$or with complex conditions",
+    "condition": [
+      {
+        "name": "John",
+        "age": {
+          "$gt": 25
+        }
+      },
+      {
+        "tags": "engineer",
+        "salary": {
+          "$gte": 100000
+        }
+      }
+    ],
+    "records": [
+      {
+        "data": {
+          "name": "John",
+          "age": 30
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "name": "Frank",
+          "tags": ["engineer", "developer"],
+          "salary": 120000
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "name": "John",
+          "age": 20
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "name": "Frank",
+          "tags": ["developer"],
+          "salary": 80000
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "name": "Alice",
+          "age": 35,
+          "tags": ["engineer"],
+          "salary": 150000
+        },
+        "expected": true
+      }
+    ]
+  },
+  {
+    "description": "$or with nested object conditions",
+    "condition": [
+      {
+        "address": {
+          "city": "Taipei"
+        }
+      },
+      {
+        "contact": {
+          "email": "john@example.com"
+        }
+      }
+    ],
+    "records": [
+      {
+        "data": {
+          "name": "John",
+          "address": {
+            "city": "Taipei",
+            "street": "Main St"
+          }
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "name": "Frank",
+          "contact": {
+            "email": "john@example.com",
+            "phone": "123-456-7890"
+          }
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "name": "Alice",
+          "address": {
+            "city": "New York"
+          },
+          "contact": {
+            "email": "alice@example.com"
+          }
+        },
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "$or with array field conditions",
+    "condition": [
+      {
+        "tags": "frontend"
+      },
+      {
+        "skills": "javascript"
+      }
+    ],
+    "records": [
+      {
+        "data": {
+          "name": "John",
+          "tags": ["frontend", "developer"]
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "name": "Frank",
+          "skills": ["javascript", "python"]
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "name": "Alice",
+          "tags": ["backend"],
+          "skills": ["java", "kotlin"]
+        },
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "$or with existence operators",
+    "condition": [
+      {
+        "name": {
+          "$exists": true
+        }
+      },
+      {
+        "age": {
+          "$gt": 18
+        }
+      }
+    ],
+    "records": [
+      {
+        "data": {
+          "name": "John"
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "age": 25
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "age": 16
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "address": "123 Main St"
+        },
+        "expected": false
+      }
+    ]
+  }
+]

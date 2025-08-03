@@ -1,0 +1,315 @@
+[
+  {
+    "description": "basic $every test with simple field condition",
+    "condition": {
+      "age": {
+        "$gt": 18
+      }
+    },
+    "records": [
+      {
+        "data": [
+          {"name": "John", "age": 25},
+          {"name": "Frank", "age": 30}
+        ],
+        "expected": true
+      },
+      {
+        "data": [
+          {"name": "John", "age": 25},
+          {"name": "Frank", "age": 15}
+        ],
+        "expected": false
+      },
+      {
+        "data": [],
+        "expected": true
+      }
+    ]
+  },
+  {
+    "description": "$every with multiple field conditions (all must match)",
+    "condition": {
+      "age": {
+        "$gte": 18
+      },
+      "status": "active"
+    },
+    "records": [
+      {
+        "data": [
+          {"name": "John", "age": 25, "status": "active"},
+          {"name": "Frank", "age": 30, "status": "active"}
+        ],
+        "expected": true
+      },
+      {
+        "data": [
+          {"name": "John", "age": 25, "status": "active"},
+          {"name": "Frank", "age": 30, "status": "inactive"}
+        ],
+        "expected": false
+      },
+      {
+        "data": [
+          {"name": "John", "age": 16, "status": "active"},
+          {"name": "Frank", "age": 30, "status": "active"}
+        ],
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "$every with range conditions",
+    "condition": {
+      "score": {
+        "$gte": 70,
+        "$lte": 100
+      }
+    },
+    "records": [
+      {
+        "data": [
+          {"name": "John", "score": 85},
+          {"name": "Frank", "score": 90},
+          {"name": "Alice", "score": 70}
+        ],
+        "expected": true
+      },
+      {
+        "data": [
+          {"name": "John", "score": 85},
+          {"name": "Frank", "score": 65}
+        ],
+        "expected": false
+      },
+      {
+        "data": [
+          {"name": "John", "score": 105},
+          {"name": "Frank", "score": 85}
+        ],
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "$every with nested object conditions",
+    "condition": {
+      "address": {
+        "country": "Taiwan"
+      }
+    },
+    "records": [
+      {
+        "data": [
+          {
+            "name": "John",
+            "address": {
+              "country": "Taiwan",
+              "city": "Taipei"
+            }
+          },
+          {
+            "name": "Frank",
+            "address": {
+              "country": "Taiwan",
+              "city": "Kaohsiung"
+            }
+          }
+        ],
+        "expected": true
+      },
+      {
+        "data": [
+          {
+            "name": "John",
+            "address": {
+              "country": "Taiwan",
+              "city": "Taipei"
+            }
+          },
+          {
+            "name": "Frank",
+            "address": {
+              "country": "USA",
+              "city": "New York"
+            }
+          }
+        ],
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "$every with existence conditions",
+    "condition": {
+      "name": {
+        "$exists": true
+      },
+      "age": {
+        "$exists": true
+      }
+    },
+    "records": [
+      {
+        "data": [
+          {"name": "John", "age": 30},
+          {"name": "Frank", "age": 25}
+        ],
+        "expected": true
+      },
+      {
+        "data": [
+          {"name": "John", "age": 30},
+          {"name": "Frank"}
+        ],
+        "expected": false
+      },
+      {
+        "data": [
+          {"age": 30},
+          {"name": "Frank", "age": 25}
+        ],
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "$every with string equality conditions",
+    "condition": {
+      "department": "engineering"
+    },
+    "records": [
+      {
+        "data": [
+          {"name": "John", "department": "engineering"},
+          {"name": "Frank", "department": "engineering"}
+        ],
+        "expected": true
+      },
+      {
+        "data": [
+          {"name": "John", "department": "engineering"},
+          {"name": "Frank", "department": "sales"}
+        ],
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "$every on non-array should return false",
+    "condition": {
+      "name": "John"
+    },
+    "records": [
+      {
+        "data": {"name": "John", "age": 30},
+        "expected": false
+      },
+      {
+        "data": "not an array",
+        "expected": false
+      },
+      {
+        "data": null,
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "$every with mixed data types",
+    "condition": {
+      "type": "user"
+    },
+    "records": [
+      {
+        "data": [
+          {"name": "John", "type": "user"},
+          {"name": "Frank", "type": "user"}
+        ],
+        "expected": true
+      },
+      {
+        "data": [
+          {"name": "John", "type": "user"},
+          {"name": "System", "type": "admin"}
+        ],
+        "expected": false
+      },
+      {
+        "data": [
+          {"name": "John", "type": "user"},
+          {"other": "value"}
+        ],
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "$every with empty condition object (should match all)",
+    "condition": {},
+    "records": [
+      {
+        "data": [
+          {"name": "John", "age": 30},
+          {"name": "Frank", "age": 25}
+        ],
+        "expected": true
+      },
+      {
+        "data": [
+          {"anything": "value"},
+          {}
+        ],
+        "expected": true
+      },
+      {
+        "data": [],
+        "expected": true
+      }
+    ]
+  },
+  {
+    "description": "$every with complex nested conditions",
+    "condition": {
+      "profile": {
+        "verified": true
+      },
+      "score": {
+        "$gt": 50
+      }
+    },
+    "records": [
+      {
+        "data": [
+          {
+            "name": "John",
+            "profile": {"verified": true, "complete": true},
+            "score": 85
+          },
+          {
+            "name": "Frank", 
+            "profile": {"verified": true, "complete": false},
+            "score": 70
+          }
+        ],
+        "expected": true
+      },
+      {
+        "data": [
+          {
+            "name": "John",
+            "profile": {"verified": true},
+            "score": 85
+          },
+          {
+            "name": "Frank", 
+            "profile": {"verified": false},
+            "score": 70
+          }
+        ],
+        "expected": false
+      }
+    ]
+  }
+]
