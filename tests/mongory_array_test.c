@@ -6,7 +6,7 @@
 mongory_memory_pool *pool;
 mongory_array *array;
 
-// 定義回調函數
+// Define callback function
 static bool sum_callback(mongory_value *item, void *acc) {
   int *sum_ptr = (int *)acc;
   *sum_ptr += *(int *)mongory_value_extract(item);

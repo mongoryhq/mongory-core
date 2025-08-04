@@ -41,7 +41,7 @@ void test_string_buffer_append(void) {
   TEST_ASSERT_EQUAL(5, buffer->size);
   TEST_ASSERT_EQUAL_STRING("Hello", mongory_string_buffer_cstr(buffer));
 
-  // 測試附加更多字串
+  // Test appending more strings
   mongory_string_buffer_append(buffer, " World");
   TEST_ASSERT_EQUAL(11, buffer->size);
   TEST_ASSERT_EQUAL_STRING("Hello World", mongory_string_buffer_cstr(buffer));
@@ -60,7 +60,7 @@ void test_string_buffer_appendf(void) {
   TEST_ASSERT_EQUAL(10, buffer->size);
   TEST_ASSERT_EQUAL_STRING("Number: 42", mongory_string_buffer_cstr(buffer));
 
-  // 測試附加更多格式化字串
+  // Test appending more formatted strings
   mongory_string_buffer_appendf(buffer, ", String: %s", "test");
   TEST_ASSERT_EQUAL(24, buffer->size);
   TEST_ASSERT_EQUAL_STRING("Number: 42, String: test", mongory_string_buffer_cstr(buffer));
@@ -80,12 +80,12 @@ void test_string_buffer_clear(void) {
   mongory_string_buffer_clear(buffer);
 
   TEST_ASSERT_EQUAL(0, buffer->size);
-  TEST_ASSERT_EQUAL(256, buffer->capacity); // 重設為初始容量
+  TEST_ASSERT_EQUAL(256, buffer->capacity); // Reset to initial capacity
   TEST_ASSERT_EQUAL_STRING("", mongory_string_buffer_cstr(buffer));
 }
 
 void test_string_buffer_dynamic_growth(void) {
-  // 建立一個超過初始容量的長字串
+  // Create a long string that exceeds initial capacity
   char large_string[300];
   for (int i = 0; i < 299; i++) {
     large_string[i] = 'A';
@@ -95,12 +95,12 @@ void test_string_buffer_dynamic_growth(void) {
   mongory_string_buffer_append(buffer, large_string);
 
   TEST_ASSERT_EQUAL(299, buffer->size);
-  TEST_ASSERT_GREATER_THAN(256, buffer->capacity); // 容量應該已經增長
+  TEST_ASSERT_GREATER_THAN(256, buffer->capacity); // Capacity should have grown
   TEST_ASSERT_EQUAL_STRING(large_string, mongory_string_buffer_cstr(buffer));
 }
 
 void test_string_buffer_multiple_growth(void) {
-  // 測試多次增長
+  // Test multiple growth cycles
   for (int i = 0; i < 10; i++) {
     mongory_string_buffer_appendf(buffer, "This is line %d with some text. ", i);
   }
@@ -130,7 +130,7 @@ void test_string_buffer_cstr_consistency(void) {
   char *str1 = mongory_string_buffer_cstr(buffer);
   char *str2 = mongory_string_buffer_cstr(buffer);
 
-  TEST_ASSERT_EQUAL(str1, str2); // 應該回傳相同的指標
+  TEST_ASSERT_EQUAL(str1, str2); // Should return the same pointer
   TEST_ASSERT_EQUAL_STRING("Test", str1);
 }
 
@@ -144,7 +144,7 @@ void test_string_buffer_after_clear_and_reuse(void) {
 }
 
 void test_string_buffer_large_formatted_string(void) {
-  // 測試大型格式化字串
+  // Test large formatted strings
   mongory_string_buffer_appendf(buffer, "Large number: %ld, repeated %d times", 123456789L, 1000);
 
   const char *result = mongory_string_buffer_cstr(buffer);
