@@ -1,30 +1,30 @@
 cmake_minimum_required(VERSION 3.12)
 project(mongory-core VERSION 1.0.0 LANGUAGES C)
 
-# 設置 C 標準
+# Set C standard
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# 編譯選項
+# Compilation options
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
 
-# 輸出目錄
+# Output directories
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-# 包含目錄
+# Include directories
 include_directories(include)
 
-# 查找依賴庫
+# Find dependency libraries
 find_package(PkgConfig QUIET)
 
-# 嘗試使用 pkg-config 查找 cjson
+# Try to find cjson using pkg-config
 if(PkgConfig_FOUND)
     pkg_check_modules(CJSON libcjson)
 endif()
 
-# 如果 pkg-config 找不到或不可用，手動查找
+# If pkg-config can't find it or is unavailable, search manually
 if(NOT CJSON_FOUND)
     find_path(CJSON_INCLUDE_DIR 
         NAMES cjson/cJSON.h cJSON.h
@@ -56,19 +56,19 @@ if(NOT CJSON_FOUND)
     message(FATAL_ERROR "cJSON library not found. Please install libcjson-dev (Ubuntu/Debian) or cjson (Homebrew)")
 endif()
 
-# 包含 cJSON 頭文件目錄
+# Include cJSON header directories
 include_directories(${CJSON_INCLUDE_DIRS})
 
-# 蒐集源文件
+# Collect source files
 file(GLOB_RECURSE CORE_SOURCES 
     "src/foundations/*.c"
     "src/matchers/*.c"
 )
 
-# 排除 test_helper
+# Exclude test_helper
 list(FILTER CORE_SOURCES EXCLUDE REGEX "src/test_helper/.*")
 
-# 創建核心靜態庫
+# Create core static library
 add_library(mongory-core STATIC ${CORE_SOURCES})
 if(CJSON_LDFLAGS)
     target_link_libraries(mongory-core ${CJSON_LDFLAGS})
@@ -76,11 +76,11 @@ else()
     target_link_libraries(mongory-core ${CJSON_LIBRARIES})
 endif()
 
-# Test helper 庫（用於測試）
+# Test helper library (for testing)
 add_library(test_helper STATIC src/test_helper/test_helper.c)
 target_include_directories(test_helper PUBLIC src/test_helper)
 
-# Unity 測試框架設置
+# Unity test framework setup
 set(UNITY_DIR ${CMAKE_SOURCE_DIR}/tests/unity)
 if(EXISTS ${UNITY_DIR}/unity.c)
     add_library(unity STATIC ${UNITY_DIR}/unity.c)
@@ -90,15 +90,15 @@ else()
     message(STATUS "Unity framework not found. Run setup_unity.sh first.")
 endif()
 
-# 測試選項
+# Test options
 option(BUILD_TESTS "Build the tests" ON)
 if(BUILD_TESTS AND TARGET unity)
     enable_testing()
     
-    # 複製測試 JSON 文件到構建目錄的正確位置
+    # Copy test JSON files to the correct location in build directory
     file(COPY tests/jsons DESTINATION ${CMAKE_BINARY_DIR}/tests)
     
-    # 蒐集測試文件
+    # Collect test files
     file(GLOB TEST_SOURCES "tests/mongory_*_test.c")
     
     foreach(test_source ${TEST_SOURCES})
@@ -128,15 +128,15 @@ if(BUILD_TESTS AND TARGET unity)
             UNITY_OUTPUT_COLOR
         )
         
-        # 添加到 CTest
+        # Add to CTest
         add_test(NAME ${test_name} COMMAND ${test_name})
     endforeach()
 endif()
 
-# 基準測試選項
+# Benchmark options
 option(BUILD_BENCHMARKS "Build the benchmarks" ON)
 if(BUILD_BENCHMARKS AND TARGET unity)
-    # 蒐集基準測試文件
+    # Collect benchmark files
     file(GLOB BENCHMARK_SOURCES "benchmarks/*.c")
     
     foreach(benchmark_source ${BENCHMARK_SOURCES})
@@ -169,7 +169,7 @@ if(BUILD_BENCHMARKS AND TARGET unity)
     endforeach()
 endif()
 
-# 自定義目標：設置 Unity
+# Custom target: Setup Unity
 add_custom_target(setup-unity
     COMMAND chmod +x ${CMAKE_SOURCE_DIR}/scripts/setup_unity.sh
     COMMAND ${CMAKE_SOURCE_DIR}/scripts/setup_unity.sh
@@ -177,14 +177,14 @@ add_custom_target(setup-unity
     COMMENT "Setting up Unity test framework"
 )
 
-# 自定義目標：格式化代碼
+# Custom target: Format code
 add_custom_target(format
     COMMAND find ${CMAKE_SOURCE_DIR} -name "*.c" -o -name "*.h" | xargs clang-format -i
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMENT "Formatting code with clang-format"
 )
 
-# 安裝規則
+# Install rules
 install(TARGETS mongory-core
     ARCHIVE DESTINATION lib
 )
@@ -194,7 +194,7 @@ install(DIRECTORY include/
     FILES_MATCHING PATTERN "*.h"
 )
 
-# 顯示配置資訊
+# Display configuration information
 message(STATUS "=== MongoDB Core Library Configuration ===")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "C compiler: ${CMAKE_C_COMPILER}")

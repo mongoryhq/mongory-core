@@ -1,116 +1,116 @@
-# 從 Makefile 遷移到 CMake
+# Migration from Makefile to CMake
 
-本文檔記錄了 mongory-core 項目從 Makefile 遷移到 CMake 的過程。
+This document records the migration process of the mongory-core project from Makefile to CMake.
 
-## 🚀 遷移原因
+## 🚀 Migration Reasons
 
-原始的 Makefile 配置主要針對 macOS 環境，存在以下限制：
+The original Makefile configuration was primarily targeted for macOS environments, with the following limitations:
 
-- **平台特定**: 硬編碼了 Homebrew 路徑 (`/opt/homebrew/include`)
-- **依賴管理**: 依賴 `brew --prefix` 命令查找庫路徑
-- **跨平台支援**: 無法在 Linux 或 Windows 上輕易構建
+- **Platform-specific**: Hard-coded Homebrew paths (`/opt/homebrew/include`)
+- **Dependency management**: Relies on `brew --prefix` command to find library paths
+- **Cross-platform support**: Cannot easily build on Linux or Windows
 
-## ✅ 遷移成果
+## ✅ Migration Results
 
-### 新的功能
-- **跨平台支援**: 支援 macOS、Linux、Windows (MSYS2)
-- **自動依賴檢測**: 通過 pkg-config 和手動查找自動定位 cJSON
-- **便捷構建腳本**: 提供 `build.sh` 腳本簡化常用操作
-- **靈活配置**: 支援 Release/Debug 模式、可選測試和基準測試
+### New Features
+- **Cross-platform support**: Supports macOS, Linux, Windows (MSYS2)
+- **Automatic dependency detection**: Automatically locates cJSON through pkg-config and manual discovery
+- **Convenient build script**: Provides `build.sh` script to simplify common operations
+- **Flexible configuration**: Supports Release/Debug modes, optional tests and benchmarks
 
-### 保留的功能
-- **所有原有功能**: 構建靜態庫、運行測試、基準測試、代碼格式化
-- **Unity 測試框架**: 繼續使用相同的測試設置
-- **相同的輸出**: 產生相同的 `libmongory-core.a` 靜態庫
+### Preserved Features
+- **All original functionality**: Build static library, run tests, benchmarks, code formatting
+- **Unity test framework**: Continues to use the same test setup
+- **Same output**: Produces the same `libmongory-core.a` static library
 
-## 📋 遷移對比
+## 📋 Migration Comparison
 
-| 功能 | 舊 Makefile | 新 CMake |
-|------|-------------|----------|
-| 基本構建 | `make` | `./build.sh` 或 `cmake --build build` |
-| 運行測試 | `make test` | `./build.sh --test` 或 `ctest` |
-| 基準測試 | `make benchmark` | `./build.sh --benchmark` |
-| 代碼格式化 | `make format` | `cmake --build build --target format` |
-| 清理 | `make clean` | `./build.sh --clean` |
-| 設置 Unity | `make setup-unity` | `./build.sh --setup-unity` |
+| Feature | Old Makefile | New CMake |
+|---------|-------------|-----------|
+| Basic build | `make` | `./build.sh` or `cmake --build build` |
+| Run tests | `make test` | `./build.sh --test` or `ctest` |
+| Benchmarks | `make benchmark` | `./build.sh --benchmark` |
+| Code formatting | `make format` | `cmake --build build --target format` |
+| Clean | `make clean` | `./build.sh --clean` |
+| Setup Unity | `make setup-unity` | `./build.sh --setup-unity` |
 
-## 🔧 新增功能
+## 🔧 New Features
 
-### 構建腳本選項
+### Build Script Options
 ```bash
-./build.sh [選項]
-  -d, --debug         Debug 模式構建
-  -c, --clean         清理構建目錄
-  -t, --test          運行測試
-  -b, --benchmark     運行基準測試
-  -u, --setup-unity   設置 Unity 測試框架
-  -h, --help          顯示幫助信息
+./build.sh [options]
+  -d, --debug         Debug mode build
+  -c, --clean         Clean build directory
+  -t, --test          Run tests
+  -b, --benchmark     Run benchmarks
+  -u, --setup-unity   Setup Unity test framework
+  -h, --help          Show help information
 ```
 
-### CMake 配置選項
+### CMake Configuration Options
 ```bash
-cmake -DCMAKE_BUILD_TYPE=Debug ..       # Debug 構建
-cmake -DBUILD_TESTS=OFF ..              # 不構建測試
-cmake -DBUILD_BENCHMARKS=OFF ..         # 不構建基準測試
+cmake -DCMAKE_BUILD_TYPE=Debug ..       # Debug build
+cmake -DBUILD_TESTS=OFF ..              # Don't build tests
+cmake -DBUILD_BENCHMARKS=OFF ..         # Don't build benchmarks
 ```
 
-## 🌍 跨平台支援
+## 🌍 Cross-Platform Support
 
-### 自動依賴檢測
-- **優先使用 pkg-config**: 自動檢測系統安裝的 cJSON
-- **回退到手動查找**: 在標準路徑和 Homebrew 路徑中查找
-- **清晰的錯誤信息**: 如果找不到依賴會給出明確的安裝指引
+### Automatic Dependency Detection
+- **Prioritize pkg-config**: Automatically detects system-installed cJSON
+- **Fallback to manual search**: Searches in standard paths and Homebrew paths
+- **Clear error messages**: Provides clear installation guidance if dependencies are not found
 
-### 平台特定處理
-- **macOS**: 自動檢測 Homebrew 路徑
-- **Linux**: 使用標準系統路徑
-- **Windows**: 支援 MSYS2/MinGW 環境
+### Platform-Specific Handling
+- **macOS**: Automatically detects Homebrew paths
+- **Linux**: Uses standard system paths
+- **Windows**: Supports MSYS2/MinGW environment
 
-## 📁 文件結構變化
+## 📁 File Structure Changes
 
-### 新增文件
-- `CMakeLists.txt` - CMake 配置文件
-- `build.sh` - 便捷構建腳本
-- `CMAKE_USAGE.md` - 詳細的 CMake 使用說明
-- `MIGRATION.md` - 此遷移文檔
+### New Files
+- `CMakeLists.txt` - CMake configuration file
+- `build.sh` - Convenient build script
+- `CMAKE_USAGE.md` - Detailed CMake usage instructions
+- `MIGRATION.md` - This migration document
 
-### 保留文件
-- `Makefile` - 保留但標記為已棄用
-- 所有源碼和頭文件保持不變
-- 測試文件和結構保持不變
+### Preserved Files
+- `Makefile` - Preserved but marked as deprecated
+- All source and header files remain unchanged
+- Test files and structure remain unchanged
 
-## 🚨 注意事項
+## 🚨 Important Notes
 
-### 對現有用戶的影響
-1. **向後相容**: 舊的 Makefile 仍然可用
-2. **推薦遷移**: 建議使用新的 CMake 系統
-3. **文檔更新**: README.md 已更新為 CMake 指引
+### Impact on Existing Users
+1. **Backward compatibility**: Old Makefile is still usable
+2. **Recommended migration**: Recommend using the new CMake system
+3. **Documentation update**: README.md has been updated with CMake guidance
 
-### 開發者工作流程
-- **新開發者**: 使用 `./build.sh --setup-unity --test` 開始
-- **CI/CD**: 可以使用 `cmake` 命令實現更精細的控制
-- **IDE 支援**: 現在支援 CLion、VS Code 等現代 IDE
+### Developer Workflow
+- **New developers**: Use `./build.sh --setup-unity --test` to get started
+- **CI/CD**: Can use `cmake` commands for more fine-grained control
+- **IDE support**: Now supports modern IDEs like CLion, VS Code
 
-## 🎯 未來計劃
+## 🎯 Future Plans
 
-- ✅ 基本 CMake 遷移
-- ✅ 跨平台構建支援
-- ✅ 便捷構建腳本
-- ✅ 文檔更新
-- 🔄 CI/CD 配置更新 (未來)
-- 🔄 IDE 項目文件 (可選)
+- ✅ Basic CMake migration
+- ✅ Cross-platform build support
+- ✅ Convenient build script
+- ✅ Documentation update
+- 🔄 CI/CD configuration update (future)
+- 🔄 IDE project files (optional)
 
-## 📞 支援
+## 📞 Support
 
-如果遇到構建問題：
+If you encounter build issues:
 
-1. 查看 `CMAKE_USAGE.md` 詳細說明
-2. 確認已安裝所需依賴
-3. 使用 `./build.sh --help` 查看可用選項
-4. 檢查 CMake 輸出的配置信息
+1. Check `CMAKE_USAGE.md` for detailed instructions
+2. Ensure required dependencies are installed
+3. Use `./build.sh --help` to view available options
+4. Check CMake configuration output information
 
 ---
 
-**遷移完成日期**: 2024年5月8日  
-**測試狀態**: ✅ 所有測試通過  
-**支援平台**: macOS, Linux, Windows (MSYS2)
+**Migration completion date**: May 8, 2024  
+**Test status**: ✅ All tests passing  
+**Supported platforms**: macOS, Linux, Windows (MSYS2)

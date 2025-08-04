@@ -1,16 +1,16 @@
 #!/bin/bash
 
-# MongoDB Core Library 構建腳本
+# MongoDB Core Library Build Script
 
-set -e  # 遇到錯誤就停止
+set -e  # Stop on error
 
-# 顏色定義
+# Color definitions
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# 默認配置
+# Default configuration
 BUILD_TYPE="Release"
 BUILD_DIR="build"
 CLEAN=false
@@ -18,7 +18,7 @@ RUN_TESTS=false
 RUN_BENCHMARKS=false
 SETUP_UNITY=false
 
-# 解析命令行參數
+# Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
         -d|--debug)
@@ -42,75 +42,75 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -h|--help)
-            echo "用法: $0 [選項]"
-            echo "選項:"
-            echo "  -d, --debug         Debug 模式構建"
-            echo "  -c, --clean         清理構建目錄"
-            echo "  -t, --test          運行測試"
-            echo "  -b, --benchmark     運行基準測試"
-            echo "  -u, --setup-unity   設置 Unity 測試框架"
-            echo "  -h, --help          顯示此幫助信息"
+            echo "Usage: $0 [options]"
+            echo "Options:"
+            echo "  -d, --debug         Debug mode build"
+            echo "  -c, --clean         Clean build directory"
+            echo "  -t, --test          Run tests"
+            echo "  -b, --benchmark     Run benchmarks"
+            echo "  -u, --setup-unity   Setup Unity test framework"
+            echo "  -h, --help          Show this help message"
             exit 0
             ;;
         *)
-            echo "未知選項: $1"
-            echo "使用 $0 --help 查看幫助"
+            echo "Unknown option: $1"
+            echo "Use $0 --help for help"
             exit 1
             ;;
     esac
 done
 
-echo -e "${BLUE}=== MongoDB Core Library 構建腳本 ===${NC}"
+echo -e "${BLUE}=== MongoDB Core Library Build Script ===${NC}"
 
-# 設置 Unity（如果需要）
+# Setup Unity (if needed)
 if [ "$SETUP_UNITY" = true ]; then
-    echo -e "${BLUE}設置 Unity 測試框架...${NC}"
+    echo -e "${BLUE}Setting up Unity test framework...${NC}"
     chmod +x scripts/setup_unity.sh
     ./scripts/setup_unity.sh
 fi
 
-# 清理構建目錄（如果需要）
+# Clean build directory (if needed)
 if [ "$CLEAN" = true ]; then
-    echo -e "${BLUE}清理構建目錄...${NC}"
+    echo -e "${BLUE}Cleaning build directory...${NC}"
     rm -rf $BUILD_DIR
 fi
 
-# 創建構建目錄
+# Create build directory
 mkdir -p $BUILD_DIR
 cd $BUILD_DIR
 
-# 運行 CMake 配置
-echo -e "${BLUE}配置項目 (構建類型: $BUILD_TYPE)...${NC}"
+# Run CMake configuration
+echo -e "${BLUE}Configuring project (build type: $BUILD_TYPE)...${NC}"
 cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
 
-# 構建項目
-echo -e "${BLUE}構建項目...${NC}"
+# Build project
+echo -e "${BLUE}Building project...${NC}"
 cmake --build . -j$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 
-echo -e "${GREEN}✅ 構建完成！${NC}"
+echo -e "${GREEN}✅ Build completed!${NC}"
 
-# 運行測試（如果需要）
+# Run tests (if needed)
 if [ "$RUN_TESTS" = true ]; then
-    echo -e "${BLUE}運行測試...${NC}"
+    echo -e "${BLUE}Running tests...${NC}"
     if ctest --output-on-failure; then
-        echo -e "${GREEN}✅ 所有測試通過！${NC}"
+        echo -e "${GREEN}✅ All tests passed!${NC}"
     else
-        echo -e "${RED}❌ 有測試失敗！${NC}"
+        echo -e "${RED}❌ Some tests failed!${NC}"
         exit 1
     fi
 fi
 
-# 運行基準測試（如果需要）
+# Run benchmarks (if needed)
 if [ "$RUN_BENCHMARKS" = true ]; then
-    echo -e "${BLUE}運行基準測試...${NC}"
+    echo -e "${BLUE}Running benchmarks...${NC}"
     for benchmark in bin/benchmark_*; do
         if [ -x "$benchmark" ]; then
-            echo -e "${BLUE}運行 $benchmark${NC}"
+            echo -e "${BLUE}Running $benchmark${NC}"
             $benchmark
         fi
     done
 fi
 
-echo -e "${GREEN}🎉 完成！${NC}"
-echo -e "構建產物位於: ${BLUE}$BUILD_DIR/${NC}"
-echo -e "靜態庫: ${BLUE}$BUILD_DIR/lib/libmongory-core.a${NC}"
+echo -e "${GREEN}🎉 Done!${NC}"
+echo -e "Build artifacts located at: ${BLUE}$BUILD_DIR/${NC}"
+echo -e "Static library: ${BLUE}$BUILD_DIR/lib/libmongory-core.a${NC}"
