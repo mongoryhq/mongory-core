@@ -94,35 +94,102 @@ int main() {
 
 ## 🛠️ Building and Testing
 
-This project uses `make` for building and testing.
+This project uses `CMake` for cross-platform building and testing, with a convenient build script for easy usage.
 
 ### Dependencies
-- `gcc` (or any C99-compatible compiler)
-- `make`
-- `cJSON` (for running tests)
+- `CMake` 3.12 or higher
+- `gcc` or any C99-compatible compiler
+- `cJSON` library
 
-On macOS with Homebrew, you can install `cJSON` with:
+#### Installation by Platform
+
+**macOS (Homebrew):**
 ```bash
-brew install cjson
+brew install cmake cjson
 ```
 
-### Build the Library
-To build the static library `mongory-core.a`:
+**Ubuntu/Debian:**
 ```bash
-make
+sudo apt update
+sudo apt install cmake libcjson-dev build-essential
 ```
 
-### Run Tests
-This project uses the Unity test framework. The `make test` command will automatically download Unity and run all tests.
+**CentOS/RHEL/Fedora:**
 ```bash
-make test
+# CentOS/RHEL
+sudo yum install cmake cjson-devel gcc
+# Fedora
+sudo dnf install cmake cjson-devel gcc
+```
+
+### Quick Build (Recommended)
+
+Use the provided build script for the easiest experience:
+
+```bash
+# Basic build
+./build.sh
+
+# Setup Unity test framework and run tests
+./build.sh --setup-unity --test
+
+# Debug build with tests
+./build.sh --debug --test
+
+# Clean rebuild with benchmarks
+./build.sh --clean --benchmark
+
+# See all options
+./build.sh --help
+```
+
+### Manual CMake Build
+
+```bash
+# 1. Setup Unity test framework (first time only)
+./build.sh --setup-unity
+
+# 2. Create build directory
+mkdir build && cd build
+
+# 3. Configure project
+cmake ..
+
+# 4. Build
+cmake --build .
+
+# 5. Run tests
+ctest
+
+# 6. Install (optional)
+sudo cmake --install .
+```
+
+### Build Options
+
+```bash
+# Release build (optimized)
+cmake -DCMAKE_BUILD_TYPE=Release ..
+
+# Debug build (with debug symbols)
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+
+# Disable tests or benchmarks
+cmake -DBUILD_TESTS=OFF -DBUILD_BENCHMARKS=OFF ..
 ```
 
 ### Code Formatting
-The project uses `clang-format` for code formatting. To format all `.c` and `.h` files:
+The project uses `clang-format` for code formatting:
 ```bash
-make format
+cmake --build build --target format
+# or
+./build.sh && cmake --build build --target format
 ```
+
+### Legacy Makefile
+The original Makefile is still available but deprecated. For cross-platform compatibility, please use the CMake build system.
+
+> 📝 **Migration Note**: This project was migrated from Makefile to CMake for better cross-platform support. See `CMAKE_USAGE.md` for detailed CMake usage instructions.
 
 ## 📚 API Documentation
 

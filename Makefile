@@ -74,6 +74,7 @@ doc:
 clean:
 	rm -f $(OBJ) $(TEST_OBJ) $(CORE) $(UNITY_OBJ) $(BENCHMARK_OBJ)
 	rm -rf $(TEST_OBJ_FOLDER) $(BENCHMARK_OBJ_FOLDER) docs
+	rm -rf build CMakeCache.txt CMakeFiles cmake_install.cmake CTestTestfile.cmake Testing
 
 format:
 	@find . \( -name '*.c' -o -name '*.h' \) -exec clang-format -i {} +
