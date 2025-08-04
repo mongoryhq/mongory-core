@@ -6,7 +6,7 @@ tests/unity/
 *.a
 test_runner/
 docs/
-
+build/
 # VS Code
 .vscode/
 
