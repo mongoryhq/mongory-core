@@ -64,9 +64,16 @@ benchmark: $(BENCHMARK_OBJ)
 		echo "Benchmark done."; \
 	done
 
+.PHONY: doc
+
+doc:
+	@echo "Generating Doxygen documentation..."
+	@doxygen Doxyfile
+	@echo "Documentation generated in docs/html"
+
 clean:
 	rm -f $(OBJ) $(TEST_OBJ) $(CORE) $(UNITY_OBJ) $(BENCHMARK_OBJ)
-	rm -rf $(TEST_OBJ_FOLDER) $(BENCHMARK_OBJ_FOLDER)
+	rm -rf $(TEST_OBJ_FOLDER) $(BENCHMARK_OBJ_FOLDER) docs
 
 format:
 	@find . \( -name '*.c' -o -name '*.h' \) -exec clang-format -i {} +

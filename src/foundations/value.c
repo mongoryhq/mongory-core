@@ -87,7 +87,14 @@ static inline mongory_value *mongory_value_new(mongory_memory_pool *pool) {
   return value;
 }
 
-// --- Comparison Functions ---
+// ============================================================================
+// Comparison Functions
+//
+// Each data type has a corresponding comparison function. These functions
+// are assigned to the `comp` function pointer in the `mongory_value` struct.
+// They typically handle comparisons with other compatible types (e.g., Int
+// can be compared with Double).
+// ============================================================================
 
 /** Compares two MONGORY_TYPE_NULL values. Always equal. */
 static inline int mongory_value_null_compare(mongory_value *a, mongory_value *b) {
@@ -110,6 +117,14 @@ mongory_value *mongory_value_wrap_n(mongory_memory_pool *pool, void *n) {
   // data union is not explicitly set for NULL.
   return value;
 }
+
+// ============================================================================
+// Wrapper Functions
+//
+// These functions create a `mongory_value` and wrap a native C type
+// (like bool, int, char*). They allocate the value from the memory pool and
+// set its type, data, and function pointers (`comp`, `to_str`).
+// ============================================================================
 
 /** Compares two MONGORY_TYPE_BOOL values. */
 static inline int mongory_value_bool_compare(mongory_value *a, mongory_value *b) {
@@ -208,19 +223,13 @@ mongory_value *mongory_value_wrap_s(mongory_memory_pool *pool, char *s_val) {
   if (!value)
     return NULL;
   value->type = MONGORY_TYPE_STRING;
-  // mongory_string_cpy handles NULL s_val and allocation.
+  // `mongory_string_cpy` handles the allocation and copying of the string.
+  // If `s_val` is NULL, `value->data.s` will be NULL.
+  // If allocation fails, `value->data.s` will also be NULL.
+  // TODO: This function should ideally return NULL if the string copy fails
+  // when `s_val` was not NULL, but this requires a more complex error handling
+  // strategy with the memory pool.
   value->data.s = mongory_string_cpy(pool, s_val);
-  if (s_val != NULL && value->data.s == NULL) {
-    // String copy failed (likely pool allocation error).
-    // `value` itself is allocated, but its data is incomplete.
-    // Depending on pool strategy, `value` might need to be "unallocated"
-    // or this error is indicated by `pool->error`.
-    // For now, we return the value, but its string is NULL.
-    // This might be problematic. A robust solution would be to free `value` if
-    // `mongory_string_cpy` fails AND `s_val` was not NULL.
-    // However, `mongory_value_new` doesn't offer a paired free.
-    // So, the string field remains NULL.
-  }
   value->comp = mongory_value_string_compare;
   value->to_str = mongory_value_string_to_str;
   return value;
@@ -234,7 +243,8 @@ static inline int mongory_value_array_compare(mongory_value *a, mongory_value *b
   struct mongory_array *array_a = a->data.a;
   struct mongory_array *array_b = b->data.a;
 
-  // Different counts: shorter array is "less".
+  // First, compare by array size. An array with fewer elements is "less than"
+  // an array with more elements.
   if (array_a->count != array_b->count) {
     return (array_a->count > array_b->count) - (array_a->count < array_b->count);
   }
@@ -285,8 +295,10 @@ mongory_value *mongory_value_wrap_a(mongory_memory_pool *pool, struct mongory_ar
 static inline int mongory_value_table_compare(mongory_value *a, mongory_value *b) {
   (void)a; // Unused.
   (void)b; // Unused.
-  // Table comparison is complex (order of keys doesn't matter).
-  // For now, consider them incomparable or equal only if identical pointers.
+  // True table comparison is complex because the order of keys is not
+  // significant. It would require iterating over keys of one table and checking
+  // for their presence and value equality in the other. This is not
+  // implemented. Therefore, tables are considered incomparable.
   return mongory_value_compare_fail;
 }
 
@@ -346,7 +358,13 @@ mongory_value *mongory_value_wrap_ptr(mongory_memory_pool *pool, void *ptr_val) 
   return value;
 }
 
-// --- Stringify Functions ---
+// ============================================================================
+// Stringify Functions
+//
+// Each data type has a corresponding `to_str` function that converts the
+// value to a string representation (often JSON-like) and appends it to a
+// `mongory_string_buffer`.
+// ============================================================================
 
 static void mongory_value_null_to_str(mongory_value *value, mongory_string_buffer *buffer) {
   (void)value;

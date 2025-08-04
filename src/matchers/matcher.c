@@ -20,22 +20,24 @@
 /**
  * @brief Creates a new matcher based on the provided condition.
  *
- * This is the primary public function for creating a matcher.
- * Currently, it delegates the creation to `mongory_matcher_table_cond_new`,
- * which is specialized for handling conditions structured as tables (similar
- * to JSON objects or MongoDB query documents). This implies that the most
- * common entry point for matching involves a table-like condition.
+ * This is the primary public entry point for creating a matcher. The library
+ * uses a factory pattern where this function determines the appropriate
+ * specific matcher to create based on the structure of the `condition` value.
  *
- * @param pool The memory pool to be used for allocating the matcher and its
- * components.
- * @param condition A `mongory_value` that defines the criteria for the matcher.
- *                  This is often expected to be a `mongory_table`.
- * @return mongory_matcher* A pointer to the newly constructed matcher. Returns
- * NULL if allocation fails or the condition is invalid for
- * `mongory_matcher_table_cond_new`.
+ * Currently, it always delegates to `mongory_matcher_table_cond_new`,
+ * which handles query documents (tables). This is the most common use case,
+ * where the condition is a table like `{ "field": { "$op": "value" } }`.
+ *
+ * @param pool The memory pool to be used for allocating the matcher.
+ * @param condition A `mongory_value` defining the matching criteria. This is
+ *                  typically a `mongory_table`.
+ * @return mongory_matcher* A pointer to the newly constructed matcher, or NULL
+ * if allocation fails or the condition is invalid.
  */
 mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition) {
-  // Delegate to table_cond_new, assuming conditions are typically tables.
+  // The core logic is delegated to a more specific constructor.
+  // This design allows for easy extension; for example, a different constructor
+  // could be chosen here based on the `condition->type`.
   mongory_matcher *matcher = mongory_matcher_table_cond_new(pool, condition);
   if (matcher == NULL) {
     return NULL;
@@ -45,17 +47,27 @@ mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *c
 }
 
 /**
- * @brief Matches a value against a matcher.
- * @param matcher The matcher to match against.
- * @param value The value to match.
- * @return True if the value matches the matcher, false otherwise.
+ * @brief Executes the matching logic for the given matcher.
+ *
+ * This function is a polymorphic wrapper. It invokes the `match` function
+ * pointer on the specific `mongory_matcher` instance, which will be one of
+ * the internal matching functions (e.g., from a compare_matcher or
+ * composite_matcher).
+ *
+ * @param matcher The matcher to use.
+ * @param value The value to check against the matcher's condition.
+ * @return True if the value satisfies the matcher's condition, false otherwise.
  */
 bool mongory_matcher_match(mongory_matcher *matcher, mongory_value *value) { return matcher->match(matcher, value); }
 
 /**
- * @brief Explains a matcher.
+ * @brief Generates a human-readable explanation of the matcher's criteria.
+ *
+ * This function is a polymorphic wrapper around the `explain` function pointer,
+ * allowing different matcher types to provide their own specific explanations.
+ *
  * @param matcher The matcher to explain.
- * @param temp_pool The temporary pool to use for the explanation.
+ * @param temp_pool A temporary memory pool for allocating the explanation string(s).
  */
 void mongory_matcher_explain(mongory_matcher *matcher, mongory_memory_pool *temp_pool) {
   mongory_matcher_explain_context ctx = {

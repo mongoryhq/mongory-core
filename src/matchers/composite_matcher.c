@@ -28,6 +28,9 @@
  * @return mongory_composite_matcher* Pointer to the new matcher, or NULL on
  * failure.
  */
+// ============================================================================
+// Core Composite Matcher Functions
+// ============================================================================
 mongory_composite_matcher *mongory_matcher_composite_new(mongory_memory_pool *pool, mongory_value *condition) {
   if (!pool || !pool->alloc)
     return NULL;
@@ -95,6 +98,9 @@ void mongory_matcher_composite_explain(mongory_matcher *matcher, mongory_matcher
  * @param value The value to evaluate.
  * @return True if all child conditions are met, false otherwise.
  */
+// ============================================================================
+// Logical Operator Match Functions (AND, OR)
+// ============================================================================
 static inline bool mongory_matcher_and_match(mongory_matcher *matcher, mongory_value *value) {
   mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
   // If left child exists and doesn't match, the AND fails.
@@ -165,6 +171,9 @@ typedef struct mongory_matcher_table_build_sub_matcher_context {
  * @param acc Pointer to `mongory_matcher_table_build_sub_matcher_context`.
  * @return True to continue iteration, false if a sub-matcher creation fails.
  */
+// ============================================================================
+// Matcher Construction from Conditions
+// ============================================================================
 static inline bool mongory_matcher_table_build_sub_matcher(char *key, mongory_value *value, void *acc) {
   mongory_matcher_table_build_sub_matcher_context *ctx = (mongory_matcher_table_build_sub_matcher_context *)acc;
   mongory_memory_pool *pool = ctx->pool;
@@ -198,17 +207,18 @@ static inline bool mongory_matcher_table_build_sub_matcher(char *key, mongory_va
  * @brief Recursively constructs a binary tree of composite matchers from an
  * array of sub-matchers.
  *
- * This is used to combine multiple conditions (e.g., from an AND or OR list,
- * or fields in a table condition) into a single effective matcher.
  *
- * @param matchers_array Array of pre-built sub-matchers.
- * @param head Start index in `matchers_array`.
- * @param tail End index in `matchers_array`.
- * @param match_func The match function for the composite nodes (e.g.,
- * `mongory_matcher_and_match`).
- * @param constructor_func Recursive call to this function itself (or a similar
- * one for different logic).
- * @return The root mongory_matcher of the constructed binary tree.
+ * This function implements a recursive, divide-and-conquer algorithm to build a
+ * balanced binary tree of matchers. This is more efficient than a simple
+ * linked list, as it keeps the evaluation depth logarithmic in the number of
+ * conditions.
+ *
+ * @param matchers_array Array of pre-built sub-matchers to combine.
+ * @param head The starting index in the `matchers_array` for the current recursive call.
+ * @param tail The ending index in the `matchers_array` for the current recursive call.
+ * @param match_func The logical function (`and_match` or `or_match`) to assign to the new composite nodes.
+ * @param constructor_func A function pointer to `mongory_matcher_construct_by_and` or `..._by_or`, used for the recursive call.
+ * @return The root `mongory_matcher` of the constructed binary tree.
  */
 static inline mongory_matcher *mongory_matcher_binary_construct(
     mongory_array *matchers_array, int head, int tail, mongory_matcher_match_func match_func,
@@ -265,12 +275,21 @@ static mongory_matcher *mongory_matcher_construct_by_or(mongory_array *matchers_
  * @brief Creates a matcher from a table-based condition.
  *
  * Parses the `condition` table, creating sub-matchers for each key-value pair.
- * These sub-matchers are then combined using an AND logic.
+ *
+ * This is a core function of the query engine. It takes a query document (a
+ * table) and builds a tree of matchers that represents the logic of that query.
+ *
+ * The process is as follows:
+ * 1. Iterate through each key-value pair in the `condition` table.
+ * 2. For each pair, create a specific sub-matcher (e.g., a `field_matcher` for
+ *    a field name, or a `$gt` matcher for a `"$gt"` operator).
+ * 3. Store all these sub-matchers in a temporary array.
+ * 4. Use `mongory_matcher_binary_construct` to combine all the sub-matchers
+ *    into a single matcher tree using AND logic.
  *
  * @param pool Memory pool for allocations.
  * @param condition A `mongory_value` of type `MONGORY_TYPE_TABLE`.
- * @return A `mongory_matcher` representing the table condition, or NULL on
- * failure.
+ * @return A `mongory_matcher` representing the combined logic of the table, or NULL on failure.
  */
 mongory_matcher *mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongory_value *condition) {
   if (!mongory_matcher_table_cond_validate(condition, NULL)) {
@@ -290,8 +309,10 @@ mongory_matcher *mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongo
     return mongory_matcher_always_true_new(pool, condition);
   }
 
-  // Use a temporary pool for the sub_matchers array itself.
-  // The actual sub-matchers will be allocated from the main 'pool'.
+  // A temporary pool is used for the `sub_matchers_array` itself. This array
+  // is only needed during the construction of the final matcher tree. The
+  // individual sub-matchers within it are allocated from the main `pool` and
+  // will persist.
   mongory_memory_pool *temp_pool = mongory_memory_pool_new();
   if (!temp_pool)
     return NULL; // Failed to create temp pool
@@ -368,6 +389,12 @@ static inline bool mongory_matcher_build_and_sub_matcher(mongory_value *conditio
 
 /**
  * @brief Creates an "AND" ($and) matcher from an array of condition tables.
+ * @param pool Memory pool for allocations.
+ *
+ * The `$and` operator takes an array of query documents. This function builds
+ * a single, flat list of all the sub-matchers from all the query documents,
+ * and then combines them into one large AND-connected matcher tree.
+ *
  * @param pool Memory pool for allocations.
  * @param condition A `mongory_value` array of table conditions.
  * @return A new $and matcher, or NULL on failure.
@@ -456,6 +483,13 @@ static inline bool mongory_matcher_build_or_sub_matcher(mongory_value *condition
 /**
  * @brief Creates an "OR" ($or) matcher from an array of condition tables.
  * @param pool Memory pool for allocations.
+ *
+ * The `$or` operator takes an array of query documents. For each document in
+ * the array, this function creates a complete sub-matcher (using
+ * `table_cond_new`). It then combines these top-level sub-matchers into an
+ * OR-connected tree. This is different from `$and`, which flattens the list.
+ *
+ * @param pool Memory pool for allocations.
  * @param condition A `mongory_value` array of table conditions.
  * @return A new $or matcher, or NULL on failure.
  */
@@ -518,15 +552,20 @@ mongory_matcher *mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value
  * This callback is used with `array->each`. `each` stops if callback returns
  * false. So, for $elemMatch (find AT LEAST ONE), this should return `false`
  * (stop) upon first match.
+ *
+ * The `array->each` function stops iterating if its callback returns `false`.
+ * For `$elemMatch`, we want to stop as soon as we find the *first* matching
+ * element. Therefore, this callback returns `false` (stop) when a match is
+ * found (`matcher->match` is true), and `true` (continue) otherwise.
+ *
  * @param value_in_array An element from the array being checked.
  * @param sub_matcher_for_element The matcher derived from $elemMatch's condition.
- * @return `false` if `value_in_array` matches `sub_matcher_for_element` (to
- * stop iteration), `true` otherwise (to continue).
+ * @return `false` if `value_in_array` matches, `true` otherwise.
  */
 static inline bool mongory_matcher_elem_match_unit_compare(mongory_value *value_in_array,
                                                            void *sub_matcher_for_element) {
   mongory_matcher *matcher = (mongory_matcher *)sub_matcher_for_element;
-  // If it matches, we found one, so stop iterating (return false for each).
+  // Invert the result: return false to stop iteration on the first match.
   return !matcher->match(matcher, value_in_array);
 }
 
@@ -539,6 +578,9 @@ static inline bool mongory_matcher_elem_match_unit_compare(mongory_value *value_
  * @return True if `value_to_check` is an array and at least one of its elements
  * matches.
  */
+// ============================================================================
+// Array-based Match Functions ($elemMatch, $every)
+// ============================================================================
 static inline bool mongory_matcher_elem_match_match(mongory_matcher *matcher, mongory_value *value_to_check) {
   if (!value_to_check || value_to_check->type != MONGORY_TYPE_ARRAY || !value_to_check->data.a) {
     return false; // $elemMatch applies to arrays.
@@ -595,11 +637,19 @@ mongory_matcher *mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongo
  * @param sub_matcher_for_element The matcher derived from $every's condition.
  * @return `true` if `value_in_array` matches (continue), `false` if it
  * doesn't (stop).
+ *
+ * For `$every`, we want to stop as soon as we find the *first* element that
+ * does *not* match. Therefore, this callback returns `false` (stop) when a
+ * match fails (`matcher->match` is false), and `true` (continue) otherwise.
+ *
+ * @param value_in_array An element from the array being checked.
+ * @param sub_matcher_for_element The matcher derived from $every's condition.
+ * @return `true` if `value_in_array` matches, `false` otherwise.
  */
 static inline bool mongory_matcher_every_match_unit_compare(mongory_value *value_in_array,
                                                             void *sub_matcher_for_element) {
   mongory_matcher *matcher = (mongory_matcher *)sub_matcher_for_element;
-  // If it matches, continue. If it doesn't match, stop.
+  // Return the match result directly: true to continue, false to stop.
   return matcher->match(matcher, value_in_array);
 }
 
