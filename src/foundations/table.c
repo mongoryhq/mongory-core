@@ -52,18 +52,28 @@ typedef struct mongory_table_internal {
   mongory_array *array; /**< Array of mongory_table_node pointers (the buckets). */
 } mongory_table_internal;
 
+// ============================================================================
+// Static Helper Functions
+//
+// The following functions are static and provide the core logic for the hash
+// table operations. They are not part of the public API.
+// ============================================================================
+
 /**
  * @brief Allocates a new mongory_table_node from the table's memory pool.
  * @param self Pointer to the mongory_table (used to access its memory pool).
  * @return mongory_table_node* Pointer to the new node, or NULL on failure.
  */
-mongory_table_node *mongory_table_node_new(mongory_table *self) {
+static inline mongory_table_node *mongory_table_node_new(mongory_table *self) {
   return self->pool->alloc(self->pool->ctx, sizeof(mongory_table_node));
 }
 
 /**
  * @brief Finds the next prime number greater than or equal to n.
- * Used to determine the new capacity during rehashing.
+ *
+ * Using a prime number for the capacity of a hash table helps to distribute
+ * keys more uniformly, reducing collisions.
+ *
  * @param n The number to start searching from.
  * @return The next prime number.
  */
@@ -167,8 +177,9 @@ static inline bool mongory_table_rehash(mongory_table *self) {
   internal->array->count = 0;
 
   if (!mongory_array_resize(internal->array, new_capacity)) {
-    // TODO: Handle error - rehashing failed to resize array.
-    // Restore old count if necessary, or mark table as unusable.
+    // Error: Rehashing failed because the underlying array could not be resized.
+    // The table remains functional but may have a suboptimal load factor.
+    // TODO: Propagate this error condition, perhaps by setting self->pool->error.
     internal->array->count = self->count; // Try to restore roughly
     return false;
   }
@@ -278,13 +289,13 @@ bool mongory_table_set(mongory_table *self, char *key, mongory_value *value) {
   // Key not found, create a new node and prepend it to the bucket list.
   mongory_table_node *new_node = mongory_table_node_new(self);
   if (!new_node) {
-    // TODO: Set self->pool->error
+    // TODO: Propagate error via self->pool->error.
     return false; // Node allocation failed.
   }
 
   char *key_copy = mongory_string_cpy(self->pool, key);
   if (!key_copy) {
-    // TODO: Set self->pool->error. Free new_node? (Pool should handle it)
+    // TODO: Propagate error via self->pool->error.
     return false; // Key copy failed.
   }
 
@@ -297,10 +308,9 @@ bool mongory_table_set(mongory_table *self, char *key, mongory_value *value) {
   // Check load factor and rehash if necessary.
   if (self->count > internal->capacity * MONGORY_TABLE_LOAD_FACTOR) {
     if (!mongory_table_rehash(self)) {
-      // Rehashing failed. The table might be in an inconsistent state
-      // or sub-optimal. This is a critical error.
-      // TODO: Propagate this error. For now, insertion is "successful"
-      // but table performance may degrade or it might be oversized.
+      // Rehashing failed. The table will still work, but its performance
+      // may be degraded due to a higher-than-optimal load factor.
+      // TODO: Propagate this error condition via self->pool->error.
     }
   }
   return true;
@@ -328,10 +338,10 @@ bool mongory_table_del(mongory_table *self, char *key) {
         // Node is the head of the list for this bucket.
         bucket_array->set(bucket_array, index, (mongory_value *)node->next);
       }
-      // Note: The key (node->key) and the node itself (node) were allocated
-      // from the pool. They are not freed here individually but will be reclaimed
-      // when the pool is destroyed. This is typical for pool allocators.
-      // If individual freeing were required, it would happen here.
+      // The memory for the node and its key is not freed here.
+      // It was allocated from the memory pool and will be reclaimed all at
+      // once when the pool is destroyed. This is a core design principle
+      // of the library's memory management.
       self->count--;
       return true; // Deletion successful.
     }
@@ -406,28 +416,29 @@ mongory_table *mongory_table_new(mongory_memory_pool *pool) {
   size_t init_capacity = MONGORY_TABLE_INIT_SIZE;
   mongory_array *bucket_array = mongory_array_new(pool);
 
-  // Initialize the bucket array: resize to initial capacity and ensure all
-  // bucket pointers are initially NULL. array->set will grow if needed,
-  // filling intermediate slots with NULL. Setting the last element to NULL
-  // effectively NULLs out all elements if it's a fresh array from resize(0 -> N).
+  // Initialize the bucket array. We resize it to the initial capacity and
+  // then set the last element to NULL. The `mongory_array_set` function
+  // will automatically fill all intermediate slots with NULL if the index is
+  // out of bounds, which perfectly initializes our bucket array.
   bool array_init_success = bucket_array && mongory_array_resize(bucket_array, init_capacity) &&
                             bucket_array->set(bucket_array, init_capacity - 1, NULL);
 
   if (!array_init_success) {
-    // TODO: If bucket_array was created, it should be freed/managed by pool if
-    // new fails.
-    // If pool is not tracing, this could be an issue.
-    // Assuming pool handles partially constructed objects if mongory_array_new
-    // succeeded but subsequent steps failed.
+    // If array initialization fails, we cannot proceed.
+    // The memory for `bucket_array` itself (if allocated) will be handled
+    // by the memory pool when it's eventually freed.
+    // TODO: Propagate this error condition via pool->error.
     return NULL;
   }
-  // After resize & set, bucket_array->count will be init_capacity.
-  // We need to reset it because table's count is 0, not array's.
+  // After initialization, bucket_array->count will equal init_capacity.
+  // This is correct for the array's state, but the table's logical count is 0.
+  // We leave array->count as is, since the table's `each` function iterates
+  // over the array's full capacity.
   bucket_array->count = init_capacity;
 
   mongory_table_internal *internal = pool->alloc(pool->ctx, sizeof(mongory_table_internal));
   if (!internal) {
-    // TODO: Pool error. bucket_array might be leaked if pool is not tracing.
+    // TODO: Propagate error via pool->error.
     return NULL;
   }
 
