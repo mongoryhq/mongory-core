@@ -15,7 +15,18 @@
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
 #include "mongory-core/matchers/matcher.h" // For mongory_matcher structure
+#include "matcher_explainable.h"
+#include "composite_matcher.h"
 
+/**
+ * @struct mongory_field_matcher
+ * @brief Specialized composite matcher for matching a specific field.
+ * Stores the field name/index.
+ */
+typedef struct mongory_field_matcher {
+  mongory_composite_matcher composite; /**< Base composite matcher structure. */
+  char *field;                         /**< Name/index of the field to match. Copied string. */
+} mongory_field_matcher;
 /**
  * @brief Creates a "field" matcher.
  *

@@ -13,6 +13,7 @@
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/table.h" // For mongory_table operations
 #include "mongory-core/foundations/value.h"
+#include "matcher_explainable.h"
 #include <mongory-core.h> // General include
 #include <stdio.h>        // For sprintf
 
@@ -55,36 +56,6 @@ mongory_composite_matcher *mongory_matcher_composite_new(mongory_memory_pool *po
   composite->right = NULL;
 
   return composite;
-}
-
-static inline void mongory_matcher_traverse_explain(mongory_matcher *matcher, mongory_matcher_explain_context *ctx) {
-  mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
-  if (composite->left) {
-    composite->left->explain(composite->left, ctx);
-  }
-  if (composite->right) {
-    composite->right->explain(composite->right, ctx);
-  }
-}
-
-void mongory_matcher_composite_explain(mongory_matcher *matcher, mongory_matcher_explain_context *ctx) {
-  mongory_matcher_base_explain(matcher, ctx);
-  char *addon_prefix = "   ";
-  if (ctx->count < ctx->total) {
-    addon_prefix = "│  ";
-  } else if (ctx->total == 0) {
-    addon_prefix = "";
-  }
-  mongory_string_buffer *prefix_buffer = mongory_string_buffer_new(ctx->pool);
-  mongory_string_buffer_append(prefix_buffer, ctx->prefix);
-  mongory_string_buffer_append(prefix_buffer, addon_prefix);
-  mongory_matcher_explain_context child_ctx = {
-      .pool = ctx->pool,
-      .count = 0,
-      .total = matcher->context.sub_count,
-      .prefix = mongory_string_buffer_cstr(prefix_buffer),
-  };
-  mongory_matcher_traverse_explain(matcher, &child_ctx);
 }
 
 /**
