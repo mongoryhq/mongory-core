@@ -11,26 +11,7 @@
 #include <stdbool.h>
 #include <stdio.h>  // For printf
 #include <stdlib.h> // For strtol
-
-char *mongory_matcher_title(mongory_matcher *matcher, mongory_memory_pool *pool) {
-  mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
-  mongory_string_buffer_append(buffer, matcher->name);
-  mongory_string_buffer_append(buffer, ": ");
-  matcher->condition->to_str(matcher->condition, buffer);
-  return mongory_string_buffer_cstr(buffer);
-}
-
-void mongory_matcher_base_explain(mongory_matcher *matcher, mongory_matcher_explain_context *ctx) {
-  char *connection = "├─ ";
-  if (ctx->count == ctx->total - 1) {
-    connection = "└─ ";
-  } else if (ctx->total == 0) {
-    connection = "";
-  }
-  ctx->count++;
-  char *title = mongory_matcher_title(matcher, ctx->pool);
-  printf("%s%s%s\n", ctx->prefix, connection, title);
-}
+#include "matcher_explainable.h"
 
 /**
  * @brief Allocates and initializes common fields of a `mongory_matcher`.

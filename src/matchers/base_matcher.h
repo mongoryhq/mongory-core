@@ -15,6 +15,7 @@
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
 #include "mongory-core/matchers/matcher.h" // For mongory_matcher structure
+#include "matcher_explainable.h"
 #include <stdbool.h>
 
 /**
@@ -26,29 +27,6 @@
  * @return bool True if the `value` matches the condition, false otherwise.
  */
 typedef bool (*mongory_matcher_match_func)(mongory_matcher *matcher, mongory_value *value);
-
-/**
- * @brief Context for explaining a matcher.
- *
- * @param pool The pool to use for the explanation.
- * @param count The count of the matcher.
- * @param total The total number of matchers.
- * @param prefix The prefix to use for the explanation.
- */
-typedef struct mongory_matcher_explain_context {
-  mongory_memory_pool *pool;
-  int count;
-  int total;
-  char *prefix;
-} mongory_matcher_explain_context;
-
-/**
- * @brief Function pointer type for a matcher's explanation logic.
- *
- * @param matcher The matcher to explain.
- * @param ctx The context to use for the explanation.
- */
-typedef void (*mongory_matcher_explain_func)(mongory_matcher *matcher, mongory_matcher_explain_context *ctx);
 
 /**
  * @struct mongory_matcher_context
@@ -143,12 +121,5 @@ mongory_matcher *mongory_matcher_always_false_new(mongory_memory_pool *pool, mon
  * failure (e.g. `ERANGE`).
  */
 bool mongory_try_parse_int(const char *key, int *out);
-
-/**
- * @brief Explains a matcher.
- * @param matcher The matcher to explain.
- * @param ctx The context to use for the explanation.
- */
-void mongory_matcher_base_explain(mongory_matcher *matcher, mongory_matcher_explain_context *ctx);
 
 #endif /* MONGORY_MATCHER_BASE_H */

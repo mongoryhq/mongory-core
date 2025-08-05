@@ -18,6 +18,7 @@
 #include "compare_matcher.h"                // For mongory_matcher_equal_new
 #include "composite_matcher.h"              // For mongory_matcher_composite_new, mongory_matcher_table_cond_new
 #include "existance_matcher.h"              // For mongory_matcher_exists_new (used by null_new)
+#include "matcher_explainable.h"
 #include "mongory-core/foundations/array.h" // For mongory_array access
 #include "mongory-core/foundations/table.h" // For mongory_table access
 #include "mongory-core/foundations/value.h" // For mongory_value types and wrappers
@@ -144,16 +145,6 @@ static inline mongory_matcher *mongory_matcher_literal_delegate(mongory_memory_p
 }
 
 /**
- * @struct mongory_field_matcher
- * @brief Specialized composite matcher for matching a specific field.
- * Stores the field name/index.
- */
-typedef struct mongory_field_matcher {
-  mongory_composite_matcher composite; /**< Base composite matcher structure. */
-  char *field;                         /**< Name/index of the field to match. Copied string. */
-} mongory_field_matcher;
-
-/**
  * @brief Match function for a field matcher.
  *
  * Extracts the value of `field_matcher->field` from the input `value`
@@ -212,52 +203,6 @@ static inline bool mongory_matcher_field_match(mongory_matcher *matcher, mongory
   // Now, use the literal_match logic (which uses composite.left primarily)
   // to match the extracted field_value.
   return mongory_matcher_literal_match(matcher, field_value);
-}
-
-void mongory_matcher_literal_match_explain(mongory_matcher *matcher, mongory_matcher_explain_context *ctx) {
-  mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
-  char *addon_prefix = "   ";
-  if (ctx->count < ctx->total) {
-    addon_prefix = "│  ";
-  } else if (ctx->total == 0) {
-    addon_prefix = "";
-  }
-  mongory_string_buffer *prefix_buffer = mongory_string_buffer_new(ctx->pool);
-  mongory_string_buffer_append(prefix_buffer, ctx->prefix);
-  mongory_string_buffer_append(prefix_buffer, addon_prefix);
-  mongory_matcher_explain_context child_ctx = {
-      .pool = ctx->pool,
-      .count = 0,
-      .total = 1,
-      .prefix = mongory_string_buffer_cstr(prefix_buffer),
-  };
-  if (composite->right) {
-    composite->right->explain(composite->right, &child_ctx);
-  } else {
-    composite->left->explain(composite->left, &child_ctx);
-  }
-}
-
-void mongory_matcher_literal_explain(mongory_matcher *matcher, mongory_matcher_explain_context *ctx) {
-  mongory_matcher_base_explain(matcher, ctx);
-  mongory_matcher_literal_match_explain(matcher, ctx);
-}
-
-void mongory_matcher_field_explain(mongory_matcher *matcher, mongory_matcher_explain_context *ctx) {
-  char *connection = "├─ ";
-  if (ctx->count == ctx->total - 1) {
-    connection = "└─ ";
-  } else if (ctx->total == 0) {
-    connection = "";
-  }
-  ctx->count++;
-  mongory_field_matcher *field_matcher = (mongory_field_matcher *)matcher;
-  mongory_string_buffer *title_buffer = mongory_string_buffer_new(ctx->pool);
-  mongory_string_buffer_appendf(title_buffer, "Field: \"%s\", to match: ", field_matcher->field);
-  mongory_value *condition = field_matcher->composite.base.condition;
-  condition->to_str(condition, title_buffer);
-  printf("%s%s%s\n", ctx->prefix, connection, mongory_string_buffer_cstr(title_buffer));
-  mongory_matcher_literal_match_explain(matcher, ctx);
 }
 
 mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *field_name,
