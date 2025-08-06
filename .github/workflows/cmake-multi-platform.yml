@@ -25,11 +25,11 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         build_type: [Release]
-        c_compiler: [gcc, clang, cl]
+        c_compiler: [gcc, clang]
         include:
           - os: windows-latest
-            c_compiler: cl
-            cpp_compiler: cl
+            c_compiler: gcc
+            cpp_compiler: g++
           - os: ubuntu-latest
             c_compiler: gcc
             cpp_compiler: g++
@@ -38,11 +38,7 @@ jobs:
             cpp_compiler: clang++
         exclude:
           - os: windows-latest
-            c_compiler: gcc
-          - os: windows-latest
             c_compiler: clang
-          - os: ubuntu-latest
-            c_compiler: cl
 
     steps:
     - uses: actions/checkout@v4
@@ -65,10 +61,17 @@ jobs:
           mingw-w64-x86_64-gcc
           mingw-w64-x86_64-curl
 
-    - name: Setup Unity test framework
+    - name: Setup Unity test framework (Linux)
+      if: runner.os == 'Linux'
       run: |
         chmod +x scripts/setup_unity.sh
         ./scripts/setup_unity.sh
+
+    - name: Setup Unity test framework (Windows)
+      if: runner.os == 'Windows'
+      shell: msys2 {0}
+      run: |
+        bash scripts/setup_unity.sh
 
     - name: Set reusable strings
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
@@ -92,11 +95,11 @@ jobs:
       if: runner.os == 'Windows'
       shell: msys2 {0}
       run: >
-        cmake -B ${{ steps.strings.outputs.build-output-dir }}
+        cmake -B build
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -S ${{ github.workspace }}
+        -S .
 
     - name: Build (Linux)
       if: runner.os == 'Linux'
@@ -105,7 +108,7 @@ jobs:
     - name: Build (Windows)
       if: runner.os == 'Windows'
       shell: msys2 {0}
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+      run: cmake --build build --config ${{ matrix.build_type }}
 
     - name: Test (Linux)
       if: runner.os == 'Linux'
@@ -114,6 +117,6 @@ jobs:
 
     - name: Test (Windows)
       if: runner.os == 'Windows'
-      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      working-directory: build
       shell: msys2 {0}
       run: ctest --build-config ${{ matrix.build_type }}
