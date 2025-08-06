@@ -79,6 +79,11 @@ endif()
 # Test helper library (for testing)
 add_library(test_helper STATIC src/test_helper/test_helper.c)
 target_include_directories(test_helper PUBLIC src/test_helper)
+if(CJSON_LDFLAGS)
+    target_link_libraries(test_helper mongory-core ${CJSON_LDFLAGS})
+else()
+    target_link_libraries(test_helper mongory-core ${CJSON_LIBRARIES})
+endif()
 
 # Unity test framework setup
 set(UNITY_DIR ${CMAKE_SOURCE_DIR}/tests/unity)
