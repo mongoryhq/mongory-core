@@ -16,7 +16,7 @@
  * @brief The initial size in bytes for the first memory chunk allocated by the
  * pool.
  */
-#define MONGORY_INITIAL_CHUNK_SIZE 256
+#define MONGORY_INITIAL_CHUNK_SIZE 2048
 
 /**
  * @def MONGORY_ALIGN8(size)
