@@ -42,7 +42,7 @@ mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *c
   if (matcher == NULL) {
     return NULL;
   }
-  matcher->name = mongory_string_cpy(pool, "Intro");
+
   return matcher;
 }
 
