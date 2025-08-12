@@ -55,6 +55,12 @@ struct mongory_memory_pool {
   void (*trace)(void *ctx, void *ptr, size_t size);
 
   /**
+   * @brief Resets the memory pool to its initial state.
+   * @param ctx A pointer to the pool's internal context.
+   */
+  void (*reset)(void *ctx);
+
+  /**
    * @brief Frees the entire memory pool, including all memory blocks allocated
    * from it and any traced memory blocks (depending on implementation).
    * @param self A pointer to the mongory_memory_pool instance to be freed.
