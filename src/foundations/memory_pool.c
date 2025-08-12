@@ -9,6 +9,7 @@
  */
 #include <mongory-core/foundations/memory_pool.h>
 #include <stdio.h>  // For NULL, though stdlib.h or stddef.h is more common
+#include <stdlib.h> // For calloc, free, etc.
 #include <string.h> // For memset
 
 /**
@@ -149,6 +150,16 @@ static inline void *mongory_memory_pool_alloc(void *ctx, size_t size) {
   return ptr;
 }
 
+static inline void mongory_memory_pool_reset(void *ctx) {
+  mongory_memory_pool_ctx *pool_ctx = (mongory_memory_pool_ctx *)ctx;
+  pool_ctx->current = pool_ctx->head;
+  mongory_memory_node *node = pool_ctx->head;
+  while (node) {
+    node->used = 0;
+    node = node->next;
+  }
+}
+
 /**
  * @brief Frees a linked list of memory nodes.
  *
@@ -274,6 +285,7 @@ mongory_memory_pool *mongory_memory_pool_new() {
   // Initialize pool fields.
   pool->ctx = ctx;
   pool->alloc = mongory_memory_pool_alloc;
+  pool->reset = mongory_memory_pool_reset;
   pool->free = mongory_memory_pool_destroy;
   pool->trace = mongory_memory_pool_trace;
   pool->error = NULL; // No error initially.
