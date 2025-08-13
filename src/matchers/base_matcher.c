@@ -52,6 +52,48 @@ mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool, mongory_val
 }
 
 /**
+ * @brief The match function for a custom matcher.
+ * @param matcher The matcher to match against.
+ * @param value The value to match.
+ * @return True if the value matches the matcher, false otherwise.
+ */
+bool mongory_matcher_custom_match(mongory_matcher *matcher, mongory_value *value) {
+  if (mongory_custom_matcher_adapter == NULL || mongory_custom_matcher_adapter->match == NULL) {
+    return false; // Custom matcher adapter not initialized.
+  }
+  return mongory_custom_matcher_adapter->match(matcher->context.ref, value); // TODO: Check if this is correct.
+}
+
+/**
+ * @brief Creates a new custom matcher instance.
+ *
+ * @param pool The memory pool to use for the matcher's allocations.
+ * @param key The key for the custom matcher.
+ * @param condition The `mongory_value` representing the condition for this
+ * matcher.
+ * @return mongory_matcher* A pointer to the newly created custom matcher, or
+ * NULL on failure.
+ */
+mongory_matcher *mongory_matcher_custom_new(mongory_memory_pool *pool, char *key, mongory_value *condition) {
+  if (mongory_custom_matcher_adapter == NULL || mongory_custom_matcher_adapter->build == NULL) {
+    return NULL; // Custom matcher adapter not initialized.
+  }
+  mongory_matcher_custom_context *context = mongory_custom_matcher_adapter->build(key, condition);
+  if (context == NULL) {
+    return NULL; // Custom matcher build failed.
+  }
+  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
+  if (matcher == NULL) {
+    return NULL; // Base matcher allocation failed.
+  }
+  matcher->context.ref = context->external_ref;
+  matcher->name = context->name;
+  matcher->match = mongory_matcher_custom_match;
+  matcher->context.original_match = mongory_matcher_custom_match;
+  return matcher;
+}
+
+/**
  * @brief The match function for a matcher that always returns true.
  * @param matcher Unused.
  * @param value Unused.

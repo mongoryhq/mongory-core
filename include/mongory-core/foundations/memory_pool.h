@@ -19,6 +19,7 @@
 // Forward declaration of the memory pool structure.
 typedef struct mongory_memory_pool mongory_memory_pool;
 
+#define MG_POOL_ALLOC(pool, type) ((type *)pool->alloc(pool->ctx, sizeof(type)))
 /**
  * @struct mongory_memory_pool
  * @brief Represents a memory pool for managing memory allocations.

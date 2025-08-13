@@ -30,6 +30,8 @@ mongory_regex_adapter *mongory_internal_regex_adapter = NULL;
 mongory_table *mongory_matcher_mapping = NULL;
 // Global converter for handling external data types.
 mongory_value_converter *mongory_internal_value_converter = NULL;
+// Global adapter for custom matchers.
+mongory_matcher_custom_adapter *mongory_custom_matcher_adapter = NULL;
 
 /**
  * @brief Initializes the internal memory pool if it hasn't been already.
@@ -81,8 +83,7 @@ static inline void mongory_internal_regex_adapter_init() {
     return;
   }
 
-  mongory_internal_regex_adapter =
-      mongory_internal_pool->alloc(mongory_internal_pool->ctx, sizeof(mongory_regex_adapter));
+  mongory_internal_regex_adapter = MG_POOL_ALLOC(mongory_internal_pool, mongory_regex_adapter);
   if (mongory_internal_regex_adapter == NULL) {
     // TODO: Set error state (e.g., in mongory_internal_pool->error).
     return;
@@ -205,8 +206,7 @@ static inline void mongory_internal_value_converter_init() {
     return; // Cannot proceed if pool init failed.
   }
 
-  mongory_internal_value_converter =
-      mongory_internal_pool->alloc(mongory_internal_pool->ctx, sizeof(mongory_value_converter));
+  mongory_internal_value_converter = MG_POOL_ALLOC(mongory_internal_pool, mongory_value_converter);
   if (mongory_internal_value_converter == NULL) {
     // TODO: Set error state.
     return;
@@ -263,6 +263,24 @@ void mongory_value_converter_recover_set(mongory_recover_func recover) {
 }
 
 /**
+ * @brief Initializes the custom matcher adapter if it hasn't been already.
+ * This adapter holds function pointers for custom matchers.
+ */
+static void mongory_custom_matcher_adapter_init() {
+  if (mongory_custom_matcher_adapter != NULL) {
+    return; // Already initialized.
+  }
+  mongory_custom_matcher_adapter = MG_POOL_ALLOC(mongory_internal_pool, mongory_matcher_custom_adapter);
+  if (mongory_custom_matcher_adapter == NULL) {
+    // TODO: Set error state.
+    return;
+  }
+  mongory_custom_matcher_adapter->build = NULL;
+  mongory_custom_matcher_adapter->lookup = NULL;
+  mongory_custom_matcher_adapter->match = NULL;
+}
+
+/**
  * @brief Creates a copy of a string using the specified memory pool.
  * @param pool The memory pool to use for allocation.
  * @param str The null-terminated string to copy.
@@ -303,6 +321,7 @@ void mongory_init() {
   mongory_internal_regex_adapter_init();
   mongory_matcher_mapping_init();
   mongory_internal_value_converter_init();
+  mongory_custom_matcher_adapter_init();
 
   // Register all standard matchers.
   // Note: These registrations rely on mongory_internal_pool and

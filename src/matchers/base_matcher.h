@@ -42,6 +42,8 @@ typedef struct mongory_matcher_context {
   mongory_array *trace;                      /**< An array that can be used for tracing matcher
                                                 execution (for debugging). */
   size_t sub_count;                          /**< The number of sub-matchers. */
+  void *ref;                                 /**< A reference to the matcher, used for custom
+                                                matchers. */
 } mongory_matcher_context;
 
 /**
@@ -83,6 +85,18 @@ struct mongory_matcher {
  * NULL on allocation failure.
  */
 mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool, mongory_value *condition);
+
+/**
+ * @brief Creates a new custom matcher instance.
+ *
+ * @param pool The memory pool to use for the matcher's allocations.
+ * @param key The key for the custom matcher.
+ * @param condition The `mongory_value` representing the condition for this
+ * matcher.
+ * @return mongory_matcher* A pointer to the newly created custom matcher, or
+ * NULL on failure.
+ */
+mongory_matcher *mongory_matcher_custom_new(mongory_memory_pool *pool, char *key, mongory_value *condition);
 
 /**
  * @brief Creates a new matcher that always evaluates to true.
