@@ -31,6 +31,19 @@
 typedef bool (*mongory_regex_func)(mongory_memory_pool *pool, mongory_value *pattern, mongory_value *value);
 
 /**
+ * @brief Function pointer type for stringifying a regex pattern.
+ *
+ * This function is called when a regex pattern needs to be stringified.
+ *
+ * @param pool The memory pool to use for any allocations during the
+ * stringification.
+ * @param pattern The regex pattern (as a mongory_value, typically a string or
+ * regex type).
+ * @return char* A stringified representation of the regex pattern, or NULL on failure.
+ */
+typedef char* (*mongory_regex_stringify_func)(mongory_memory_pool *pool, mongory_value *pattern);
+
+/**
  * @brief Function pointer type for deep conversion of an external value to a
  * mongory_value.
  *
@@ -100,6 +113,15 @@ void mongory_cleanup();
  * @param func The custom regex function to use.
  */
 void mongory_regex_func_set(mongory_regex_func func);
+
+/**
+ * @brief Sets the custom regex stringify function.
+ *
+ * If not called, a default function that always returns NULL is used.
+ *
+ * @param func The custom regex stringify function to use.
+ */
+void mongory_regex_stringify_func_set(mongory_regex_stringify_func func);
 
 /**
  * @brief Sets the custom deep value conversion function.

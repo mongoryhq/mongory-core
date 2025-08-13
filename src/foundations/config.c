@@ -58,6 +58,12 @@ static inline bool mongory_regex_default_func(mongory_memory_pool *pool, mongory
   return false;  // Default behavior is no match.
 }
 
+static inline char *mongory_regex_default_stringify_func(mongory_memory_pool *pool, mongory_value *pattern) {
+  (void)pool;    // Mark as unused to prevent compiler warnings.
+  (void)pattern; // Mark as unused.
+  return "//";   // Default behavior is no stringification.
+}
+
 /**
  * @brief Initializes the internal regex adapter if it hasn't been already.
  * Allocates the adapter structure from the internal pool and sets the default
@@ -82,7 +88,8 @@ static inline void mongory_internal_regex_adapter_init() {
     return;
   }
 
-  mongory_internal_regex_adapter->func = mongory_regex_default_func;
+  mongory_internal_regex_adapter->match_func = mongory_regex_default_func;
+  mongory_internal_regex_adapter->stringify_func = mongory_regex_default_stringify_func;
 }
 
 /**
@@ -95,12 +102,25 @@ void mongory_regex_func_set(mongory_regex_func func) {
     mongory_internal_regex_adapter_init();
   }
   if (mongory_internal_regex_adapter != NULL) {
-    mongory_internal_regex_adapter->func = func;
+    mongory_internal_regex_adapter->match_func = func;
   }
   // TODO: What if mongory_internal_regex_adapter is still NULL after init?
   // (e.g. pool alloc failed)
 }
 
+/**
+ * @brief Sets the global regex stringify function.
+ * Initializes the regex adapter if it's not already.
+ * @param func The custom regex stringify function to use.
+ */
+void mongory_regex_stringify_func_set(mongory_regex_stringify_func func) {
+  if (mongory_internal_regex_adapter == NULL) {
+    mongory_internal_regex_adapter_init();
+  }
+  if (mongory_internal_regex_adapter != NULL) {
+    mongory_internal_regex_adapter->stringify_func = func;
+  }
+}
 /**
  * @brief Initializes the matcher mapping table if it hasn't been already.
  * This table stores registrations of matcher names to their constructor

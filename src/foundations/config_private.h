@@ -6,7 +6,8 @@
 #include "mongory-core/matchers/matcher.h"
 
 typedef struct mongory_regex_adapter {
-  mongory_regex_func func;
+  mongory_regex_func match_func;
+  mongory_regex_stringify_func stringify_func;
 } mongory_regex_adapter;
 
 typedef struct mongory_value_converter {

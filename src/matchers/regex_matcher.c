@@ -17,7 +17,7 @@
  * Checks if the input `value` (which must be a string) matches the regex
  * pattern stored in `matcher->condition`. The actual regex matching is
  * performed by the function pointed to by
- * `mongory_internal_regex_adapter->func`.
+ * `mongory_internal_regex_adapter->match_func`.
  *
  * @param matcher The $regex matcher instance.
  * @param value The `mongory_value` to test; must be of type
@@ -29,12 +29,12 @@ static inline bool mongory_matcher_regex_match(mongory_matcher *matcher, mongory
   if (!value || value->type != MONGORY_TYPE_STRING) {
     return false; // Regex matching applies only to strings.
   }
-  if (!mongory_internal_regex_adapter || !mongory_internal_regex_adapter->func) {
+  if (!mongory_internal_regex_adapter || !mongory_internal_regex_adapter->match_func) {
     return false; // Regex adapter or function not configured.
   }
 
   // Delegate to the configured regex function.
-  return mongory_internal_regex_adapter->func(matcher->pool, matcher->condition, value);
+  return mongory_internal_regex_adapter->match_func(matcher->pool, matcher->condition, value);
 }
 
 /**
