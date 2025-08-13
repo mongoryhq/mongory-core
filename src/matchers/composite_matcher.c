@@ -652,7 +652,7 @@ static inline bool mongory_matcher_every_match(mongory_matcher *matcher, mongory
 
   mongory_array *target_array = value_to_check->data.a;
   if (target_array->count == 0)
-    return true; // All (zero) elements match.
+    return false; // Non-empty array must have at least one element.
 
   // `array->each` returns true if fully iterated (all elements matched),
   // false if callback stopped it (an element did NOT match).
