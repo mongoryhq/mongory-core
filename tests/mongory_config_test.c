@@ -49,8 +49,8 @@ static bool test_regex_func(mongory_memory_pool *pool, mongory_value *pattern, m
 void test_mongory_regex_func_set(void) {
   mongory_regex_func_set(test_regex_func);
   TEST_ASSERT_NOT_NULL(mongory_internal_regex_adapter);
-  TEST_ASSERT_NOT_NULL(mongory_internal_regex_adapter->func);
-  TEST_ASSERT_EQUAL(test_regex_func, mongory_internal_regex_adapter->func);
+  TEST_ASSERT_NOT_NULL(mongory_internal_regex_adapter->match_func);
+  TEST_ASSERT_EQUAL(test_regex_func, mongory_internal_regex_adapter->match_func);
 }
 
 static mongory_matcher *test_matcher_build_func(mongory_memory_pool *pool, mongory_value *condition) {
