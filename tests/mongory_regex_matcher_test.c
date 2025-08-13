@@ -1,6 +1,6 @@
 #include "../src/foundations/config_private.h"
 #include "../src/matchers/base_matcher.h"
-#include "../src/matchers/regex_matcher.h"
+#include "../src/matchers/external_matcher.h"
 #include "mongory-core.h"
 #include "mongory-core/foundations/config.h"
 #include "unity.h"
