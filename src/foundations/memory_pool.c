@@ -101,6 +101,10 @@ static inline mongory_memory_node *mongory_memory_chunk_new(size_t chunk_size) {
  * @return true if growth was successful, false otherwise.
  */
 static inline bool mongory_memory_pool_grow(mongory_memory_pool_ctx *ctx, size_t request_size) {
+  if (ctx->current->next) {
+    ctx->current = ctx->current->next;
+    return true; // Already have a next chunk.
+  }
   // Double the chunk size, ensuring it's at least as large as request_size.
   ctx->chunk_size *= 2;
   while (request_size > ctx->chunk_size) {
