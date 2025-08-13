@@ -280,6 +280,27 @@ static void mongory_custom_matcher_adapter_init() {
   mongory_custom_matcher_adapter->match = NULL;
 }
 
+void mongory_custom_matcher_match_func_set(bool (*match)(void *external_ref, mongory_value *value)) {
+  if (mongory_custom_matcher_adapter == NULL) {
+    mongory_custom_matcher_adapter_init();
+  }
+  mongory_custom_matcher_adapter->match = match;
+}
+
+void mongory_custom_matcher_build_func_set(mongory_matcher_custom_context *(*build)(char *key, mongory_value *condition)) {
+  if (mongory_custom_matcher_adapter == NULL) {
+    mongory_custom_matcher_adapter_init();
+  }
+  mongory_custom_matcher_adapter->build = build;
+}
+
+void mongory_custom_matcher_lookup_func_set(bool (*lookup)(char *key)) {
+  if (mongory_custom_matcher_adapter == NULL) {
+    mongory_custom_matcher_adapter_init();
+  }
+  mongory_custom_matcher_adapter->lookup = lookup;
+}
+
 /**
  * @brief Creates a copy of a string using the specified memory pool.
  * @param pool The memory pool to use for allocation.
