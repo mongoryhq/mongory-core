@@ -13,6 +13,7 @@
 #include <mongory-core/foundations/memory_pool.h>
 #include <mongory-core/foundations/table.h>
 #include <mongory-core/foundations/value.h>
+#include "config_private.h"
 #include <stddef.h> // For NULL
 #include <stdio.h>  // For snprintf
 #include <stdlib.h> // For general utilities (not directly used here but common)
@@ -334,6 +335,11 @@ mongory_value *mongory_value_wrap_u(mongory_memory_pool *pool, void *u_val) {
   return value;
 }
 
+static void mongory_value_regex_to_str(mongory_value *value, mongory_string_buffer *buffer) {
+  char *str = mongory_internal_regex_adapter->stringify_func(value->pool, value);
+  mongory_string_buffer_append(buffer, str);
+}
+
 /** Wraps a regex type pointer. */
 mongory_value *mongory_value_wrap_regex(mongory_memory_pool *pool, void *regex_val) {
   mongory_value *value = mongory_value_new(pool);
@@ -342,7 +348,7 @@ mongory_value *mongory_value_wrap_regex(mongory_memory_pool *pool, void *regex_v
   value->type = MONGORY_TYPE_REGEX;
   value->data.regex = regex_val;
   value->comp = mongory_value_generic_ptr_compare; // Regex values are not directly comparable.
-  value->to_str = mongory_value_generic_ptr_to_str;
+  value->to_str = mongory_value_regex_to_str;
   return value;
 }
 
