@@ -5,6 +5,7 @@
  * matcher module.
  */
 #include "composite_matcher.h"
+#include "external_matcher.h"
 #include "../foundations/config_private.h"  // For mongory_matcher_build_func_get
 #include "../foundations/string_buffer.h"   // For mongory_string_buffer_new
 #include "base_matcher.h"                   // For mongory_matcher_always_true_new, etc.

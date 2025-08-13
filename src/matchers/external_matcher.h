@@ -1,9 +1,9 @@
-#ifndef MONGORY_MATCHER_REGEX_H
-#define MONGORY_MATCHER_REGEX_H
+#ifndef MONGORY_MATCHER_EXTERNAL_H
+#define MONGORY_MATCHER_EXTERNAL_H
 
 /**
- * @file regex_matcher.h
- * @brief Defines the constructor for a regular expression ($regex) matcher.
+ * @file external_matcher.h
+ * @brief Defines the constructor for matchers that are not built-in.
  * This is an internal header for the matcher module.
  */
 
@@ -31,4 +31,16 @@
  */
 mongory_matcher *mongory_matcher_regex_new(mongory_memory_pool *pool, mongory_value *condition);
 
-#endif /* MONGORY_MATCHER_REGEX_H */
+/**
+ * @brief Creates a new custom matcher instance.
+ *
+ * @param pool The memory pool to use for the matcher's allocations.
+ * @param key The key for the custom matcher.
+ * @param condition The `mongory_value` representing the condition for this
+ * matcher.
+ * @return mongory_matcher* A pointer to the newly created custom matcher, or
+ * NULL on failure.
+ */
+mongory_matcher *mongory_matcher_custom_new(mongory_memory_pool *pool, char *key, mongory_value *condition);
+
+#endif /* MONGORY_MATCHER_EXTERNAL_H */

@@ -5,7 +5,7 @@
 #include "../src/matchers/existance_matcher.h"
 #include "../src/matchers/inclusion_matcher.h"
 #include "../src/matchers/literal_matcher.h"
-#include "../src/matchers/regex_matcher.h"
+#include "../src/matchers/external_matcher.h"
 #include "unity.h"
 #include <mongory-core.h>
 #include <stdio.h>

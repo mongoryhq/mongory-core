@@ -22,7 +22,7 @@
 #include "mongory-core/foundations/array.h" // For mongory_array access
 #include "mongory-core/foundations/table.h" // For mongory_table access
 #include "mongory-core/foundations/value.h" // For mongory_value types and wrappers
-#include "regex_matcher.h"                  // For mongory_matcher_regex_new
+#include "external_matcher.h"               // For mongory_matcher_regex_new
 #include <mongory-core.h>                   // General include
 #include <stdio.h>                          // For printf
 
