@@ -154,12 +154,15 @@ static inline bool mongory_matcher_table_build_sub_matcher(char *key, mongory_va
 
   if (key[0] == '$') { // Operator key (e.g., "$eq", "$in")
     build_func = mongory_matcher_build_func_get(key);
-  }
-
-  if (build_func != NULL) {
-    sub_matcher = build_func(pool, value);
+    if (build_func != NULL) {
+      sub_matcher = build_func(pool, value);
+    } else if (mongory_custom_matcher_adapter != NULL && mongory_custom_matcher_adapter->lookup != NULL &&
+               mongory_custom_matcher_adapter->lookup(key)) {
+      sub_matcher = mongory_matcher_custom_new(pool, key, value);
+    } else {
+      sub_matcher = mongory_matcher_field_new(pool, key, value);  
+    }
   } else {
-    // Not an operator or unknown operator, treat as a field name.
     sub_matcher = mongory_matcher_field_new(pool, key, value);
   }
 
