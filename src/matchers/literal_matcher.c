@@ -107,7 +107,9 @@ static inline mongory_matcher *mongory_matcher_null_new(mongory_memory_pool *poo
   }
 
   composite->base.match = mongory_matcher_or_match; // OR logic
-  composite->base.context.original_match = mongory_matcher_or_match;
+  composite->base.original_match = mongory_matcher_or_match;
+  composite->base.sub_count = 1;
+  composite->base.external_matcher = NULL;
   composite->base.name = mongory_string_cpy(pool, "Or");
   // composite->base.condition is already set by mongory_matcher_composite_new
   return (mongory_matcher *)composite;
@@ -222,8 +224,9 @@ mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *fiel
   field_m->composite.base.pool = pool;
   field_m->composite.base.name = NULL; // Can be set if needed, e.g. to field_name
   field_m->composite.base.match = mongory_matcher_field_match;
-  field_m->composite.base.context.original_match = mongory_matcher_field_match;
-  field_m->composite.base.context.trace = NULL;
+  field_m->composite.base.original_match = mongory_matcher_field_match;
+  field_m->composite.base.sub_count = 1;
+  field_m->composite.base.external_matcher = NULL;
   field_m->composite.base.condition = condition_for_field; // Original condition for the field
   field_m->composite.base.name = mongory_string_cpy(pool, "Field");
   field_m->composite.base.explain = mongory_matcher_field_explain;
@@ -268,9 +271,11 @@ mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool, mongory_valu
   // via composite->right will use condition_to_negate if right is NULL.
 
   composite->base.match = mongory_matcher_not_match;
-  composite->base.context.original_match = mongory_matcher_not_match;
+  composite->base.original_match = mongory_matcher_not_match;
   composite->base.name = mongory_string_cpy(pool, "Not");
   composite->base.explain = mongory_matcher_literal_explain;
+  composite->base.sub_count = 1;
+  composite->base.external_matcher = NULL;
   return (mongory_matcher *)composite;
 }
 
@@ -322,9 +327,11 @@ mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool, mongory_val
   // composite->right typically NULL for $size, array path of literal_match not primary.
 
   composite->base.match = mongory_matcher_size_match;
-  composite->base.context.original_match = mongory_matcher_size_match;
+  composite->base.original_match = mongory_matcher_size_match;
   composite->base.name = mongory_string_cpy(pool, "Size");
   composite->base.explain = mongory_matcher_literal_explain;
+  composite->base.sub_count = 1;
+  composite->base.external_matcher = NULL;
   return (mongory_matcher *)composite;
 }
 
@@ -354,7 +361,9 @@ mongory_matcher *mongory_matcher_literal_new(mongory_memory_pool *pool, mongory_
   // composite->right is NULL initially. mongory_matcher_literal_match will
   // populate it with an array_record_matcher if it encounters an array value.
   composite->base.match = mongory_matcher_literal_match;
-  composite->base.context.original_match = mongory_matcher_literal_match;
+  composite->base.original_match = mongory_matcher_literal_match;
+  composite->base.sub_count = 1;
+  composite->base.external_matcher = NULL;
   composite->base.explain = mongory_matcher_literal_explain;
   return (mongory_matcher *)composite;
 }

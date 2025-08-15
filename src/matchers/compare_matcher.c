@@ -32,7 +32,7 @@ static inline mongory_matcher *mongory_matcher_compare_new(mongory_memory_pool *
     return NULL; // Base matcher allocation failed.
   }
   matcher->match = match_func;
-  matcher->context.original_match = match_func; // Store original for context
+  matcher->original_match = match_func; // Store original match function
   return matcher;
 }
 

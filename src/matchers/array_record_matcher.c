@@ -297,7 +297,7 @@ mongory_matcher *mongory_matcher_array_record_new(mongory_memory_pool *pool, mon
   final_or_composite->left = left_child;
   final_or_composite->right = right_child;
   final_or_composite->base.match = mongory_matcher_array_record_match; // Uses or_match
-  final_or_composite->base.context.original_match = mongory_matcher_array_record_match;
+  final_or_composite->base.original_match = mongory_matcher_array_record_match;
 
   final_or_composite->base.name = mongory_string_cpy(pool, "ArrayRecord");
   return (mongory_matcher *)final_or_composite;
