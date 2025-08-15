@@ -36,6 +36,7 @@ mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool, mongory_val
   mongory_matcher *matcher = MG_ALLOC_PTR(pool, mongory_matcher);
   if (matcher == NULL) {
     // Allocation failed, pool->alloc might set pool->error.
+    pool->error = &MONGORY_ALLOC_ERROR;
     return NULL;
   }
 
@@ -72,13 +73,14 @@ static inline bool mongory_matcher_always_true_match(mongory_matcher *matcher, m
  */
 mongory_matcher *mongory_matcher_always_true_new(mongory_memory_pool *pool, mongory_value *condition) {
   mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
-  if (matcher) {
-    matcher->match = mongory_matcher_always_true_match;
-    matcher->name = mongory_string_cpy(pool, "Always True");
-    matcher->explain = mongory_matcher_base_explain;
-    // Optionally set original_match as well if it's a strict policy
-    // matcher->context.original_match = mongory_matcher_always_true_match;
+  if (!matcher) {
+    return NULL;
   }
+  matcher->match = mongory_matcher_always_true_match;
+  matcher->name = mongory_string_cpy(pool, "Always True");
+  matcher->explain = mongory_matcher_base_explain;
+  // Optionally set original_match as well if it's a strict policy
+  // matcher->context.original_match = mongory_matcher_always_true_match;
   return matcher;
 }
 
@@ -103,12 +105,13 @@ static inline bool mongory_matcher_always_false_match(mongory_matcher *matcher, 
  */
 mongory_matcher *mongory_matcher_always_false_new(mongory_memory_pool *pool, mongory_value *condition) {
   mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
-  if (matcher) {
-    matcher->match = mongory_matcher_always_false_match;
-    matcher->name = mongory_string_cpy(pool, "Always False");
-    matcher->explain = mongory_matcher_base_explain;
-    // matcher->context.original_match = mongory_matcher_always_false_match;
+  if (!matcher) {
+    return NULL;
   }
+  matcher->match = mongory_matcher_always_false_match;
+  matcher->name = mongory_string_cpy(pool, "Always False");
+  matcher->explain = mongory_matcher_base_explain;
+  // matcher->context.original_match = mongory_matcher_always_false_match;
   return matcher;
 }
 

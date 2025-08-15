@@ -67,9 +67,10 @@ static inline bool mongory_matcher_equal_match(mongory_matcher *matcher, mongory
 
 mongory_matcher *mongory_matcher_equal_new(mongory_memory_pool *pool, mongory_value *condition) {
   mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_equal_match);
-  if (matcher) {
-    matcher->name = mongory_string_cpy(pool, "Eq");
+  if (!matcher) {
+    return NULL;
   }
+  matcher->name = mongory_string_cpy(pool, "Eq");
   return matcher;
 }
 
@@ -97,9 +98,10 @@ static inline bool mongory_matcher_not_equal_match(mongory_matcher *matcher, mon
 
 mongory_matcher *mongory_matcher_not_equal_new(mongory_memory_pool *pool, mongory_value *condition) {
   mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_not_equal_match);
-  if (matcher) {
-    matcher->name = mongory_string_cpy(pool, "Ne");
+  if (!matcher) {
+    return NULL;
   }
+  matcher->name = mongory_string_cpy(pool, "Ne");
   return matcher;
 }
 
@@ -122,9 +124,10 @@ static inline bool mongory_matcher_greater_than_match(mongory_matcher *matcher, 
 
 mongory_matcher *mongory_matcher_greater_than_new(mongory_memory_pool *pool, mongory_value *condition) {
   mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_greater_than_match);
-  if (matcher) {
-    matcher->name = mongory_string_cpy(pool, "Gt");
+  if (!matcher) {
+    return NULL;
   }
+  matcher->name = mongory_string_cpy(pool, "Gt");
   return matcher;
 }
 
@@ -147,9 +150,10 @@ static inline bool mongory_matcher_less_than_match(mongory_matcher *matcher, mon
 
 mongory_matcher *mongory_matcher_less_than_new(mongory_memory_pool *pool, mongory_value *condition) {
   mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_less_than_match);
-  if (matcher) {
-    matcher->name = mongory_string_cpy(pool, "Lt");
+  if (!matcher) {
+    return NULL;
   }
+  matcher->name = mongory_string_cpy(pool, "Lt");
   return matcher;
 }
 
@@ -172,9 +176,10 @@ static inline bool mongory_matcher_greater_than_or_equal_match(mongory_matcher *
 
 mongory_matcher *mongory_matcher_greater_than_or_equal_new(mongory_memory_pool *pool, mongory_value *condition) {
   mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_greater_than_or_equal_match);
-  if (matcher) {
-    matcher->name = mongory_string_cpy(pool, "Gte");
+  if (!matcher) {
+    return NULL;
   }
+  matcher->name = mongory_string_cpy(pool, "Gte");
   return matcher;
 }
 
@@ -197,8 +202,9 @@ static inline bool mongory_matcher_less_than_or_equal_match(mongory_matcher *mat
 
 mongory_matcher *mongory_matcher_less_than_or_equal_new(mongory_memory_pool *pool, mongory_value *condition) {
   mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_less_than_or_equal_match);
-  if (matcher) {
-    matcher->name = mongory_string_cpy(pool, "Lte");
+  if (!matcher) {
+    return NULL;
   }
+  matcher->name = mongory_string_cpy(pool, "Lte");
   return matcher;
 }

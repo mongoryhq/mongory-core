@@ -312,16 +312,11 @@ char *mongory_string_cpy(mongory_memory_pool *pool, char *str) {
   if (str == NULL) {
     return NULL;
   }
-  if (pool == NULL || pool->alloc == NULL) {
-    // Cannot allocate without a valid pool and alloc function.
-    // TODO: Maybe set a global error or return a specific error indicator?
-    return NULL;
-  }
 
   size_t len = strlen(str);
   char *new_str = (char *)MG_ALLOC(pool, len + 1); // +1 for null terminator.
   if (new_str == NULL) {
-    // TODO: Set pool->error
+    pool->error = &MONGORY_ALLOC_ERROR;
     return NULL;
   }
 

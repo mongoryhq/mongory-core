@@ -175,9 +175,8 @@ static inline bool mongory_matcher_field_match(mongory_matcher *matcher, mongory
   } else if (value->type == MONGORY_TYPE_ARRAY) {
     if (value->data.a) {
       int index;
-      if (!mongory_try_parse_int(field_key, &index)) {
+      if (!mongory_try_parse_int(field_key, &index))
         return false; // Field key is not a valid integer index for an array.
-      }
       if (index < 0) { // Handle negative indexing (from end of array)
         if ((size_t)(-index) > value->data.a->count)
           return false; // Out of bounds
@@ -207,11 +206,9 @@ static inline bool mongory_matcher_field_match(mongory_matcher *matcher, mongory
 
 mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *field_name,
                                            mongory_value *condition_for_field) {
-  if (!pool || !pool->alloc || !field_name)
-    return NULL;
-
   mongory_field_matcher *field_m = MG_ALLOC_PTR(pool, mongory_field_matcher);
   if (field_m == NULL) {
+    pool->error = &MONGORY_ALLOC_ERROR;
     return NULL;
   }
   field_m->field = mongory_string_cpy(pool, field_name);
@@ -258,8 +255,6 @@ static inline bool mongory_matcher_not_match(mongory_matcher *matcher, mongory_v
 }
 
 mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool, mongory_value *condition_to_negate) {
-  if (!pool)
-    return NULL;
   mongory_composite_matcher *composite = mongory_matcher_composite_new(pool, condition_to_negate);
   if (!composite)
     return NULL;
@@ -313,8 +308,6 @@ static inline bool mongory_matcher_size_match(mongory_matcher *matcher, mongory_
 }
 
 mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool, mongory_value *size_condition) {
-  if (!pool)
-    return NULL;
   mongory_composite_matcher *composite = mongory_matcher_composite_new(pool, size_condition);
   if (!composite)
     return NULL;
@@ -350,8 +343,6 @@ mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool, mongory_val
  * @return A new literal matcher, or NULL on failure.
  */
 mongory_matcher *mongory_matcher_literal_new(mongory_memory_pool *pool, mongory_value *condition) {
-  if (!pool)
-    return NULL;
   mongory_composite_matcher *composite = mongory_matcher_composite_new(pool, condition);
   if (!composite)
     return NULL;
