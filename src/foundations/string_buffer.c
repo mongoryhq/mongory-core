@@ -18,8 +18,15 @@ mongory_string_buffer *mongory_string_buffer_new(mongory_memory_pool *pool) {
 
 void mongory_string_buffer_free(mongory_string_buffer *buffer) { buffer->pool->free(buffer->pool->ctx); }
 
-static inline void mongory_string_buffer_grow(mongory_string_buffer *buffer) {
-  buffer->capacity *= 2;
+static inline void mongory_string_buffer_grow(mongory_string_buffer *buffer, size_t additional_size) {
+  bool trigger_grow = false;
+  while (buffer->size + additional_size + 1 > buffer->capacity) {
+    buffer->capacity *= 2;
+    trigger_grow = true;
+  }
+  if (!trigger_grow) {
+    return;
+  }
   char *previous_buffer = buffer->buffer;
   buffer->buffer = (char *)MG_ALLOC(buffer->pool, buffer->capacity);
   if (previous_buffer) {
@@ -29,9 +36,7 @@ static inline void mongory_string_buffer_grow(mongory_string_buffer *buffer) {
 
 void mongory_string_buffer_append(mongory_string_buffer *buffer, const char *str) {
   size_t len = strlen(str);
-  while (buffer->size + len + 1 > buffer->capacity) {
-    mongory_string_buffer_grow(buffer);
-  }
+  mongory_string_buffer_grow(buffer, len);
   strcpy(buffer->buffer + buffer->size, str);
   buffer->size += len;
   buffer->buffer[buffer->size] = '\0';
@@ -42,9 +47,7 @@ void mongory_string_buffer_appendf(mongory_string_buffer *buffer, const char *fo
   va_start(args, format);
   int len = vsnprintf(NULL, 0, format, args);
   va_end(args);
-  while (buffer->size + len + 1 > buffer->capacity) {
-    mongory_string_buffer_grow(buffer);
-  }
+  mongory_string_buffer_grow(buffer, len);
   va_start(args, format);
   vsnprintf(buffer->buffer + buffer->size, buffer->capacity - buffer->size, format, args);
   va_end(args);
