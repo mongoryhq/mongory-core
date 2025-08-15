@@ -47,14 +47,14 @@ typedef enum mongory_type mongory_type;
  */
 typedef int (*mongory_value_compare_func)(mongory_value *a, mongory_value *b);
 
-// Forward declaration for mongory_string_buffer
-struct mongory_string_buffer;
 /**
  * @brief Function pointer type for converting a mongory_value to a string representation.
  * @param value The mongory_value to convert.
- * @param buffer The string buffer to append the string to.
+ * @param pool The memory pool to allocate from.
+ * @return char* A string literal representing the value, or NULL if allocation
+ * fails. The string is a literal and should not be freed.
  */
-typedef void (*mongory_value_to_str_func)(mongory_value *value, struct mongory_string_buffer *buffer);
+typedef char *(*mongory_value_to_str_func)(mongory_value *value, mongory_memory_pool *pool);
 
 /**
  * @brief Converts the type of a mongory_value to its string representation.

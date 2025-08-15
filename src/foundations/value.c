@@ -61,14 +61,14 @@ void *mongory_value_extract(mongory_value *value) {
   }
 }
 
-static void mongory_value_null_to_str(mongory_value *value, mongory_string_buffer *buffer);
-static void mongory_value_bool_to_str(mongory_value *value, mongory_string_buffer *buffer);
-static void mongory_value_int_to_str(mongory_value *value, mongory_string_buffer *buffer);
-static void mongory_value_double_to_str(mongory_value *value, mongory_string_buffer *buffer);
-static void mongory_value_string_to_str(mongory_value *value, mongory_string_buffer *buffer);
-static void mongory_value_array_to_str(mongory_value *value, mongory_string_buffer *buffer);
-static void mongory_value_table_to_str(mongory_value *value, mongory_string_buffer *buffer);
-static void mongory_value_generic_ptr_to_str(mongory_value *value, mongory_string_buffer *buffer);
+static char *mongory_value_null_to_str(mongory_value *value, mongory_memory_pool *pool);
+static char *mongory_value_bool_to_str(mongory_value *value, mongory_memory_pool *pool);
+static char *mongory_value_int_to_str(mongory_value *value, mongory_memory_pool *pool);
+static char *mongory_value_double_to_str(mongory_value *value, mongory_memory_pool *pool);
+static char *mongory_value_string_to_str(mongory_value *value, mongory_memory_pool *pool);
+static char *mongory_value_array_to_str(mongory_value *value, mongory_memory_pool *pool);
+static char *mongory_value_table_to_str(mongory_value *value, mongory_memory_pool *pool);
+static char *mongory_value_generic_ptr_to_str(mongory_value *value, mongory_memory_pool *pool);
 
 /**
  * @brief Internal helper to allocate a new mongory_value structure from a pool.
@@ -335,9 +335,11 @@ mongory_value *mongory_value_wrap_u(mongory_memory_pool *pool, void *u_val) {
   return value;
 }
 
-static void mongory_value_regex_to_str(mongory_value *value, mongory_string_buffer *buffer) {
-  char *str = mongory_internal_regex_adapter->stringify_func(value->pool, value);
-  mongory_string_buffer_append(buffer, str);
+static char *mongory_value_regex_to_str(mongory_value *value, mongory_memory_pool *pool) {
+  char *str = mongory_internal_regex_adapter->stringify_func(pool, value);
+  if (!str)
+    return NULL;
+  return str;
 }
 
 /** Wraps a regex type pointer. */
@@ -372,25 +374,37 @@ mongory_value *mongory_value_wrap_ptr(mongory_memory_pool *pool, void *ptr_val) 
 // `mongory_string_buffer`.
 // ============================================================================
 
-static void mongory_value_null_to_str(mongory_value *value, mongory_string_buffer *buffer) {
+static char *mongory_value_null_to_str(mongory_value *value, mongory_memory_pool *pool) {
   (void)value;
-  mongory_string_buffer_append(buffer, "null");
+  return mongory_string_cpy(pool, "null");
 }
 
-static void mongory_value_bool_to_str(mongory_value *value, mongory_string_buffer *buffer) {
-  mongory_string_buffer_append(buffer, value->data.b ? "true" : "false");
+static char *mongory_value_bool_to_str(mongory_value *value, mongory_memory_pool *pool) {
+  return mongory_string_cpy(pool, value->data.b ? "true" : "false");
 }
 
-static void mongory_value_int_to_str(mongory_value *value, mongory_string_buffer *buffer) {
+static char *mongory_value_int_to_str(mongory_value *value, mongory_memory_pool *pool) {
+  mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
+  if (!buffer)
+    return NULL;
   mongory_string_buffer_appendf(buffer, "%lld", (long long)value->data.i);
+  return mongory_string_buffer_cstr(buffer);
 }
 
-static void mongory_value_double_to_str(mongory_value *value, mongory_string_buffer *buffer) {
+static char *mongory_value_double_to_str(mongory_value *value, mongory_memory_pool *pool) {
+  mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
+  if (!buffer)
+    return NULL;
   mongory_string_buffer_appendf(buffer, "%f", value->data.d);
+  return mongory_string_buffer_cstr(buffer);
 }
 
-static void mongory_value_string_to_str(mongory_value *value, mongory_string_buffer *buffer) {
+static char *mongory_value_string_to_str(mongory_value *value, mongory_memory_pool *pool) {
+  mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
+  if (!buffer)
+    return NULL;
   mongory_string_buffer_appendf(buffer, "\"%s\"", value->data.s);
+  return mongory_string_buffer_cstr(buffer);
 }
 
 typedef struct mongory_value_container_to_str_ctx {
@@ -402,7 +416,10 @@ typedef struct mongory_value_container_to_str_ctx {
 static bool mongory_value_array_to_str_each(mongory_value *value, void *ctx) {
   mongory_value_container_to_str_ctx *context = (mongory_value_container_to_str_ctx *)ctx;
   mongory_string_buffer *buffer = context->buffer;
-  value->to_str(value, buffer);
+  char *str = value->to_str(value, buffer->pool);
+  if (!str)
+    return false;
+  mongory_string_buffer_append(buffer, str);
   context->count++;
   if (context->count < context->total) {
     mongory_string_buffer_append(buffer, ",");
@@ -410,19 +427,26 @@ static bool mongory_value_array_to_str_each(mongory_value *value, void *ctx) {
   return true;
 }
 
-static void mongory_value_array_to_str(mongory_value *value, mongory_string_buffer *buffer) {
+static char *mongory_value_array_to_str(mongory_value *value, mongory_memory_pool *pool) {
+  mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
+  if (!buffer)
+    return NULL;
   mongory_string_buffer_append(buffer, "[");
   struct mongory_array *array = value->data.a;
   mongory_value_container_to_str_ctx ctx = {.count = 0, .total = array->count, .buffer = buffer};
   array->each(array, &ctx, mongory_value_array_to_str_each);
   mongory_string_buffer_append(buffer, "]");
+  return mongory_string_buffer_cstr(buffer);
 }
 
 static bool mongory_value_table_to_str_each(char *key, mongory_value *value, void *ctx) {
   mongory_value_container_to_str_ctx *context = (mongory_value_container_to_str_ctx *)ctx;
   mongory_string_buffer *buffer = context->buffer;
   mongory_string_buffer_appendf(buffer, "\"%s\":", key);
-  value->to_str(value, buffer);
+  char *str = value->to_str(value, buffer->pool);
+  if (!str)
+    return false;
+  mongory_string_buffer_append(buffer, str);
   context->count++;
   if (context->count < context->total) {
     mongory_string_buffer_append(buffer, ",");
@@ -430,14 +454,22 @@ static bool mongory_value_table_to_str_each(char *key, mongory_value *value, voi
   return true;
 }
 
-static void mongory_value_table_to_str(mongory_value *value, mongory_string_buffer *buffer) {
+static char *mongory_value_table_to_str(mongory_value *value, mongory_memory_pool *pool) {
+  mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
+  if (!buffer)
+    return NULL;
   mongory_string_buffer_append(buffer, "{");
   struct mongory_table *table = value->data.t;
   mongory_value_container_to_str_ctx ctx = {.count = 0, .total = table->count, .buffer = buffer};
   table->each(table, &ctx, mongory_value_table_to_str_each);
   mongory_string_buffer_append(buffer, "}");
+  return mongory_string_buffer_cstr(buffer);
 }
 
-static void mongory_value_generic_ptr_to_str(mongory_value *value, mongory_string_buffer *buffer) {
+static char *mongory_value_generic_ptr_to_str(mongory_value *value, mongory_memory_pool *pool) {
+  mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
+  if (!buffer)
+    return NULL;
   mongory_string_buffer_appendf(buffer, "%p", value->data.ptr);
+  return mongory_string_buffer_cstr(buffer);
 }
