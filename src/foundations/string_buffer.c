@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define MONGORY_STRING_BUFFER_INITIAL_CAPACITY 256
+#define MONGORY_STRING_BUFFER_INITIAL_CAPACITY 16
 
 mongory_string_buffer *mongory_string_buffer_new(mongory_memory_pool *pool) {
   mongory_string_buffer *buffer = MG_ALLOC_PTR(pool, mongory_string_buffer);

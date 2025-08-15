@@ -30,7 +30,7 @@ void test_string_buffer_creation(void) {
   TEST_ASSERT_EQUAL(pool, buffer->pool);
   TEST_ASSERT_NOT_NULL(buffer->buffer);
   TEST_ASSERT_EQUAL(0, buffer->size);
-  TEST_ASSERT_EQUAL(256, buffer->capacity); // MONGORY_STRING_BUFFER_INITIAL_CAPACITY
+  TEST_ASSERT_EQUAL(16, buffer->capacity); // MONGORY_STRING_BUFFER_INITIAL_CAPACITY
   TEST_ASSERT_EQUAL_STRING("", mongory_string_buffer_cstr(buffer));
 }
 
@@ -80,7 +80,7 @@ void test_string_buffer_clear(void) {
   mongory_string_buffer_clear(buffer);
 
   TEST_ASSERT_EQUAL(0, buffer->size);
-  TEST_ASSERT_EQUAL(256, buffer->capacity); // Reset to initial capacity
+  TEST_ASSERT_EQUAL(16, buffer->capacity); // Reset to initial capacity
   TEST_ASSERT_EQUAL_STRING("", mongory_string_buffer_cstr(buffer));
 }
 
@@ -95,7 +95,7 @@ void test_string_buffer_dynamic_growth(void) {
   mongory_string_buffer_append(buffer, large_string);
 
   TEST_ASSERT_EQUAL(299, buffer->size);
-  TEST_ASSERT_GREATER_THAN(256, buffer->capacity); // Capacity should have grown
+  TEST_ASSERT_GREATER_THAN(16, buffer->capacity); // Capacity should have grown
   TEST_ASSERT_EQUAL_STRING(large_string, mongory_string_buffer_cstr(buffer));
 }
 
