@@ -63,7 +63,7 @@ mongory_matcher *mongory_matcher_regex_new(mongory_memory_pool *pool, mongory_va
     return NULL;
   }
   matcher->match = mongory_matcher_regex_match;
-  matcher->context.original_match = mongory_matcher_regex_match;
+  matcher->original_match = mongory_matcher_regex_match;
   matcher->name = mongory_string_cpy(pool, "Regex");
   return matcher;
 }
@@ -78,7 +78,7 @@ bool mongory_matcher_custom_match(mongory_matcher *matcher, mongory_value *value
   if (mongory_custom_matcher_adapter == NULL || mongory_custom_matcher_adapter->match == NULL) {
     return false; // Custom matcher adapter not initialized.
   }
-  return mongory_custom_matcher_adapter->match(matcher->context.ref, value); // TODO: Check if this is correct.
+  return mongory_custom_matcher_adapter->match(matcher->external_matcher, value);
 }
 
 /**
@@ -100,9 +100,9 @@ mongory_matcher *mongory_matcher_custom_new(mongory_memory_pool *pool, char *key
   mongory_matcher_custom_context *context = mongory_custom_matcher_adapter->build(key, condition);
   if (context == NULL)
     return NULL;
-  matcher->context.ref = context->external_ref;
+  matcher->external_matcher = context->external_matcher;
   matcher->name = context->name;
   matcher->match = mongory_matcher_custom_match;
-  matcher->context.original_match = mongory_matcher_custom_match;
+  matcher->original_match = mongory_matcher_custom_match;
   return matcher;
 }

@@ -67,7 +67,7 @@ void mongory_matcher_composite_explain(mongory_matcher *matcher, mongory_matcher
   mongory_matcher_explain_context child_ctx = {
       .pool = ctx->pool,
       .count = 0,
-      .total = matcher->context.sub_count,
+      .total = matcher->sub_count,
       .prefix = mongory_string_buffer_cstr(buffer),
   };
   mongory_matcher_traverse_explain(matcher, &child_ctx);
@@ -80,7 +80,7 @@ static inline void mongory_matcher_literal_shared_explain(mongory_matcher *match
   mongory_matcher_explain_context child_ctx = {
       .pool = ctx->pool,
       .count = 0,
-      .total = 1,
+      .total = matcher->sub_count,
       .prefix = mongory_string_buffer_cstr(buffer),
   };
   if (composite->right) {

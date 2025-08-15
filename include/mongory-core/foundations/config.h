@@ -143,13 +143,13 @@ void mongory_value_converter_recover_set(mongory_recover_func recover);
 
 /**
  * @brief Function pointer type for matching a value against an external matcher.
- * @param external_ref The external reference to the matcher.
+ * @param external_matcher The external reference to the matcher.
  * @param value The value to match against.
  * @return bool True if the value matches the matcher, false otherwise.
  */
 typedef struct mongory_matcher_custom_context {
   char *name; // Name of the custom matcher.
-  void *external_ref; // External reference to the custom matcher.
+  void *external_matcher; // External reference to the custom matcher.
 } mongory_matcher_custom_context;
 
 /**
@@ -158,19 +158,19 @@ typedef struct mongory_matcher_custom_context {
  * This function is called when a value needs to be matched against an external
  * matcher.
  *
- * @param external_ref The external reference to the matcher.
+ * @param external_matcher The external reference to the matcher.
  * @param value The value to match against.
  * @return bool True if the value matches the matcher, false otherwise.
  */
 typedef struct mongory_matcher_custom_adapter {
-  bool (*match)(void *external_ref, mongory_value *value); // Match a value against an external matcher.
+  bool (*match)(void *external_matcher, mongory_value *value); // Match a value against an external matcher.
   mongory_matcher_custom_context *(*build)(char *key, mongory_value *condition); // Build an external matcher reference.
   bool (*lookup)(char *key); // Lookup a matcher reference by key.
 } mongory_matcher_custom_adapter;
 
 extern mongory_matcher_custom_adapter *mongory_custom_matcher_adapter;
 
-void mongory_custom_matcher_match_func_set(bool (*match)(void *external_ref, mongory_value *value));
+void mongory_custom_matcher_match_func_set(bool (*match)(void *external_matcher, mongory_value *value));
 void mongory_custom_matcher_build_func_set(mongory_matcher_custom_context *(*build)(char *key, mongory_value *condition));
 void mongory_custom_matcher_lookup_func_set(bool (*lookup)(char *key));
 

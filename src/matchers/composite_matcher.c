@@ -48,8 +48,9 @@ mongory_composite_matcher *mongory_matcher_composite_new(mongory_memory_pool *po
   composite->base.name = NULL;                                 // Specific name to be set by derived type if any
   composite->base.match = NULL;                                // Specific match fn to be set by derived type
   composite->base.explain = mongory_matcher_composite_explain; // Specific explain fn to be set by derived type
-  composite->base.context.original_match = NULL;
-  composite->base.context.trace = NULL;
+  composite->base.original_match = NULL;
+  composite->base.sub_count = 0;
+  composite->base.external_matcher = NULL;
   composite->base.condition = condition;
 
   // Initialize composite-specific fields
@@ -216,7 +217,7 @@ static inline mongory_matcher *mongory_matcher_binary_construct(
 
   mongory_matcher *base_composite_matcher = (mongory_matcher *)composite;
   base_composite_matcher->match = match_func;
-  base_composite_matcher->context.original_match = match_func;
+  base_composite_matcher->original_match = match_func;
   base_composite_matcher->explain = mongory_matcher_traverse_explain;
 
   composite->left = constructor_func(matchers_array, head, mid);
@@ -320,7 +321,7 @@ mongory_matcher *mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongo
       mongory_matcher_construct_by_and(sub_matchers_array, 0, sub_matchers_array->count - 1);
 
   final_matcher->condition = condition;
-  final_matcher->context.sub_count = sub_matchers_array->count;
+  final_matcher->sub_count = sub_matchers_array->count;
   final_matcher->explain = mongory_matcher_composite_explain;
   final_matcher->name = mongory_string_cpy(pool, "Condition");
   temp_pool->free(temp_pool); // Free the temporary pool and the sub_matchers_array.
@@ -419,7 +420,7 @@ mongory_matcher *mongory_matcher_and_new(mongory_memory_pool *pool, mongory_valu
   mongory_matcher *final_matcher = mongory_matcher_construct_by_and(all_sub_matchers, 0, all_sub_matchers->count - 1);
 
   final_matcher->condition = condition;
-  final_matcher->context.sub_count = all_sub_matchers->count;
+  final_matcher->sub_count = all_sub_matchers->count;
   final_matcher->explain = mongory_matcher_composite_explain;
   final_matcher->name = mongory_string_cpy(pool, "And");
   temp_pool->free(temp_pool);
@@ -508,7 +509,7 @@ mongory_matcher *mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value
       mongory_matcher_construct_by_or(or_branch_matchers, 0, or_branch_matchers->count - 1);
 
   final_matcher->condition = condition;
-  final_matcher->context.sub_count = or_branch_matchers->count;
+  final_matcher->sub_count = or_branch_matchers->count;
   final_matcher->explain = mongory_matcher_composite_explain;
   final_matcher->name = mongory_string_cpy(pool, "Or");
   temp_pool->free(temp_pool);
@@ -588,8 +589,8 @@ mongory_matcher *mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongo
   // The 'left' child will be the matcher for individual elements.
   composite->left = unit_matcher;
   composite->base.match = mongory_matcher_elem_match_match;
-  composite->base.context.original_match = mongory_matcher_elem_match_match;
-  composite->base.context.sub_count = 1;
+  composite->base.original_match = mongory_matcher_elem_match_match;
+  composite->base.sub_count = 1;
   composite->base.name = mongory_string_cpy(pool, "ElemMatch");
   composite->base.explain = mongory_matcher_composite_explain;
   return (mongory_matcher *)composite;
@@ -671,8 +672,8 @@ mongory_matcher *mongory_matcher_every_new(mongory_memory_pool *pool, mongory_va
 
   composite->left = unit_matcher;
   composite->base.match = mongory_matcher_every_match;
-  composite->base.context.original_match = mongory_matcher_every_match;
-  composite->base.context.sub_count = 1;
+  composite->base.original_match = mongory_matcher_every_match;
+  composite->base.sub_count = 1;
   composite->base.name = mongory_string_cpy(pool, "Every");
   composite->base.explain = mongory_matcher_composite_explain;
 

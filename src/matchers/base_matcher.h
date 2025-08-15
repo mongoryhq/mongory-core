@@ -29,24 +29,6 @@
 typedef bool (*mongory_matcher_match_func)(mongory_matcher *matcher, mongory_value *value);
 
 /**
- * @struct mongory_matcher_context
- * @brief Context associated with a matcher instance.
- *
- * This can store the original match function (useful if the `match` function
- * pointer in `mongory_matcher` is dynamically changed, e.g., for decorators)
- * and a trace array for debugging purposes (currently not extensively used).
- */
-typedef struct mongory_matcher_context {
-  mongory_matcher_match_func original_match; /**< Stores the original match function, potentially for
-                                                restoration or delegation. */
-  mongory_array *trace;                      /**< An array that can be used for tracing matcher
-                                                execution (for debugging). */
-  size_t sub_count;                          /**< The number of sub-matchers. */
-  void *ref;                                 /**< A reference to the matcher, used for custom
-                                                matchers. */
-} mongory_matcher_context;
-
-/**
  * @struct mongory_matcher
  * @brief Represents a generic matcher in the Mongory system.
  *
@@ -63,10 +45,12 @@ struct mongory_matcher {
                                            logic for this matcher type. */
   mongory_memory_pool *pool;            /**< The memory pool used for allocations related
                                            to this matcher instance. */
-  mongory_matcher_context context;      /**< Additional context for the matcher, like
-                                           tracing or original function pointers. */
   mongory_matcher_explain_func explain; /**< Function pointer to the explanation
                                           logic for this matcher type. */
+  mongory_matcher_match_func original_match; /**< Stores the original match function, potentially for
+                                                restoration or delegation. */
+  size_t sub_count;                          /**< The number of sub-matchers. */
+  void *external_matcher;                        /**< A reference to the matcher, used for custom matchers. */
 };
 
 /**

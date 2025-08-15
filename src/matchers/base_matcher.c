@@ -41,8 +41,9 @@ mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool, mongory_val
   }
 
   // Initialize common fields
-  matcher->context.original_match = NULL;
-  matcher->context.trace = NULL;
+  matcher->original_match = NULL;
+  matcher->sub_count = 0;
+  matcher->external_matcher = NULL;
   matcher->pool = pool;
   matcher->condition = condition;
   matcher->name = NULL;                            // Name is not set by base_new.
