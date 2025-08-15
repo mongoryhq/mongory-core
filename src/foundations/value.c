@@ -384,27 +384,15 @@ static char *mongory_value_bool_to_str(mongory_value *value, mongory_memory_pool
 }
 
 static char *mongory_value_int_to_str(mongory_value *value, mongory_memory_pool *pool) {
-  mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
-  if (!buffer)
-    return NULL;
-  mongory_string_buffer_appendf(buffer, "%lld", (long long)value->data.i);
-  return mongory_string_buffer_cstr(buffer);
+  return mongory_string_cpyf(pool, "%lld", (long long)value->data.i);
 }
 
 static char *mongory_value_double_to_str(mongory_value *value, mongory_memory_pool *pool) {
-  mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
-  if (!buffer)
-    return NULL;
-  mongory_string_buffer_appendf(buffer, "%f", value->data.d);
-  return mongory_string_buffer_cstr(buffer);
+  return mongory_string_cpyf(pool, "%f", value->data.d);
 }
 
 static char *mongory_value_string_to_str(mongory_value *value, mongory_memory_pool *pool) {
-  mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
-  if (!buffer)
-    return NULL;
-  mongory_string_buffer_appendf(buffer, "\"%s\"", value->data.s);
-  return mongory_string_buffer_cstr(buffer);
+  return mongory_string_cpyf(pool, "\"%s\"", value->data.s);
 }
 
 typedef struct mongory_value_container_to_str_ctx {
