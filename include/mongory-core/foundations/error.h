@@ -74,4 +74,9 @@ typedef struct mongory_error {
                                 carefully. */
 } mongory_error;
 
+static mongory_error MONGORY_ALLOC_ERROR = {
+  .type = MONGORY_ERROR_MEMORY,
+  .message = "Memory Allocation Failed",
+};
+
 #endif /* MONGORY_ERROR */

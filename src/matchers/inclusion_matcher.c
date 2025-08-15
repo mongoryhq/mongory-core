@@ -149,21 +149,20 @@ static inline bool mongory_matcher_in_match(mongory_matcher *matcher, mongory_va
 
 mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool, mongory_value *condition) {
   if (!mongory_matcher_validate_array_condition(condition)) {
-    if (pool && pool->alloc) {
-      pool->error = MG_ALLOC_PTR(pool, mongory_error);
-      if (pool->error) {
-        pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
-        pool->error->message = "$in condition must be a valid array.";
-      }
+    pool->error = MG_ALLOC_PTR(pool, mongory_error);
+    if (pool->error) {
+      pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
+      pool->error->message = "$in condition must be a valid array.";
     }
     return NULL;
   }
   mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
-  if (matcher) {
-    matcher->match = mongory_matcher_in_match;
-    matcher->context.original_match = mongory_matcher_in_match;
-    matcher->name = mongory_string_cpy(pool, "In");
+  if (!matcher) {
+    return NULL;
   }
+  matcher->match = mongory_matcher_in_match;
+  matcher->context.original_match = mongory_matcher_in_match;
+  matcher->name = mongory_string_cpy(pool, "In");
   return matcher;
 }
 
@@ -182,20 +181,19 @@ static inline bool mongory_matcher_not_in_match(mongory_matcher *matcher, mongor
 
 mongory_matcher *mongory_matcher_not_in_new(mongory_memory_pool *pool, mongory_value *condition) {
   if (!mongory_matcher_validate_array_condition(condition)) {
-    if (pool && pool->alloc) {
-      pool->error = MG_ALLOC_PTR(pool, mongory_error);
-      if (pool->error) {
-        pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
-        pool->error->message = "$nin condition must be a valid array.";
-      }
+    pool->error = MG_ALLOC_PTR(pool, mongory_error);
+    if (pool->error) {
+      pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
+      pool->error->message = "$nin condition must be a valid array.";
     }
     return NULL;
   }
   mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
-  if (matcher) {
-    matcher->match = mongory_matcher_not_in_match;
-    matcher->context.original_match = mongory_matcher_not_in_match;
-    matcher->name = mongory_string_cpy(pool, "Nin");
+  if (!matcher) {
+    return NULL;
   }
+  matcher->match = mongory_matcher_not_in_match;
+  matcher->context.original_match = mongory_matcher_not_in_match;
+  matcher->name = mongory_string_cpy(pool, "Nin");
   return matcher;
 }

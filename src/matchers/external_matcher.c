@@ -50,22 +50,21 @@ static inline bool mongory_matcher_regex_condition_validate(mongory_value *condi
 
 mongory_matcher *mongory_matcher_regex_new(mongory_memory_pool *pool, mongory_value *condition) {
   if (!mongory_matcher_regex_condition_validate(condition)) {
-    if (pool && pool->alloc) {
-      pool->error = MG_ALLOC_PTR(pool, mongory_error);
-      if (pool->error) {
-        pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
-        pool->error->message = "$regex condition must be a string or a regex object.";
-      }
+    pool->error = MG_ALLOC_PTR(pool, mongory_error);
+    if (pool->error) {
+      pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
+      pool->error->message = "$regex condition must be a string or a regex object.";
     }
     return NULL;
   }
 
   mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
-  if (matcher) {
-    matcher->match = mongory_matcher_regex_match;
-    matcher->context.original_match = mongory_matcher_regex_match;
-    matcher->name = mongory_string_cpy(pool, "Regex");
+  if (!matcher) {
+    return NULL;
   }
+  matcher->match = mongory_matcher_regex_match;
+  matcher->context.original_match = mongory_matcher_regex_match;
+  matcher->name = mongory_string_cpy(pool, "Regex");
   return matcher;
 }
 
@@ -93,17 +92,14 @@ bool mongory_matcher_custom_match(mongory_matcher *matcher, mongory_value *value
  * NULL on failure.
  */
 mongory_matcher *mongory_matcher_custom_new(mongory_memory_pool *pool, char *key, mongory_value *condition) {
-  if (mongory_custom_matcher_adapter == NULL || mongory_custom_matcher_adapter->build == NULL) {
+  if (mongory_custom_matcher_adapter == NULL || mongory_custom_matcher_adapter->build == NULL)
     return NULL; // Custom matcher adapter not initialized.
-  }
-  mongory_matcher_custom_context *context = mongory_custom_matcher_adapter->build(key, condition);
-  if (context == NULL) {
-    return NULL; // Custom matcher build failed.
-  }
   mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
-  if (matcher == NULL) {
-    return NULL; // Base matcher allocation failed.
-  }
+  if (matcher == NULL)
+    return NULL;
+  mongory_matcher_custom_context *context = mongory_custom_matcher_adapter->build(key, condition);
+  if (context == NULL)
+    return NULL;
   matcher->context.ref = context->external_ref;
   matcher->name = context->name;
   matcher->match = mongory_matcher_custom_match;
