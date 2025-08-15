@@ -150,7 +150,7 @@ static inline bool mongory_matcher_in_match(mongory_matcher *matcher, mongory_va
 mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool, mongory_value *condition) {
   if (!mongory_matcher_validate_array_condition(condition)) {
     if (pool && pool->alloc) {
-      pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
+      pool->error = MG_ALLOC_PTR(pool, mongory_error);
       if (pool->error) {
         pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
         pool->error->message = "$in condition must be a valid array.";
@@ -183,7 +183,7 @@ static inline bool mongory_matcher_not_in_match(mongory_matcher *matcher, mongor
 mongory_matcher *mongory_matcher_not_in_new(mongory_memory_pool *pool, mongory_value *condition) {
   if (!mongory_matcher_validate_array_condition(condition)) {
     if (pool && pool->alloc) {
-      pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
+      pool->error = MG_ALLOC_PTR(pool, mongory_error);
       if (pool->error) {
         pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
         pool->error->message = "$nin condition must be a valid array.";

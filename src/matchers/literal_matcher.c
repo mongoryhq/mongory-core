@@ -210,7 +210,7 @@ mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *fiel
   if (!pool || !pool->alloc || !field_name)
     return NULL;
 
-  mongory_field_matcher *field_m = pool->alloc(pool->ctx, sizeof(mongory_field_matcher));
+  mongory_field_matcher *field_m = MG_ALLOC_PTR(pool, mongory_field_matcher);
   if (field_m == NULL) {
     return NULL;
   }

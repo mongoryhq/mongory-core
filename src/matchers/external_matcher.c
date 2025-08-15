@@ -51,7 +51,7 @@ static inline bool mongory_matcher_regex_condition_validate(mongory_value *condi
 mongory_matcher *mongory_matcher_regex_new(mongory_memory_pool *pool, mongory_value *condition) {
   if (!mongory_matcher_regex_condition_validate(condition)) {
     if (pool && pool->alloc) {
-      pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
+      pool->error = MG_ALLOC_PTR(pool, mongory_error);
       if (pool->error) {
         pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
         pool->error->message = "$regex condition must be a string or a regex object.";

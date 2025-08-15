@@ -33,7 +33,7 @@ mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool, mongory_val
   if (!pool || !pool->alloc) {
     return NULL; // Invalid memory pool.
   }
-  mongory_matcher *matcher = pool->alloc(pool->ctx, sizeof(mongory_matcher));
+  mongory_matcher *matcher = MG_ALLOC_PTR(pool, mongory_matcher);
   if (matcher == NULL) {
     // Allocation failed, pool->alloc might set pool->error.
     return NULL;

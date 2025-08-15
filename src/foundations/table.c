@@ -65,7 +65,7 @@ typedef struct mongory_table_internal {
  * @return mongory_table_node* Pointer to the new node, or NULL on failure.
  */
 static inline mongory_table_node *mongory_table_node_new(mongory_table *self) {
-  return self->pool->alloc(self->pool->ctx, sizeof(mongory_table_node));
+  return MG_ALLOC_PTR(self->pool, mongory_table_node);
 }
 
 /**
@@ -436,7 +436,7 @@ mongory_table *mongory_table_new(mongory_memory_pool *pool) {
   // over the array's full capacity.
   bucket_array->count = init_capacity;
 
-  mongory_table_internal *internal = pool->alloc(pool->ctx, sizeof(mongory_table_internal));
+  mongory_table_internal *internal = MG_ALLOC_PTR(pool, mongory_table_internal);
   if (!internal) {
     // TODO: Propagate error via pool->error.
     return NULL;
