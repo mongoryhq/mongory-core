@@ -455,9 +455,5 @@ static char *mongory_value_table_to_str(mongory_value *value, mongory_memory_poo
 }
 
 static char *mongory_value_generic_ptr_to_str(mongory_value *value, mongory_memory_pool *pool) {
-  mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
-  if (!buffer)
-    return NULL;
-  mongory_string_buffer_appendf(buffer, "%p", value->data.ptr);
-  return mongory_string_buffer_cstr(buffer);
+  return mongory_string_cpyf(pool, "%p", value->data.ptr);
 }
