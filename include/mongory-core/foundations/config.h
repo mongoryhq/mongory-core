@@ -188,4 +188,19 @@ void mongory_custom_matcher_lookup_func_set(bool (*lookup)(char *key));
  */
 char *mongory_string_cpy(mongory_memory_pool *pool, char *str);
 
+/**
+ * @brief Copies a formatted string using the Mongory library's memory pool.
+ *
+ * Allocates memory from the given pool and copies the formatted string into it.
+ * The returned string is null-terminated.
+ *
+ * @param pool The memory pool to use for allocating the new string.
+ * @param format The format string to copy.
+ * @param ... The arguments to be formatted into the string.
+ * @return char* A pointer to the newly allocated and copied string, or NULL
+ * if allocation fails or format is NULL. The caller does not own this memory
+ * directly; it will be freed when the pool is freed.
+ */
+char *mongory_string_cpyf(mongory_memory_pool *pool, char *format, ...);
+
 #endif /* MONGORY_FOUNDATIONS_CONFIG_H */

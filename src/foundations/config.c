@@ -20,6 +20,8 @@
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/table.h"
 #include "mongory-core/foundations/value.h"
+#include <stdarg.h> // For va_list, va_start, va_end, vsnprintf
+#include <stdio.h>  // For snprintf
 #include <string.h> // For strlen, strcpy
 
 // Global internal memory pool for the library.
@@ -321,6 +323,23 @@ char *mongory_string_cpy(mongory_memory_pool *pool, char *str) {
   }
 
   strcpy(new_str, str);
+  return new_str;
+}
+
+char *mongory_string_cpyf(mongory_memory_pool *pool, char *format, ...) {
+  va_list args;
+  va_start(args, format);
+  int len = vsnprintf(NULL, 0, format, args);
+  va_end(args);
+  char *new_str = (char *)MG_ALLOC(pool, len + 1);
+  if (new_str == NULL) {
+    pool->error = &MONGORY_ALLOC_ERROR;
+    return NULL;
+  }
+  va_start(args, format);
+  vsnprintf(new_str, len + 1, format, args);
+  va_end(args);
+  new_str[len] = '\0';
   return new_str;
 }
 
