@@ -37,8 +37,7 @@ mongory_composite_matcher *mongory_matcher_composite_new(mongory_memory_pool *po
   if (!pool || !pool->alloc)
     return NULL;
 
-  mongory_composite_matcher *composite =
-      (mongory_composite_matcher *)pool->alloc(pool->ctx, sizeof(mongory_composite_matcher));
+  mongory_composite_matcher *composite = MG_ALLOC_PTR(pool, mongory_composite_matcher);
   if (composite == NULL) {
     return NULL; // Allocation failed.
   }
@@ -269,7 +268,7 @@ static mongory_matcher *mongory_matcher_construct_by_or(mongory_array *matchers_
 mongory_matcher *mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongory_value *condition) {
   if (!mongory_matcher_table_cond_validate(condition, NULL)) {
     if (pool && pool->alloc) { // Check if pool is usable for error allocation
-      pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
+      pool->error = MG_ALLOC_PTR(pool, mongory_error);
       if (pool->error) {
         pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
         pool->error->message = "Condition for table_cond_new must be a valid table.";
@@ -377,7 +376,7 @@ static inline bool mongory_matcher_build_and_sub_matcher(mongory_value *conditio
 mongory_matcher *mongory_matcher_and_new(mongory_memory_pool *pool, mongory_value *condition) {
   if (!mongory_matcher_multi_table_cond_validate(condition)) {
     if (pool && pool->alloc) {
-      pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
+      pool->error = MG_ALLOC_PTR(pool, mongory_error);
       if (pool->error) {
         pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
         pool->error->message = "$and condition must be an array of tables.";
@@ -471,7 +470,7 @@ static inline bool mongory_matcher_build_or_sub_matcher(mongory_value *condition
 mongory_matcher *mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value *condition) {
   if (!mongory_matcher_multi_table_cond_validate(condition)) {
     if (pool && pool->alloc) {
-      pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
+      pool->error = MG_ALLOC_PTR(pool, mongory_error);
       if (pool->error) {
         pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
         pool->error->message = "$or condition must be an array of tables.";

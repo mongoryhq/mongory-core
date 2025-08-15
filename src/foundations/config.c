@@ -83,7 +83,7 @@ static inline void mongory_internal_regex_adapter_init() {
     return;
   }
 
-  mongory_internal_regex_adapter = MG_POOL_ALLOC(mongory_internal_pool, mongory_regex_adapter);
+  mongory_internal_regex_adapter = MG_ALLOC_PTR(mongory_internal_pool, mongory_regex_adapter);
   if (mongory_internal_regex_adapter == NULL) {
     // TODO: Set error state (e.g., in mongory_internal_pool->error).
     return;
@@ -206,7 +206,7 @@ static inline void mongory_internal_value_converter_init() {
     return; // Cannot proceed if pool init failed.
   }
 
-  mongory_internal_value_converter = MG_POOL_ALLOC(mongory_internal_pool, mongory_value_converter);
+  mongory_internal_value_converter = MG_ALLOC_PTR(mongory_internal_pool, mongory_value_converter);
   if (mongory_internal_value_converter == NULL) {
     // TODO: Set error state.
     return;
@@ -270,7 +270,7 @@ static void mongory_custom_matcher_adapter_init() {
   if (mongory_custom_matcher_adapter != NULL) {
     return; // Already initialized.
   }
-  mongory_custom_matcher_adapter = MG_POOL_ALLOC(mongory_internal_pool, mongory_matcher_custom_adapter);
+  mongory_custom_matcher_adapter = MG_ALLOC_PTR(mongory_internal_pool, mongory_matcher_custom_adapter);
   if (mongory_custom_matcher_adapter == NULL) {
     // TODO: Set error state.
     return;
@@ -319,7 +319,7 @@ char *mongory_string_cpy(mongory_memory_pool *pool, char *str) {
   }
 
   size_t len = strlen(str);
-  char *new_str = pool->alloc(pool->ctx, len + 1); // +1 for null terminator.
+  char *new_str = (char *)MG_ALLOC(pool, len + 1); // +1 for null terminator.
   if (new_str == NULL) {
     // TODO: Set pool->error
     return NULL;

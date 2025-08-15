@@ -61,7 +61,7 @@ void test_array_value(void) {
 
 void test_table_value(void) {
   mongory_memory_pool *pool = get_test_pool();
-  mongory_table *table = pool->alloc(pool->ctx, sizeof(mongory_table));
+  mongory_table *table = MG_ALLOC_PTR(pool, mongory_table);
   TEST_ASSERT_NOT_NULL(table);
 
   mongory_value *value_t = mongory_value_wrap_t(pool, table);

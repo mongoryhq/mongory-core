@@ -78,7 +78,7 @@ static void mongory_value_generic_ptr_to_str(mongory_value *value, mongory_strin
 static inline mongory_value *mongory_value_new(mongory_memory_pool *pool) {
   if (!pool || !pool->alloc)
     return NULL; // Invalid pool.
-  mongory_value *value = pool->alloc(pool->ctx, sizeof(mongory_value));
+  mongory_value *value = MG_ALLOC_PTR(pool, mongory_value);
   if (!value) {
     // TODO: pool->error could be set by pool->alloc itself.
     return NULL;

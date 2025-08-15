@@ -7,6 +7,8 @@
  * It uses a private structure `mongory_array_private` which extends
  * `mongory_array` with capacity information and the actual item storage.
  */
+
+#include <string.h>
 #include "array_private.h"
 #include <mongory-core/foundations/array.h>
 #include <mongory-core/foundations/memory_pool.h>
@@ -35,18 +37,14 @@ bool mongory_array_resize(mongory_array *self, size_t size) {
   mongory_array_private *internal = (mongory_array_private *)self;
 
   // Allocate a new, larger block of memory for the items.
-  // The old `internal->items` block is not freed here; it becomes orphaned
-  // and its cleanup is the responsibility of the memory pool.
-  mongory_value **new_items = self->pool->alloc(self->pool->ctx, sizeof(mongory_value *) * size);
+  mongory_value **new_items = MG_ALLOC_ARY(self->pool, mongory_value*, size);
   if (!new_items) {
     // TODO: Propagate error via self->pool->error.
     return false;
   }
 
   // Copy existing item pointers to the new memory block.
-  for (size_t i = 0; i < self->count; i++) {
-    new_items[i] = internal->items[i];
-  }
+  memcpy(new_items, internal->items, sizeof(mongory_value *) * self->count);
 
   internal->items = new_items;
   internal->capacity = size;
@@ -176,14 +174,14 @@ static inline bool mongory_array_set(mongory_array *self, size_t index, mongory_
  */
 mongory_array *mongory_array_new(mongory_memory_pool *pool) {
   // First, allocate the private structure that holds all array metadata.
-  mongory_array_private *internal = pool->alloc(pool->ctx, sizeof(mongory_array_private));
+  mongory_array_private *internal = MG_ALLOC_PTR(pool, mongory_array_private);
   if (!internal) {
     // TODO: Propagate error via pool->error (if pool is not NULL)
     return NULL;
   }
 
   // Then, allocate the initial block of memory for the array items.
-  mongory_value **items = pool->alloc(pool->ctx, sizeof(mongory_value *) * MONGORY_ARRAY_INIT_SIZE);
+  mongory_value **items = MG_ALLOC_ARY(pool, mongory_value*, MONGORY_ARRAY_INIT_SIZE);
   if (!items) {
     // If this fails, the 'internal' struct allocated above will be cleaned up
     // by the pool, assuming it's a tracing pool.

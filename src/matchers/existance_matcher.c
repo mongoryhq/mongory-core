@@ -52,7 +52,7 @@ static inline bool mongory_matcher_exists_match(mongory_matcher *matcher, mongor
 mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool, mongory_value *condition) {
   if (!mongory_matcher_validate_bool_condition(condition)) {
     if (pool && pool->alloc) { // Ensure pool is valid before trying to set error
-      pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
+      pool->error = MG_ALLOC_PTR(pool, mongory_error);
       if (pool->error) {
         pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
         pool->error->message = "$exists condition must be a boolean value.";
@@ -128,7 +128,7 @@ static inline bool mongory_matcher_present_match(mongory_matcher *matcher, mongo
 mongory_matcher *mongory_matcher_present_new(mongory_memory_pool *pool, mongory_value *condition) {
   if (!mongory_matcher_validate_bool_condition(condition)) {
     if (pool && pool->alloc) {
-      pool->error = pool->alloc(pool->ctx, sizeof(mongory_error));
+      pool->error = MG_ALLOC_PTR(pool, mongory_error);
       if (pool->error) {
         pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
         pool->error->message = "$present condition must be a boolean value.";
