@@ -233,11 +233,10 @@ void test_value_stringify(void) {
   table->set(table, "courses", mongory_value_wrap_a(pool, array));
 
   mongory_value *value = mongory_value_wrap_t(pool, table);
-  mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
-  value->to_str(value, buffer);
+  char *value_str = value->to_str(value, pool);
 
   const char *expected = "{\"age\":30,\"isStudent\":false,\"name\":\"John\",\"courses\":[1,\"two\",true]}";
-  TEST_ASSERT_EQUAL_STRING(expected, mongory_string_buffer_cstr(buffer));
+  TEST_ASSERT_EQUAL_STRING(expected, value_str);
 }
 
 int main(void) {

@@ -6,13 +6,14 @@
 #include "base_matcher.h"
 #include "composite_matcher.h"
 #include "literal_matcher.h"
-#include <stdio.h> 
+#include <stdio.h>
 
 char *mongory_matcher_title(mongory_matcher *matcher, mongory_memory_pool *pool) {
   mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
   mongory_string_buffer_append(buffer, matcher->name);
   mongory_string_buffer_append(buffer, ": ");
-  matcher->condition->to_str(matcher->condition, buffer);
+  mongory_value *condition = matcher->condition;
+  mongory_string_buffer_append(buffer, condition->to_str(condition, pool));
   return mongory_string_buffer_cstr(buffer);
 }
 
@@ -21,7 +22,7 @@ char *mongory_matcher_title_with_field(mongory_matcher *matcher, mongory_memory_
   mongory_field_matcher *field_matcher = (mongory_field_matcher *)matcher;
   mongory_string_buffer_appendf(buffer, "Field: \"%s\", to match: ", field_matcher->field);
   mongory_value *condition = field_matcher->composite.base.condition;
-  condition->to_str(condition, buffer);
+  mongory_string_buffer_append(buffer, condition->to_str(condition, pool));
   return mongory_string_buffer_cstr(buffer);
 }
 

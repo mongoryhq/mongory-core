@@ -130,7 +130,7 @@ typedef struct mongory_test_execute_context {
 bool execute_test_record(mongory_value *test_record, void *acc) {
   mongory_test_execute_context *context = (mongory_test_execute_context *)acc;
   mongory_string_buffer *record_buffer = mongory_string_buffer_new(test_record->pool);
-  test_record->to_str(test_record, record_buffer);
+  mongory_string_buffer_append(record_buffer, test_record->to_str(test_record, test_record->pool));
   printf("Running test record: %d -> %s\n", context->index, mongory_string_buffer_cstr(record_buffer));
   mongory_matcher *matcher = context->matcher;
   mongory_value *data_value = test_record->data.t->get(test_record->data.t, "data");
