@@ -50,7 +50,6 @@ mongory_composite_matcher *mongory_matcher_composite_new(mongory_memory_pool *po
   composite->base.explain = mongory_matcher_composite_explain; // Specific explain fn to be set by derived type
   composite->base.original_match = NULL;
   composite->base.sub_count = 0;
-  composite->base.external_matcher = NULL;
   composite->base.condition = condition;
 
   // Initialize composite-specific fields
