@@ -12,6 +12,7 @@
 #include <stdio.h>  // For printf
 #include <stdlib.h> // For strtol
 #include "matcher_explainable.h"
+#include "matcher_traversable.h"
 
 /**
  * @brief Allocates and initializes common fields of a `mongory_matcher`.
@@ -48,7 +49,7 @@ mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool, mongory_val
   matcher->name = NULL;                            // Name is not set by base_new.
   matcher->match = NULL;                           // Specific match function must be set by derived type.
   matcher->explain = mongory_matcher_base_explain; // Specific explain function must be set by derived type.
-
+  matcher->traverse = mongory_matcher_leaf_traverse;
   return matcher;
 }
 

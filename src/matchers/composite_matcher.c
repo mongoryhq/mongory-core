@@ -15,6 +15,7 @@
 #include "mongory-core/foundations/table.h" // For mongory_table operations
 #include "mongory-core/foundations/value.h"
 #include "matcher_explainable.h"
+#include "matcher_traversable.h"
 #include <mongory-core.h> // General include
 #include <stdio.h>        // For sprintf
 
@@ -50,7 +51,7 @@ mongory_composite_matcher *mongory_matcher_composite_new(mongory_memory_pool *po
   composite->base.original_match = NULL;
   composite->base.sub_count = 0;
   composite->base.condition = condition;
-
+  composite->base.traverse = mongory_matcher_composite_traverse;
   return composite;
 }
 
@@ -474,7 +475,6 @@ mongory_matcher *mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongo
   composite->base.original_match = mongory_matcher_elem_match_match;
   composite->base.sub_count = sub_matchers->count;
   composite->base.name = mongory_string_cpy(pool, "ElemMatch");
-  composite->base.explain = mongory_matcher_composite_explain;
   return (mongory_matcher *)composite;
 }
 
@@ -533,7 +533,6 @@ mongory_matcher *mongory_matcher_every_new(mongory_memory_pool *pool, mongory_va
   composite->base.original_match = mongory_matcher_every_match;
   composite->base.sub_count = sub_matchers->count;
   composite->base.name = mongory_string_cpy(pool, "Every");
-  composite->base.explain = mongory_matcher_composite_explain;
 
   return (mongory_matcher *)composite;
 }
