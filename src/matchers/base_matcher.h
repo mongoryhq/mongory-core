@@ -52,6 +52,8 @@ struct mongory_matcher {
                                                 restoration or delegation. */
   size_t sub_count;                          /**< The number of sub-matchers. */
   mongory_matcher_traverse_func traverse;    /**< Function pointer to the traversal logic for this matcher type. */
+  mongory_array *trace_stack;                /**< The trace stack for this matcher. */
+  int trace_level;                           /**< The trace level for this matcher. */
 };
 
 /**

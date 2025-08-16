@@ -78,6 +78,7 @@ mongory_matcher *mongory_matcher_always_true_new(mongory_memory_pool *pool, mong
     return NULL;
   }
   matcher->match = mongory_matcher_always_true_match;
+  matcher->original_match = mongory_matcher_always_true_match;
   matcher->name = mongory_string_cpy(pool, "Always True");
   matcher->explain = mongory_matcher_base_explain;
   // Optionally set original_match as well if it's a strict policy
@@ -110,6 +111,7 @@ mongory_matcher *mongory_matcher_always_false_new(mongory_memory_pool *pool, mon
     return NULL;
   }
   matcher->match = mongory_matcher_always_false_match;
+  matcher->original_match = mongory_matcher_always_false_match;
   matcher->name = mongory_string_cpy(pool, "Always False");
   matcher->explain = mongory_matcher_base_explain;
   // matcher->context.original_match = mongory_matcher_always_false_match;
