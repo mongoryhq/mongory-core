@@ -124,18 +124,20 @@ static inline mongory_value *mongory_matcher_array_record_parse_table(mongory_va
   if (elem_match_sub_table->count > 0) {
     // If there were conditions for element matching, add them as an $elemMatch
     // clause to the main parsed_table.
-    mongory_value *elem_match_table_value = mongory_value_wrap_t(pool, elem_match_sub_table);
-    if (!elem_match_table_value) {
-      // Failed to wrap table, cleanup needed or let pool handle.
-      return NULL;
-    }
-    parsed_table->set(parsed_table, "$elemMatch", elem_match_table_value);
+    parsed_table->set(parsed_table, "$elemMatch", mongory_value_wrap_t(pool, elem_match_sub_table));
   }
   // If elem_match_sub_table is empty, it's not added. The original parsed_table
   // (which might contain $size etc.) is returned.
   return mongory_value_wrap_t(pool, parsed_table);
 }
 
+/**
+ * @brief Wraps a table in a value.
+ * @param pool Memory pool.
+ * @param key Key to set in the table.
+ * @param value Value to set in the table.
+ * @return A new `mongory_value` (table) containing the wrapped table.
+ */
 static inline mongory_value *mongory_matcher_array_record_parse_table_wrap(mongory_memory_pool *pool, char *key, mongory_value *value) {
   if (!pool || !key || !value)
     return NULL;
@@ -193,7 +195,7 @@ static inline mongory_matcher *mongory_matcher_array_record_elem_match_equal_new
  * @param condition The original condition for the array_record_matcher.
  * @return The "left" child matcher, or NULL on failure.
  */
-static inline mongory_matcher *mongory_matcher_array_record_left_delegate(mongory_memory_pool *pool,
+static inline mongory_matcher *mongory_matcher_array_record_generic_delegate(mongory_memory_pool *pool,
                                                                           mongory_value *condition) {
   if (!condition)
     return NULL;
@@ -221,7 +223,7 @@ static inline mongory_matcher *mongory_matcher_array_record_left_delegate(mongor
  * @param condition The original condition for the array_record_matcher.
  * @return An equality matcher if `condition` is an array, otherwise NULL.
  */
-static inline mongory_matcher *mongory_matcher_array_record_right_delegate(mongory_memory_pool *pool,
+static inline mongory_matcher *mongory_matcher_array_record_array_cond_delegate(mongory_memory_pool *pool,
                                                                            mongory_value *condition) {
   if (!condition)
     return NULL;
@@ -279,23 +281,26 @@ mongory_matcher *mongory_matcher_array_record_new(mongory_memory_pool *pool, mon
   if (!pool || !condition)
     return NULL;
 
-  mongory_matcher *left_child = mongory_matcher_array_record_left_delegate(pool, condition);
-  mongory_matcher *right_child = mongory_matcher_array_record_right_delegate(pool, condition);
+  mongory_matcher *generic_child = mongory_matcher_array_record_generic_delegate(pool, condition);
+  mongory_matcher *array_cond_child = mongory_matcher_array_record_array_cond_delegate(pool, condition);
 
-  if (!(left_child && right_child)) {
-    return left_child ? left_child : right_child;
+  if (!(generic_child && array_cond_child)) {
+    return generic_child ? generic_child : array_cond_child;
   }
 
   // Both left (element-wise) and right (whole-array equality) are possible.
   // Combine them with an OR.
   mongory_composite_matcher *final_or_composite = mongory_matcher_composite_new(pool, condition);
   if (!final_or_composite) {
-    // Cleanup left_child, right_child? Pool should handle.
     return NULL;
   }
 
-  final_or_composite->left = left_child;
-  final_or_composite->right = right_child;
+  final_or_composite->children = mongory_array_new(pool);
+  if (!final_or_composite->children) {
+    return NULL;
+  }
+  final_or_composite->children->push(final_or_composite->children, (mongory_value *)generic_child);
+  final_or_composite->children->push(final_or_composite->children, (mongory_value *)array_cond_child);
   final_or_composite->base.match = mongory_matcher_array_record_match; // Uses or_match
   final_or_composite->base.original_match = mongory_matcher_array_record_match;
 
