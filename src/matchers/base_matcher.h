@@ -16,6 +16,7 @@
 #include "mongory-core/foundations/value.h"
 #include "mongory-core/matchers/matcher.h" // For mongory_matcher structure
 #include "matcher_explainable.h"
+#include "matcher_traversable.h"
 #include <stdbool.h>
 
 /**
@@ -50,6 +51,7 @@ struct mongory_matcher {
   mongory_matcher_match_func original_match; /**< Stores the original match function, potentially for
                                                 restoration or delegation. */
   size_t sub_count;                          /**< The number of sub-matchers. */
+  mongory_matcher_traverse_func traverse;    /**< Function pointer to the traversal logic for this matcher type. */
 };
 
 /**

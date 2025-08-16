@@ -19,6 +19,7 @@
 #include "composite_matcher.h"              // For mongory_matcher_composite_new, mongory_matcher_table_cond_new
 #include "existance_matcher.h"              // For mongory_matcher_exists_new (used by null_new)
 #include "matcher_explainable.h"
+#include "matcher_traversable.h"
 #include "mongory-core/foundations/array.h" // For mongory_array access
 #include "mongory-core/foundations/table.h" // For mongory_table access
 #include "mongory-core/foundations/value.h" // For mongory_value types and wrappers
@@ -228,7 +229,7 @@ mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *fiel
   field_m->literal.base.condition = condition_for_field; // Original condition for the field
   field_m->literal.base.name = mongory_string_cpy(pool, "Field");
   field_m->literal.base.explain = mongory_matcher_field_explain;
-
+  field_m->literal.base.traverse = mongory_matcher_literal_traverse;
   // The 'left' child of the composite is the actual matcher for the field's value,
   // determined by the type of 'condition_for_field'.
   field_m->literal.delegate_matcher = mongory_matcher_literal_delegate(pool, condition_for_field);
@@ -274,6 +275,7 @@ mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool, mongory_valu
   literal->base.original_match = mongory_matcher_not_match;
   literal->base.name = mongory_string_cpy(pool, "Not");
   literal->base.explain = mongory_matcher_literal_explain;
+  literal->base.traverse = mongory_matcher_literal_traverse;
   literal->base.sub_count = 1;
   return (mongory_matcher *)literal;
 }
@@ -321,6 +323,7 @@ mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool, mongory_val
   literal->base.original_match = mongory_matcher_size_match;
   literal->base.name = mongory_string_cpy(pool, "Size");
   literal->base.explain = mongory_matcher_literal_explain;
+  literal->base.traverse = mongory_matcher_literal_traverse;
   literal->base.sub_count = 1;
   return (mongory_matcher *)literal;
 }
