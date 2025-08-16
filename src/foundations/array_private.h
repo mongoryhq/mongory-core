@@ -13,4 +13,6 @@ typedef struct mongory_array_private {
   size_t capacity;       // capacity
 } mongory_array_private;
 
+mongory_array *mongory_array_sort_by(mongory_array *self, mongory_memory_pool *temp_pool, void *ctx, size_t(*callback)(mongory_value *value, void *ctx));
+
 #endif // MONGORY_ARRAY_PRIVATE_H
