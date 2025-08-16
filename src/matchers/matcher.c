@@ -90,23 +90,24 @@ typedef struct mongory_matcher_traced_match_context {
 
 static bool mongory_matcher_traced_match(mongory_matcher *matcher, mongory_value *value) {
   bool matched = matcher->original_match(matcher, value);
-  mongory_memory_pool *export_pool = value == NULL ? matcher->pool : value->pool;
-  mongory_string_buffer *buffer = mongory_string_buffer_new(export_pool);
+  mongory_memory_pool *pool = matcher->pool;
+  mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
   char *res = matched ? "\e[30;42mMatched\e[0m" : "\e[30;41mDismatch\e[0m";
-  char *condition = matcher->condition->to_str(matcher->condition, export_pool);
-  char *record = value == NULL ? "Nothing" : value->to_str(value, export_pool);
-  if (strcmp(matcher->name, "Field") == 0) {
+  char *cdtn = matcher->condition->to_str(matcher->condition, pool);
+  char *rcd = value == NULL ? "Nothing" : value->to_str(value, pool);
+  char *name = matcher->name;
+  if (strcmp(name, "Field") == 0) {
     mongory_field_matcher *field_matcher = (mongory_field_matcher *)matcher;
-    char *field_name = field_matcher->field;
-    mongory_string_buffer_appendf(buffer, "%s: %s, field: \"%s\", condition: %s, record: %s\n", matcher->name, res, field_name, condition, record);
+    char *fd = field_matcher->field;
+    mongory_string_buffer_appendf(buffer, "%s: %s, field: \"%s\", condition: %s, record: %s\n", name, res, fd, cdtn, rcd);
   } else {
-    mongory_string_buffer_appendf(buffer, "%s: %s, condition: %s, record: %s\n", matcher->name, res, condition, record);
+    mongory_string_buffer_appendf(buffer, "%s: %s, condition: %s, record: %s\n", name, res, cdtn, rcd);
   }
 
-  mongory_matcher_traced_match_context *trace_result = MG_ALLOC_PTR(export_pool, mongory_matcher_traced_match_context);
+  mongory_matcher_traced_match_context *trace_result = MG_ALLOC_PTR(pool, mongory_matcher_traced_match_context);
   trace_result->message = mongory_string_buffer_cstr(buffer);
   trace_result->level = matcher->trace_level;
-  mongory_value *wrapped = mongory_value_wrap_ptr(export_pool, (void *)trace_result);
+  mongory_value *wrapped = mongory_value_wrap_ptr(pool, (void *)trace_result);
   matcher->trace_stack->push(matcher->trace_stack, wrapped);
   return matched;
 }
