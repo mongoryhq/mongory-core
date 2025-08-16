@@ -10,6 +10,8 @@
 #include "mongory-core/foundations/error.h"  // For MONGORY_ERROR_INVALID_ARGUMENT
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
+#include "matcher_explainable.h"
+#include "matcher_traversable.h"
 
 /**
  * @brief Match function for the $regex matcher.
@@ -112,6 +114,7 @@ mongory_matcher *mongory_matcher_custom_new(mongory_memory_pool *pool, char *key
   matcher->base.match = mongory_matcher_custom_match;
   matcher->base.original_match = mongory_matcher_custom_match;
   matcher->base.explain = mongory_matcher_base_explain;
+  matcher->base.traverse = mongory_matcher_leaf_traverse;
   matcher->external_matcher = context->external_matcher;
   return (mongory_matcher *)matcher;
 }
