@@ -166,7 +166,6 @@ static inline bool mongory_matcher_table_build_sub_matcher(char *key, mongory_va
   if (sub_matcher == NULL) {
     // Failed to create sub-matcher (e.g., allocation error, invalid condition
     // for sub-matcher)
-    // TODO: Propagate error from sub-matcher creation if possible.
     return false;
   }
 
@@ -210,30 +209,30 @@ mongory_matcher *mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongo
     return mongory_matcher_always_true_new(pool, condition);
   }
 
-  mongory_array *sub_matchers_array = mongory_array_new(pool);
-  if (sub_matchers_array == NULL)
+  mongory_array *sub_matchers = mongory_array_new(pool);
+  if (sub_matchers == NULL)
     return NULL; // Failed to create array for sub-matchers.
 
-  mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, sub_matchers_array};
+  mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, sub_matchers};
   // Iterate over the condition table, building sub-matchers.
   if (!table->each(table, &build_ctx, mongory_matcher_table_build_sub_matcher)) {
     // Building one of the sub-matchers failed.
     return NULL;
   }
 
-  if (sub_matchers_array->count == 1) {
-    return (mongory_matcher *)sub_matchers_array->get(sub_matchers_array, 0);
+  if (sub_matchers->count == 1) {
+    return (mongory_matcher *)sub_matchers->get(sub_matchers, 0);
   }
 
   // Combine sub-matchers using AND logic.
   mongory_composite_matcher *final_matcher = mongory_matcher_composite_new(pool, condition);
   if (final_matcher == NULL)
     return NULL;
-  final_matcher->children = sub_matchers_array;
+  final_matcher->children = sub_matchers;
   final_matcher->base.match = mongory_matcher_and_match;
   final_matcher->base.original_match = mongory_matcher_and_match;
   final_matcher->base.condition = condition;
-  final_matcher->base.sub_count = sub_matchers_array->count;
+  final_matcher->base.sub_count = sub_matchers->count;
   final_matcher->base.name = mongory_string_cpy(pool, "Condition");
   return (mongory_matcher *)final_matcher;
 }
@@ -298,13 +297,13 @@ mongory_matcher *mongory_matcher_and_new(mongory_memory_pool *pool, mongory_valu
     return mongory_matcher_always_true_new(pool, condition); // $and:[] is true
   }
 
-  mongory_array *all_sub_matchers = mongory_array_new(pool);
-  if (all_sub_matchers == NULL) {
+  mongory_array *sub_matchers = mongory_array_new(pool);
+  if (sub_matchers == NULL) {
     return NULL;
   }
 
   // Context for building matchers from EACH table within the $and array.
-  mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, all_sub_matchers};
+  mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, sub_matchers};
   // Iterate through the array of tables provided in the $and condition.
   // mongory_matcher_build_and_sub_matcher will then iterate keys of EACH table.
   int total = (int)array_of_tables->count;
@@ -315,22 +314,22 @@ mongory_matcher *mongory_matcher_and_new(mongory_memory_pool *pool, mongory_valu
     }
   }
 
-  if (all_sub_matchers->count == 0) {
+  if (sub_matchers->count == 0) {
     return mongory_matcher_always_true_new(pool, condition);
   }
 
-  if (all_sub_matchers->count == 1) {
-    return (mongory_matcher *)all_sub_matchers->get(all_sub_matchers, 0);
+  if (sub_matchers->count == 1) {
+    return (mongory_matcher *)sub_matchers->get(sub_matchers, 0);
   }
 
   mongory_composite_matcher *final_matcher = mongory_matcher_composite_new(pool, condition);
   if (final_matcher == NULL)
     return NULL;
-  final_matcher->children = all_sub_matchers;
+  final_matcher->children = sub_matchers;
   final_matcher->base.match = mongory_matcher_and_match;
   final_matcher->base.original_match = mongory_matcher_and_match;
   final_matcher->base.condition = condition;
-  final_matcher->base.sub_count = all_sub_matchers->count;
+  final_matcher->base.sub_count = sub_matchers->count;
   final_matcher->base.name = mongory_string_cpy(pool, "And");
   return (mongory_matcher *)final_matcher;
 }
@@ -387,12 +386,12 @@ mongory_matcher *mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value
     return mongory_matcher_always_false_new(pool, condition); // $or:[] is false
   }
 
-  mongory_array *or_branch_matchers = mongory_array_new(pool);
-  if (or_branch_matchers == NULL) {
+  mongory_array *sub_matchers = mongory_array_new(pool);
+  if (sub_matchers == NULL) {
     return NULL;
   }
 
-  mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, or_branch_matchers};
+  mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, sub_matchers};
   int total = (int)array_of_tables->count;
   for (int i = 0; i < total; i++) {
     mongory_value *table = array_of_tables->get(array_of_tables, i);
@@ -401,18 +400,18 @@ mongory_matcher *mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value
     }
   }
 
-  if (or_branch_matchers->count == 1) {
-    return (mongory_matcher *)or_branch_matchers->get(or_branch_matchers, 0);
+  if (sub_matchers->count == 1) {
+    return (mongory_matcher *)sub_matchers->get(sub_matchers, 0);
   }
 
   mongory_composite_matcher *final_matcher = mongory_matcher_composite_new(pool, condition);
   if (final_matcher == NULL)
     return NULL;
-  final_matcher->children = or_branch_matchers;
+  final_matcher->children = sub_matchers;
   final_matcher->base.match = mongory_matcher_or_match;
   final_matcher->base.original_match = mongory_matcher_or_match;
   final_matcher->base.condition = condition;
-  final_matcher->base.sub_count = or_branch_matchers->count;
+  final_matcher->base.sub_count = sub_matchers->count;
   final_matcher->base.name = mongory_string_cpy(pool, "Or");
   return (mongory_matcher *)final_matcher;
 }
