@@ -203,3 +203,44 @@ mongory_array *mongory_array_new(mongory_memory_pool *pool) {
 
   return &internal->base; // Return pointer to the public structure.
 }
+
+static mongory_value** mongory_array_merge(mongory_memory_pool *pool, mongory_value **left, mongory_value **right, size_t count, void *ctx, size_t(*callback)(mongory_value *value, void *ctx)) {
+  mongory_value **result = MG_ALLOC_ARY(pool, mongory_value*, count);
+  size_t i = 0, j = 0, k = 0;
+  while (i < count / 2 && j < count - count / 2) {
+    if (callback(left[i], ctx) < callback(right[j], ctx)) {
+      result[k++] = left[i++];
+    } else {
+      result[k++] = right[j++];
+    }
+  }
+  while (i < count / 2) {
+    result[k++] = left[i++];
+  }
+  while (j < count - count / 2) {
+    result[k++] = right[j++];
+  }
+  return result;
+}
+
+static mongory_value** mongory_array_merge_sort(mongory_memory_pool *pool, mongory_value **origin_items, size_t count, void *ctx, size_t(*callback)(mongory_value *value, void *ctx)) {
+  if (count <= 1) {
+    return origin_items;
+  }
+  size_t mid = count / 2;
+  mongory_value **left = mongory_array_merge_sort(pool, origin_items, mid, ctx, callback);
+  mongory_value **right = mongory_array_merge_sort(pool, origin_items + mid, count - mid, ctx, callback);
+  return mongory_array_merge(pool, left, right, count, ctx, callback);
+}
+
+mongory_array *mongory_array_sort_by(mongory_array *self, mongory_memory_pool *temp_pool, void *ctx, size_t(*callback)(mongory_value *value, void *ctx)) {
+  mongory_array_private *internal = (mongory_array_private *)self;
+
+  mongory_value **new_items = mongory_array_merge_sort(temp_pool, internal->items, self->count, ctx, callback);
+  mongory_array_private *new_array = (mongory_array_private *)mongory_array_new(self->pool);
+  new_array->capacity = internal->capacity;
+  new_array->base.count = self->count;
+  new_array->items = MG_ALLOC_ARY(self->pool, mongory_value*, new_array->capacity);
+  memcpy(new_array->items, new_items, sizeof(mongory_value *) * self->count);
+  return &new_array->base;
+}
