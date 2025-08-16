@@ -50,7 +50,6 @@ struct mongory_matcher {
   mongory_matcher_match_func original_match; /**< Stores the original match function, potentially for
                                                 restoration or delegation. */
   size_t sub_count;                          /**< The number of sub-matchers. */
-  void *external_matcher;                        /**< A reference to the matcher, used for custom matchers. */
 };
 
 /**

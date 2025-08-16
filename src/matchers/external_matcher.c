@@ -68,6 +68,11 @@ mongory_matcher *mongory_matcher_regex_new(mongory_memory_pool *pool, mongory_va
   return matcher;
 }
 
+typedef struct mongory_custom_matcher {
+  mongory_matcher base;
+  void *external_matcher;
+} mongory_custom_matcher;
+
 /**
  * @brief The match function for a custom matcher.
  * @param matcher The matcher to match against.
@@ -78,7 +83,8 @@ bool mongory_matcher_custom_match(mongory_matcher *matcher, mongory_value *value
   if (mongory_custom_matcher_adapter == NULL || mongory_custom_matcher_adapter->match == NULL) {
     return false; // Custom matcher adapter not initialized.
   }
-  return mongory_custom_matcher_adapter->match(matcher->external_matcher, value);
+  mongory_custom_matcher *custom_matcher = (mongory_custom_matcher *)matcher;
+  return mongory_custom_matcher_adapter->match(custom_matcher->external_matcher, value);
 }
 
 /**
@@ -94,15 +100,18 @@ bool mongory_matcher_custom_match(mongory_matcher *matcher, mongory_value *value
 mongory_matcher *mongory_matcher_custom_new(mongory_memory_pool *pool, char *key, mongory_value *condition) {
   if (mongory_custom_matcher_adapter == NULL || mongory_custom_matcher_adapter->build == NULL)
     return NULL; // Custom matcher adapter not initialized.
-  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
+  mongory_custom_matcher *matcher = MG_ALLOC_PTR(pool, mongory_custom_matcher);
   if (matcher == NULL)
     return NULL;
   mongory_matcher_custom_context *context = mongory_custom_matcher_adapter->build(key, condition);
   if (context == NULL)
     return NULL;
+  matcher->base.pool = pool;
+  matcher->base.condition = condition;
+  matcher->base.name = context->name;
+  matcher->base.match = mongory_matcher_custom_match;
+  matcher->base.original_match = mongory_matcher_custom_match;
+  matcher->base.explain = mongory_matcher_base_explain;
   matcher->external_matcher = context->external_matcher;
-  matcher->name = context->name;
-  matcher->match = mongory_matcher_custom_match;
-  matcher->original_match = mongory_matcher_custom_match;
-  return matcher;
+  return (mongory_matcher *)matcher;
 }
