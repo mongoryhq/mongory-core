@@ -42,7 +42,6 @@ mongory_composite_matcher *mongory_matcher_composite_new(mongory_memory_pool *po
     pool->error = &MONGORY_ALLOC_ERROR;
     return NULL; // Allocation failed.
   }
-
   // Initialize base matcher fields
   composite->base.pool = pool;
   composite->base.name = NULL;                                 // Specific name to be set by derived type if any
@@ -51,10 +50,6 @@ mongory_composite_matcher *mongory_matcher_composite_new(mongory_memory_pool *po
   composite->base.original_match = NULL;
   composite->base.sub_count = 0;
   composite->base.condition = condition;
-
-  // Initialize composite-specific fields
-  composite->left = NULL;
-  composite->right = NULL;
 
   return composite;
 }
@@ -75,13 +70,13 @@ mongory_composite_matcher *mongory_matcher_composite_new(mongory_memory_pool *po
 // ============================================================================
 static inline bool mongory_matcher_and_match(mongory_matcher *matcher, mongory_value *value) {
   mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
-  // If left child exists and doesn't match, the AND fails.
-  if (composite->left && !composite->left->match(composite->left, value)) {
-    return false;
-  }
-  // If right child exists and doesn't match, the AND fails.
-  if (composite->right && !composite->right->match(composite->right, value)) {
-    return false;
+  mongory_array *children = composite->children;
+  int total = (int)children->count;
+  for (int i = 0; i < total; i++) {
+    mongory_matcher *child = (mongory_matcher *)children->get(children, i);
+    if (!child->match(child, value)) {
+      return false;
+    }
   }
   return true; // Both matched (or didn't exist, which is fine for AND).
 }
@@ -99,13 +94,13 @@ static inline bool mongory_matcher_and_match(mongory_matcher *matcher, mongory_v
  */
 bool mongory_matcher_or_match(mongory_matcher *matcher, mongory_value *value) {
   mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
-  // If left child exists and matches, the OR succeeds.
-  if (composite->left && composite->left->match(composite->left, value)) {
-    return true;
-  }
-  // If right child exists and matches, the OR succeeds.
-  if (composite->right && composite->right->match(composite->right, value)) {
-    return true;
+  mongory_array *children = composite->children;
+  int total = (int)children->count;
+  for (int i = 0; i < total; i++) {
+    mongory_matcher *child = (mongory_matcher *)children->get(children, i);
+    if (child->match(child, value)) {
+      return true;
+    }
   }
   return false; // Neither matched (or children didn't exist).
 }
@@ -179,74 +174,6 @@ static inline bool mongory_matcher_table_build_sub_matcher(char *key, mongory_va
 }
 
 /**
- * @brief Recursively constructs a binary tree of composite matchers from an
- * array of sub-matchers.
- *
- *
- * This function implements a recursive, divide-and-conquer algorithm to build a
- * balanced binary tree of matchers. This is more efficient than a simple
- * linked list, as it keeps the evaluation depth logarithmic in the number of
- * conditions.
- *
- * @param matchers_array Array of pre-built sub-matchers to combine.
- * @param head The starting index in the `matchers_array` for the current recursive call.
- * @param tail The ending index in the `matchers_array` for the current recursive call.
- * @param match_func The logical function (`and_match` or `or_match`) to assign to the new composite nodes.
- * @param constructor_func A function pointer to `mongory_matcher_construct_by_and` or `..._by_or`, used for the recursive call.
- * @return The root `mongory_matcher` of the constructed binary tree.
- */
-static inline mongory_matcher *mongory_matcher_binary_construct(
-    mongory_array *matchers_array, int head, int tail, mongory_matcher_match_func match_func,
-    mongory_matcher *(*constructor_func)(mongory_array *matchers_array, int head, int tail)) {
-  // Base case: single matcher in the current range.
-  mongory_matcher *first_matcher_in_range = (mongory_matcher *)matchers_array->get(matchers_array, head);
-  if (first_matcher_in_range == NULL)
-    return NULL; // Should not happen if array is populated correctly
-
-  if (head == tail) {
-    return first_matcher_in_range;
-  }
-
-  // Recursive step: split the range and combine.
-  int mid = head + (tail - head) / 2; // Avoid overflow for large head/tail
-  mongory_composite_matcher *composite =
-      mongory_matcher_composite_new(first_matcher_in_range->pool, NULL); // Condition is implicit from children
-  if (!composite)
-    return NULL;
-
-  mongory_matcher *base_composite_matcher = (mongory_matcher *)composite;
-  base_composite_matcher->match = match_func;
-  base_composite_matcher->original_match = match_func;
-  base_composite_matcher->explain = mongory_matcher_traverse_explain;
-
-  composite->left = constructor_func(matchers_array, head, mid);
-  composite->right = constructor_func(matchers_array, mid + 1, tail);
-
-  if (!composite->left || !composite->right) {
-    // If children construction failed, this composite matcher is invalid.
-    // The memory for 'composite' itself is from the pool and will be handled
-    // if the whole operation fails and the pool is cleaned up.
-    // However, this indicates a deeper issue.
-    // TODO: Proper error handling/cleanup for partial tree construction.
-    return NULL;
-  }
-
-  return base_composite_matcher;
-}
-
-/** Helper to construct AND tree */
-static mongory_matcher *mongory_matcher_construct_by_and(mongory_array *matchers_array, int head, int tail) {
-  return mongory_matcher_binary_construct(matchers_array, head, tail, mongory_matcher_and_match,
-                                          mongory_matcher_construct_by_and);
-}
-
-/** Helper to construct OR tree */
-static mongory_matcher *mongory_matcher_construct_by_or(mongory_array *matchers_array, int head, int tail) {
-  return mongory_matcher_binary_construct(matchers_array, head, tail, mongory_matcher_or_match,
-                                          mongory_matcher_construct_by_or);
-}
-
-/**
  * @brief Creates a matcher from a table-based condition.
  *
  * Parses the `condition` table, creating sub-matchers for each key-value pair.
@@ -282,49 +209,32 @@ mongory_matcher *mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongo
     return mongory_matcher_always_true_new(pool, condition);
   }
 
-  // A temporary pool is used for the `sub_matchers_array` itself. This array
-  // is only needed during the construction of the final matcher tree. The
-  // individual sub-matchers within it are allocated from the main `pool` and
-  // will persist.
-  mongory_memory_pool *temp_pool = mongory_memory_pool_new();
-  if (!temp_pool)
-    return NULL; // Failed to create temp pool
-
-  mongory_array *sub_matchers_array = mongory_array_new(temp_pool);
-  if (sub_matchers_array == NULL) {
-    temp_pool->free(temp_pool);
+  mongory_array *sub_matchers_array = mongory_array_new(pool);
+  if (sub_matchers_array == NULL)
     return NULL; // Failed to create array for sub-matchers.
-  }
 
   mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, sub_matchers_array};
   // Iterate over the condition table, building sub-matchers.
   if (!table->each(table, &build_ctx, mongory_matcher_table_build_sub_matcher)) {
     // Building one of the sub-matchers failed.
-    temp_pool->free(temp_pool); // Clean up temp_pool and sub_matchers_array
     return NULL;
   }
 
-  if (sub_matchers_array->count == 0) { // Should not happen if table->count > 0 and each() succeeded
-    temp_pool->free(temp_pool);
-    return mongory_matcher_always_true_new(pool, condition); // Or an error
-  }
-
   if (sub_matchers_array->count == 1) {
-    mongory_matcher *sub_matcher = (mongory_matcher *)sub_matchers_array->get(sub_matchers_array, 0);
-    temp_pool->free(temp_pool);
-    return sub_matcher;
+    return (mongory_matcher *)sub_matchers_array->get(sub_matchers_array, 0);
   }
 
   // Combine sub-matchers using AND logic.
-  mongory_matcher *final_matcher =
-      mongory_matcher_construct_by_and(sub_matchers_array, 0, sub_matchers_array->count - 1);
-
-  final_matcher->condition = condition;
-  final_matcher->sub_count = sub_matchers_array->count;
-  final_matcher->explain = mongory_matcher_composite_explain;
-  final_matcher->name = mongory_string_cpy(pool, "Condition");
-  temp_pool->free(temp_pool); // Free the temporary pool and the sub_matchers_array.
-  return final_matcher;
+  mongory_composite_matcher *final_matcher = mongory_matcher_composite_new(pool, condition);
+  if (final_matcher == NULL)
+    return NULL;
+  final_matcher->children = sub_matchers_array;
+  final_matcher->base.match = mongory_matcher_and_match;
+  final_matcher->base.original_match = mongory_matcher_and_match;
+  final_matcher->base.condition = condition;
+  final_matcher->base.sub_count = sub_matchers_array->count;
+  final_matcher->base.name = mongory_string_cpy(pool, "Condition");
+  return (mongory_matcher *)final_matcher;
 }
 
 /**
@@ -387,12 +297,8 @@ mongory_matcher *mongory_matcher_and_new(mongory_memory_pool *pool, mongory_valu
     return mongory_matcher_always_true_new(pool, condition); // $and:[] is true
   }
 
-  mongory_memory_pool *temp_pool = mongory_memory_pool_new();
-  if (!temp_pool)
-    return NULL;
-  mongory_array *all_sub_matchers = mongory_array_new(temp_pool);
+  mongory_array *all_sub_matchers = mongory_array_new(pool);
   if (all_sub_matchers == NULL) {
-    temp_pool->free(temp_pool);
     return NULL;
   }
 
@@ -400,30 +306,32 @@ mongory_matcher *mongory_matcher_and_new(mongory_memory_pool *pool, mongory_valu
   mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, all_sub_matchers};
   // Iterate through the array of tables provided in the $and condition.
   // mongory_matcher_build_and_sub_matcher will then iterate keys of EACH table.
-  if (!array_of_tables->each(array_of_tables, &build_ctx, mongory_matcher_build_and_sub_matcher)) {
-    temp_pool->free(temp_pool);
-    return NULL; // Failure during sub-matcher construction.
+  int total = (int)array_of_tables->count;
+  for (int i = 0; i < total; i++) {
+    mongory_value *table = array_of_tables->get(array_of_tables, i);
+    if (!mongory_matcher_build_and_sub_matcher(table, &build_ctx)) {
+      return NULL; // Failure during sub-matcher construction.
+    }
   }
 
-  if (all_sub_matchers->count == 0) { // Should not happen if validation passed and array_of_tables->count > 0
-    temp_pool->free(temp_pool);
+  if (all_sub_matchers->count == 0) {
     return mongory_matcher_always_true_new(pool, condition);
   }
 
   if (all_sub_matchers->count == 1) {
-    mongory_matcher *sub_matcher = (mongory_matcher *)all_sub_matchers->get(all_sub_matchers, 0);
-    temp_pool->free(temp_pool);
-    return sub_matcher;
+    return (mongory_matcher *)all_sub_matchers->get(all_sub_matchers, 0);
   }
 
-  mongory_matcher *final_matcher = mongory_matcher_construct_by_and(all_sub_matchers, 0, all_sub_matchers->count - 1);
-
-  final_matcher->condition = condition;
-  final_matcher->sub_count = all_sub_matchers->count;
-  final_matcher->explain = mongory_matcher_composite_explain;
-  final_matcher->name = mongory_string_cpy(pool, "And");
-  temp_pool->free(temp_pool);
-  return final_matcher;
+  mongory_composite_matcher *final_matcher = mongory_matcher_composite_new(pool, condition);
+  if (final_matcher == NULL)
+    return NULL;
+  final_matcher->children = all_sub_matchers;
+  final_matcher->base.match = mongory_matcher_and_match;
+  final_matcher->base.original_match = mongory_matcher_and_match;
+  final_matcher->base.condition = condition;
+  final_matcher->base.sub_count = all_sub_matchers->count;
+  final_matcher->base.name = mongory_string_cpy(pool, "And");
+  return (mongory_matcher *)final_matcher;
 }
 
 /**
@@ -478,70 +386,40 @@ mongory_matcher *mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value
     return mongory_matcher_always_false_new(pool, condition); // $or:[] is false
   }
 
-  mongory_memory_pool *temp_pool = mongory_memory_pool_new();
-  if (!temp_pool)
-    return NULL;
-  mongory_array *or_branch_matchers = mongory_array_new(temp_pool);
+  mongory_array *or_branch_matchers = mongory_array_new(pool);
   if (or_branch_matchers == NULL) {
-    temp_pool->free(temp_pool);
     return NULL;
   }
 
   mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, or_branch_matchers};
-  if (!array_of_tables->each(array_of_tables, &build_ctx, mongory_matcher_build_or_sub_matcher)) {
-    temp_pool->free(temp_pool);
-    return NULL; // Failure building one of the OR branches
-  }
-
-  if (or_branch_matchers->count == 0) { // Should not happen
-    temp_pool->free(temp_pool);
-    return mongory_matcher_always_false_new(pool, condition);
+  int total = (int)array_of_tables->count;
+  for (int i = 0; i < total; i++) {
+    mongory_value *table = array_of_tables->get(array_of_tables, i);
+    if (!mongory_matcher_build_or_sub_matcher(table, &build_ctx)) {
+      return NULL; // Failure building one of the OR branches
+    }
   }
 
   if (or_branch_matchers->count == 1) {
-    mongory_matcher *sub_matcher = (mongory_matcher *)or_branch_matchers->get(or_branch_matchers, 0);
-    temp_pool->free(temp_pool);
-    return sub_matcher;
+    return (mongory_matcher *)or_branch_matchers->get(or_branch_matchers, 0);
   }
 
-  mongory_matcher *final_matcher =
-      mongory_matcher_construct_by_or(or_branch_matchers, 0, or_branch_matchers->count - 1);
-
-  final_matcher->condition = condition;
-  final_matcher->sub_count = or_branch_matchers->count;
-  final_matcher->explain = mongory_matcher_composite_explain;
-  final_matcher->name = mongory_string_cpy(pool, "Or");
-  temp_pool->free(temp_pool);
-  return final_matcher;
-}
-
-/**
- * @brief Callback for $elemMatch: checks if a single array element matches.
- * The `acc` is the sub-matcher (from $elemMatch's condition).
- * This callback is used with `array->each`. `each` stops if callback returns
- * false. So, for $elemMatch (find AT LEAST ONE), this should return `false`
- * (stop) upon first match.
- *
- * The `array->each` function stops iterating if its callback returns `false`.
- * For `$elemMatch`, we want to stop as soon as we find the *first* matching
- * element. Therefore, this callback returns `false` (stop) when a match is
- * found (`matcher->match` is true), and `true` (continue) otherwise.
- *
- * @param value_in_array An element from the array being checked.
- * @param sub_matcher_for_element The matcher derived from $elemMatch's condition.
- * @return `false` if `value_in_array` matches, `true` otherwise.
- */
-static inline bool mongory_matcher_elem_match_unit_compare(mongory_value *value_in_array,
-                                                           void *sub_matcher_for_element) {
-  mongory_matcher *matcher = (mongory_matcher *)sub_matcher_for_element;
-  // Invert the result: return false to stop iteration on the first match.
-  return !matcher->match(matcher, value_in_array);
+  mongory_composite_matcher *final_matcher = mongory_matcher_composite_new(pool, condition);
+  if (final_matcher == NULL)
+    return NULL;
+  final_matcher->children = or_branch_matchers;
+  final_matcher->base.match = mongory_matcher_or_match;
+  final_matcher->base.original_match = mongory_matcher_or_match;
+  final_matcher->base.condition = condition;
+  final_matcher->base.sub_count = or_branch_matchers->count;
+  final_matcher->base.name = mongory_string_cpy(pool, "Or");
+  return (mongory_matcher *)final_matcher;
 }
 
 /**
  * @brief Match function for $elemMatch.
  * Checks if any element in the input array `value` matches the condition
- * stored in `composite->left`.
+ * stored in `composite->children`.
  * @param matcher The $elemMatch composite matcher.
  * @param value_to_check The input value, expected to be an array.
  * @return True if `value_to_check` is an array and at least one of its elements
@@ -554,18 +432,18 @@ static inline bool mongory_matcher_elem_match_match(mongory_matcher *matcher, mo
   if (!value_to_check || value_to_check->type != MONGORY_TYPE_ARRAY || !value_to_check->data.a) {
     return false; // $elemMatch applies to arrays.
   }
-  mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
-  if (!composite->left)
-    return false; // No sub-matcher to apply.
-
   mongory_array *target_array = value_to_check->data.a;
   if (target_array->count == 0)
     return false; // Empty array cannot have a matching element.
 
-  // `array->each` returns true if fully iterated, false if callback stopped it.
-  // `elem_match_unit_compare` returns false to stop if a match is found.
-  // So, if `each` returns false, it means a match was found.
-  return !target_array->each(target_array, composite->left, mongory_matcher_elem_match_unit_compare);
+  int total = (int)target_array->count;
+  for (int i = 0; i < total; i++) {
+    mongory_value *value = target_array->get(target_array, i);
+    if (mongory_matcher_and_match(matcher, value)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -577,54 +455,33 @@ static inline bool mongory_matcher_elem_match_match(mongory_matcher *matcher, mo
  * @return A new $elemMatch matcher, or NULL on failure.
  */
 mongory_matcher *mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongory_value *condition) {
-  mongory_matcher *unit_matcher = mongory_matcher_table_cond_new(pool, condition);
-  if (unit_matcher == NULL)
+  mongory_array *sub_matchers = mongory_array_new(pool);
+  if (sub_matchers == NULL)
     return NULL;
+  mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, sub_matchers};
+  if (!mongory_matcher_build_and_sub_matcher(condition, &build_ctx))
+    return NULL;
+
+  if (sub_matchers->count == 0)
+    return mongory_matcher_always_false_new(pool, condition);
 
   mongory_composite_matcher *composite = mongory_matcher_composite_new(pool, condition);
   if (composite == NULL)
     return NULL;
 
-  // The 'left' child will be the matcher for individual elements.
-  composite->left = unit_matcher;
+  composite->children = sub_matchers;
   composite->base.match = mongory_matcher_elem_match_match;
   composite->base.original_match = mongory_matcher_elem_match_match;
-  composite->base.sub_count = 1;
+  composite->base.sub_count = sub_matchers->count;
   composite->base.name = mongory_string_cpy(pool, "ElemMatch");
   composite->base.explain = mongory_matcher_composite_explain;
   return (mongory_matcher *)composite;
 }
 
 /**
- * @brief Callback for $every: checks if a single array element matches.
- * The `acc` is the sub-matcher. This callback is used with `array->each`.
- * `each` stops if callback returns false. For $every (ALL must match), this
- * should return `true` (continue) if element matches, and `false` (stop) if
- * element does NOT match.
- * @param value_in_array An element from the array being checked.
- * @param sub_matcher_for_element The matcher derived from $every's condition.
- * @return `true` if `value_in_array` matches (continue), `false` if it
- * doesn't (stop).
- *
- * For `$every`, we want to stop as soon as we find the *first* element that
- * does *not* match. Therefore, this callback returns `false` (stop) when a
- * match fails (`matcher->match` is false), and `true` (continue) otherwise.
- *
- * @param value_in_array An element from the array being checked.
- * @param sub_matcher_for_element The matcher derived from $every's condition.
- * @return `true` if `value_in_array` matches, `false` otherwise.
- */
-static inline bool mongory_matcher_every_match_unit_compare(mongory_value *value_in_array,
-                                                            void *sub_matcher_for_element) {
-  mongory_matcher *matcher = (mongory_matcher *)sub_matcher_for_element;
-  // Return the match result directly: true to continue, false to stop.
-  return matcher->match(matcher, value_in_array);
-}
-
-/**
  * @brief Match function for $every.
  * Checks if all elements in the input array `value` match the condition
- * stored in `composite->left`.
+ * stored in `composite->children`.
  * @param matcher The $every composite matcher.
  * @param value_to_check The input value, expected to be an array.
  * @return True if `value_to_check` is an array and all its elements match (or
@@ -632,24 +489,20 @@ static inline bool mongory_matcher_every_match_unit_compare(mongory_value *value
  */
 static inline bool mongory_matcher_every_match(mongory_matcher *matcher, mongory_value *value_to_check) {
   if (!value_to_check || value_to_check->type != MONGORY_TYPE_ARRAY || !value_to_check->data.a) {
-    // Or, should an $every condition on a non-array be false or an error?
-    // Current: false, as no elements (all zero of them) satisfy it.
-    // If an empty array should match $every, this needs adjustment.
-    // MongoDB's $all on empty query array or empty target array has specific rules.
-    // This $every is simpler: "do all present elements match?".
     return false;
   }
-  mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
-  if (!composite->left)
-    return true; // No sub-matcher means condition is vacuously true for all elements.
-
   mongory_array *target_array = value_to_check->data.a;
   if (target_array->count == 0)
     return false; // Non-empty array must have at least one element.
 
-  // `array->each` returns true if fully iterated (all elements matched),
-  // false if callback stopped it (an element did NOT match).
-  return target_array->each(target_array, composite->left, mongory_matcher_every_match_unit_compare);
+  int total = (int)target_array->count;
+  for (int i = 0; i < total; i++) {
+    mongory_value *value = target_array->get(target_array, i);
+    if (!mongory_matcher_and_match(matcher, value)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**
@@ -661,18 +514,24 @@ static inline bool mongory_matcher_every_match(mongory_matcher *matcher, mongory
  * @return A new $every matcher, or NULL on failure.
  */
 mongory_matcher *mongory_matcher_every_new(mongory_memory_pool *pool, mongory_value *condition) {
-  mongory_matcher *unit_matcher = mongory_matcher_table_cond_new(pool, condition);
-  if (unit_matcher == NULL)
+  mongory_array *sub_matchers = mongory_array_new(pool);
+  if (sub_matchers == NULL)
     return NULL;
+  mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, sub_matchers};
+  if (!mongory_matcher_build_and_sub_matcher(condition, &build_ctx))
+    return NULL;
+
+  if (sub_matchers->count == 0)
+    return mongory_matcher_always_true_new(pool, condition);
 
   mongory_composite_matcher *composite = mongory_matcher_composite_new(pool, condition);
   if (composite == NULL)
     return NULL;
 
-  composite->left = unit_matcher;
+  composite->children = sub_matchers;
   composite->base.match = mongory_matcher_every_match;
   composite->base.original_match = mongory_matcher_every_match;
-  composite->base.sub_count = 1;
+  composite->base.sub_count = sub_matchers->count;
   composite->base.name = mongory_string_cpy(pool, "Every");
   composite->base.explain = mongory_matcher_composite_explain;
 

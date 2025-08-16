@@ -11,6 +11,7 @@
  */
 
 #include "base_matcher.h"
+#include "mongory-core/foundations/array.h"
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
 #include "mongory-core/matchers/matcher.h" // For mongory_matcher structure
@@ -26,8 +27,7 @@
  */
 typedef struct mongory_composite_matcher {
   mongory_matcher base;   /**< Base matcher structure. */
-  mongory_matcher *left;  /**< Left child matcher. */
-  mongory_matcher *right; /**< Right child matcher (optional depending on type). */
+  mongory_array *children; /**< Children matchers. */
 } mongory_composite_matcher;
 
 /** @name Composite Matcher Constructors
@@ -121,12 +121,5 @@ mongory_composite_matcher *mongory_matcher_composite_new(mongory_memory_pool *po
  * otherwise. Returns false if children are NULL or if their match calls fail.
  */
 bool mongory_matcher_or_match(mongory_matcher *matcher, mongory_value *value);
-
-/**
- * @brief Explains a composite matcher.
- * @param matcher The matcher to explain.
- * @param ctx The context to use for the explanation.
- */
-void mongory_matcher_composite_explain(mongory_matcher *matcher, mongory_matcher_explain_context *ctx);
 
 #endif /* MONGORY_MATCHER_COMPOSITE_H */

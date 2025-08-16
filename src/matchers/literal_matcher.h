@@ -18,13 +18,19 @@
 #include "matcher_explainable.h"
 #include "composite_matcher.h"
 
+typedef struct mongory_literal_matcher {
+  mongory_matcher base;
+  mongory_matcher *delegate_matcher;
+  mongory_matcher *array_record_matcher;
+} mongory_literal_matcher;
+
 /**
  * @struct mongory_field_matcher
  * @brief Specialized composite matcher for matching a specific field.
  * Stores the field name/index.
  */
 typedef struct mongory_field_matcher {
-  mongory_composite_matcher composite; /**< Base composite matcher structure. */
+  mongory_literal_matcher literal; /**< Base composite matcher structure. */
   char *field;                         /**< Name/index of the field to match. Copied string. */
 } mongory_field_matcher;
 /**

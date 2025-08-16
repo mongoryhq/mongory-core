@@ -265,7 +265,7 @@
       },
       {
         "data": [],
-        "expected": false
+        "expected": true
       }
     ]
   },

@@ -21,7 +21,7 @@ char *mongory_matcher_title_with_field(mongory_matcher *matcher, mongory_memory_
   mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
   mongory_field_matcher *field_matcher = (mongory_field_matcher *)matcher;
   mongory_string_buffer_appendf(buffer, "Field: \"%s\", to match: ", field_matcher->field);
-  mongory_value *condition = field_matcher->composite.base.condition;
+  mongory_value *condition = field_matcher->literal.base.condition;
   mongory_string_buffer_append(buffer, condition->to_str(condition, pool));
   return mongory_string_buffer_cstr(buffer);
 }
@@ -53,11 +53,11 @@ void mongory_matcher_base_explain(mongory_matcher *matcher, mongory_matcher_expl
 
 void mongory_matcher_traverse_explain(mongory_matcher *matcher, mongory_matcher_explain_context *ctx) {
   mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
-  if (composite->left) {
-    composite->left->explain(composite->left, ctx);
-  }
-  if (composite->right) {
-    composite->right->explain(composite->right, ctx);
+  mongory_array *children = composite->children;
+  int total = (int)children->count;
+  for (int i = 0; i < total; i++) {
+    mongory_matcher *child = (mongory_matcher *)children->get(children, i);
+    child->explain(child, ctx);
   }
 }
 
@@ -75,7 +75,7 @@ void mongory_matcher_composite_explain(mongory_matcher *matcher, mongory_matcher
 }
 
 static inline void mongory_matcher_literal_shared_explain(mongory_matcher *matcher, mongory_matcher_explain_context *ctx) {
-  mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
+  mongory_literal_matcher *literal = (mongory_literal_matcher *)matcher;
   mongory_string_buffer *buffer = mongory_string_buffer_new(ctx->pool);
   mongory_string_buffer_appendf(buffer, "%s%s", ctx->prefix, mongory_matcher_indent_connection(ctx->count, ctx->total));
   mongory_matcher_explain_context child_ctx = {
@@ -84,10 +84,10 @@ static inline void mongory_matcher_literal_shared_explain(mongory_matcher *match
       .total = matcher->sub_count,
       .prefix = mongory_string_buffer_cstr(buffer),
   };
-  if (composite->right) {
-    composite->right->explain(composite->right, &child_ctx);
+  if (literal->array_record_matcher) {
+    literal->array_record_matcher->explain(literal->array_record_matcher, &child_ctx);
   } else {
-    composite->left->explain(composite->left, &child_ctx);
+    literal->delegate_matcher->explain(literal->delegate_matcher, &child_ctx);
   }
 }
 
