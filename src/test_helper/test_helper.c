@@ -1,3 +1,6 @@
+#ifndef MONGORY_TEST_HELPER_C
+#define MONGORY_TEST_HELPER_C
+
 #include "test_helper.h"
 #include "../../src/matchers/base_matcher.h"
 #include "../../tests/unity/unity.h"
@@ -212,3 +215,5 @@ void assert_value_not_equals(mongory_value *expected, mongory_value *actual) {
 void assert_value_is_null(mongory_value *value) { TEST_ASSERT_NULL(value); }
 
 void assert_value_is_not_null(mongory_value *value) { TEST_ASSERT_NOT_NULL(value); }
+
+#endif // MONGORY_TEST_HELPER_C
