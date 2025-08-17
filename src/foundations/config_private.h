@@ -22,7 +22,8 @@ extern mongory_table *mongory_matcher_mapping;
 extern mongory_value_converter *mongory_internal_value_converter;
 
 typedef mongory_matcher *(*mongory_matcher_build_func)(mongory_memory_pool *pool,
-                                                       mongory_value *condition); // build function
+                                                       mongory_value *condition,
+                                                       void *extern_ctx); // build function
 void mongory_matcher_register(char *name, mongory_matcher_build_func build_func);
 mongory_matcher_build_func mongory_matcher_build_func_get(char *name);
 

@@ -49,7 +49,7 @@ static inline bool mongory_matcher_exists_match(mongory_matcher *matcher, mongor
   return condition_expects_existence == actual_value_exists;
 }
 
-mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool, mongory_value *condition) {
+mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
   if (!mongory_matcher_validate_bool_condition(condition)) {
     pool->error = MG_ALLOC_PTR(pool, mongory_error);
     if (pool->error) {
@@ -58,7 +58,7 @@ mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool, mongory_v
     }
     return NULL;
   }
-  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
+  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition, extern_ctx);
   if (!matcher) {
     return NULL;
   }
@@ -124,7 +124,7 @@ static inline bool mongory_matcher_present_match(mongory_matcher *matcher, mongo
   return condition_expects_presence == actual_value_is_present;
 }
 
-mongory_matcher *mongory_matcher_present_new(mongory_memory_pool *pool, mongory_value *condition) {
+mongory_matcher *mongory_matcher_present_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
   if (!mongory_matcher_validate_bool_condition(condition)) {
     pool->error = MG_ALLOC_PTR(pool, mongory_error);
     if (pool->error) {
@@ -133,7 +133,7 @@ mongory_matcher *mongory_matcher_present_new(mongory_memory_pool *pool, mongory_
     }
     return NULL;
   }
-  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
+  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition, extern_ctx);
   if (!matcher) {
     return NULL;
   }

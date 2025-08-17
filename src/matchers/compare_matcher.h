@@ -29,7 +29,7 @@
  * @param condition The `mongory_value` to compare against.
  * @return A new `$eq` matcher, or NULL on failure.
  */
-mongory_matcher *mongory_matcher_equal_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_equal_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 /**
  * @brief Creates a "not equal" ($ne) matcher.
@@ -39,7 +39,7 @@ mongory_matcher *mongory_matcher_equal_new(mongory_memory_pool *pool, mongory_va
  * @param condition The `mongory_value` to compare against.
  * @return A new `$ne` matcher, or NULL on failure.
  */
-mongory_matcher *mongory_matcher_not_equal_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_not_equal_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 /**
  * @brief Creates a "greater than" ($gt) matcher.
@@ -48,7 +48,7 @@ mongory_matcher *mongory_matcher_not_equal_new(mongory_memory_pool *pool, mongor
  * @param condition The `mongory_value` to compare against.
  * @return A new `$gt` matcher, or NULL on failure.
  */
-mongory_matcher *mongory_matcher_greater_than_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_greater_than_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 /**
  * @brief Creates a "less than" ($lt) matcher.
@@ -57,7 +57,7 @@ mongory_matcher *mongory_matcher_greater_than_new(mongory_memory_pool *pool, mon
  * @param condition The `mongory_value` to compare against.
  * @return A new `$lt` matcher, or NULL on failure.
  */
-mongory_matcher *mongory_matcher_less_than_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_less_than_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 /**
  * @brief Creates a "greater than or equal" ($gte) matcher.
@@ -67,7 +67,7 @@ mongory_matcher *mongory_matcher_less_than_new(mongory_memory_pool *pool, mongor
  * @param condition The `mongory_value` to compare against.
  * @return A new `$gte` matcher, or NULL on failure.
  */
-mongory_matcher *mongory_matcher_greater_than_or_equal_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_greater_than_or_equal_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 /**
  * @brief Creates a "less than or equal" ($lte) matcher.
@@ -77,7 +77,7 @@ mongory_matcher *mongory_matcher_greater_than_or_equal_new(mongory_memory_pool *
  * @param condition The `mongory_value` to compare against.
  * @return A new `$lte` matcher, or NULL on failure.
  */
-mongory_matcher *mongory_matcher_less_than_or_equal_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_less_than_or_equal_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 /** @} */
 
 #endif /* MONGORY_MATCHER_COMPARE_H */

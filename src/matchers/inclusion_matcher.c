@@ -147,7 +147,7 @@ static inline bool mongory_matcher_in_match(mongory_matcher *matcher, mongory_va
   return ctx.result; // True if any comparison led to result=true.
 }
 
-mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool, mongory_value *condition) {
+mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
   if (!mongory_matcher_validate_array_condition(condition)) {
     pool->error = MG_ALLOC_PTR(pool, mongory_error);
     if (pool->error) {
@@ -156,7 +156,7 @@ mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool, mongory_value
     }
     return NULL;
   }
-  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
+  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition, extern_ctx);
   if (!matcher) {
     return NULL;
   }
@@ -179,7 +179,7 @@ static inline bool mongory_matcher_not_in_match(mongory_matcher *matcher, mongor
   return !mongory_matcher_in_match(matcher, value);
 }
 
-mongory_matcher *mongory_matcher_not_in_new(mongory_memory_pool *pool, mongory_value *condition) {
+mongory_matcher *mongory_matcher_not_in_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
   if (!mongory_matcher_validate_array_condition(condition)) {
     pool->error = MG_ALLOC_PTR(pool, mongory_error);
     if (pool->error) {
@@ -188,7 +188,7 @@ mongory_matcher *mongory_matcher_not_in_new(mongory_memory_pool *pool, mongory_v
     }
     return NULL;
   }
-  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
+  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition, extern_ctx);
   if (!matcher) {
     return NULL;
   }

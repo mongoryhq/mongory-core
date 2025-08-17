@@ -160,7 +160,7 @@ bool execute_each_test_case(mongory_value *test_case, void *acc) {
   TEST_ASSERT_NOT_NULL(condition_value);
   TEST_ASSERT_NOT_NULL(records_value);
   mongory_memory_pool *matcher_pool = mongory_memory_pool_new();
-  mongory_matcher *matcher = matcher_build_func(matcher_pool, condition_value);
+  mongory_matcher *matcher = matcher_build_func(matcher_pool, condition_value, NULL);
   TEST_ASSERT_NOT_NULL(matcher);
   TEST_ASSERT_NULL(matcher_pool->error);
   mongory_array *records = records_value->data.a;

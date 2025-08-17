@@ -54,6 +54,7 @@ struct mongory_matcher {
   mongory_matcher_traverse_func traverse;    /**< Function pointer to the traversal logic for this matcher type. */
   mongory_array *trace_stack;                /**< The trace stack for this matcher. */
   int trace_level;                           /**< The trace level for this matcher. */
+  void *extern_ctx;                          /**< External context for the matcher. */
 };
 
 /**
@@ -71,7 +72,7 @@ struct mongory_matcher {
  * @return mongory_matcher* A pointer to the newly allocated base matcher, or
  * NULL on allocation failure.
  */
-mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 /**
  * @brief Creates a new matcher that always evaluates to true.
@@ -82,7 +83,7 @@ mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool, mongory_val
  * @return mongory_matcher* A pointer to the "always true" matcher, or NULL on
  * failure.
  */
-mongory_matcher *mongory_matcher_always_true_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_always_true_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 /**
  * @brief Creates a new matcher that always evaluates to false.
@@ -93,7 +94,7 @@ mongory_matcher *mongory_matcher_always_true_new(mongory_memory_pool *pool, mong
  * @return mongory_matcher* A pointer to the "always false" matcher, or NULL on
  * failure.
  */
-mongory_matcher *mongory_matcher_always_false_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_always_false_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 /**
  * @brief Attempts to parse an integer from a string.

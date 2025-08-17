@@ -42,6 +42,6 @@
  * array or its elements.
  * @return A new array record matcher, or NULL on failure.
  */
-mongory_matcher *mongory_matcher_array_record_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_array_record_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 #endif /* MONGORY_MATCHER_ARRAY_RECORD_H */

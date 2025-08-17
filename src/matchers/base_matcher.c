@@ -30,7 +30,7 @@
  * @return mongory_matcher* Pointer to the newly allocated and partially
  * initialized matcher, or NULL if allocation fails.
  */
-mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool, mongory_value *condition) {
+mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
   if (!pool || !pool->alloc) {
     return NULL; // Invalid memory pool.
   }
@@ -50,6 +50,7 @@ mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool, mongory_val
   matcher->match = NULL;                           // Specific match function must be set by derived type.
   matcher->explain = mongory_matcher_base_explain; // Specific explain function must be set by derived type.
   matcher->traverse = mongory_matcher_leaf_traverse;
+  matcher->extern_ctx = extern_ctx;                // Set the external context.
   return matcher;
 }
 
@@ -72,8 +73,8 @@ static inline bool mongory_matcher_always_true_match(mongory_matcher *matcher, m
  * @param condition Condition (typically ignored by this matcher).
  * @return A new `mongory_matcher` or NULL on failure.
  */
-mongory_matcher *mongory_matcher_always_true_new(mongory_memory_pool *pool, mongory_value *condition) {
-  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
+mongory_matcher *mongory_matcher_always_true_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
+  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition, extern_ctx);
   if (!matcher) {
     return NULL;
   }
@@ -105,8 +106,8 @@ static inline bool mongory_matcher_always_false_match(mongory_matcher *matcher, 
  * @param condition Condition (typically ignored by this matcher).
  * @return A new `mongory_matcher` or NULL on failure.
  */
-mongory_matcher *mongory_matcher_always_false_new(mongory_memory_pool *pool, mongory_value *condition) {
-  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
+mongory_matcher *mongory_matcher_always_false_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
+  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition, extern_ctx);
   if (!matcher) {
     return NULL;
   }

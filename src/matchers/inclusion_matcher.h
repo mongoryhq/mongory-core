@@ -27,7 +27,7 @@
  * the set of values to check against.
  * @return A new `$in` matcher, or NULL on failure or invalid condition.
  */
-mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 /**
  * @brief Creates a "not in" ($nin) matcher.
@@ -41,6 +41,6 @@ mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool, mongory_value
  * the set of values to check against.
  * @return A new `$nin` matcher, or NULL on failure or invalid condition.
  */
-mongory_matcher *mongory_matcher_not_in_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_not_in_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 #endif /* MONGORY_MATCHER_INCLUSION_H */

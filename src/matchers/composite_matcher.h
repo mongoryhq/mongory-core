@@ -43,7 +43,7 @@ typedef struct mongory_composite_matcher {
  * element is a `MONGORY_TYPE_TABLE` representing a sub-condition.
  * @return A new `$and` matcher, or NULL on failure or if condition is invalid.
  */
-mongory_matcher *mongory_matcher_and_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_and_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 /**
  * @brief Creates an "OR" ($or) matcher.
@@ -53,7 +53,7 @@ mongory_matcher *mongory_matcher_and_new(mongory_memory_pool *pool, mongory_valu
  * element is a `MONGORY_TYPE_TABLE` representing a sub-condition.
  * @return A new `$or` matcher, or NULL on failure or if condition is invalid.
  */
-mongory_matcher *mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 /**
  * @brief Creates an "element match" ($elemMatch) matcher.
@@ -64,7 +64,7 @@ mongory_matcher *mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value
  * the condition to apply to array elements.
  * @return A new `$elemMatch` matcher, or NULL on failure.
  */
-mongory_matcher *mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 /**
  * @brief Creates an "every element matches" ($every) matcher.
@@ -76,7 +76,7 @@ mongory_matcher *mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongo
  * the condition to apply to array elements.
  * @return A new `$every` matcher, or NULL on failure.
  */
-mongory_matcher *mongory_matcher_every_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_every_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 /**
  * @brief Creates a "table condition" matcher.
@@ -88,7 +88,7 @@ mongory_matcher *mongory_matcher_every_new(mongory_memory_pool *pool, mongory_va
  * @param condition A `mongory_value` of type `MONGORY_TYPE_TABLE`.
  * @return A new table condition matcher, or NULL on failure/invalid condition.
  */
-mongory_matcher *mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 /** @} */
 
 /**
@@ -105,7 +105,7 @@ mongory_matcher *mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongo
  * @return mongory_composite_matcher* Pointer to the new composite matcher
  * structure, or NULL on failure.
  */
-mongory_composite_matcher *mongory_matcher_composite_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_composite_matcher *mongory_matcher_composite_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 /**
  * @brief The actual match logic for an OR operation on a composite matcher.
