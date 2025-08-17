@@ -187,9 +187,10 @@ void mongory_matcher_print_trace(mongory_matcher *matcher) {
   }
 }
 
-void mongory_matcher_trace(mongory_matcher *matcher, mongory_value *value) {
+bool mongory_matcher_trace(mongory_matcher *matcher, mongory_value *value) {
   mongory_matcher_enable_trace(matcher, value->pool);
-  matcher->match(matcher, value);
+  bool matched = matcher->match(matcher, value);
   mongory_matcher_print_trace(matcher);
   mongory_matcher_disable_trace(matcher);
+  return matched;
 }
