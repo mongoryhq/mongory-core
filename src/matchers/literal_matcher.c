@@ -60,7 +60,6 @@ static inline bool mongory_matcher_literal_match(mongory_matcher *matcher, mongo
     if (literal->array_record_matcher == NULL) {
       // Lazily create the array_record_matcher if needed.
       // The condition for array_record_new is the original condition of the literal matcher.
-      printf("Creating array_record_matcher\n");
       literal->array_record_matcher = mongory_matcher_array_record_new(literal->base.pool, literal->base.condition, literal->base.extern_ctx);
     }
     // If right child exists (or was successfully created), use it.
