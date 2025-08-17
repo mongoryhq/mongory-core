@@ -174,6 +174,8 @@ void mongory_matcher_disable_trace(mongory_matcher *matcher) {
 }
 
 void mongory_matcher_print_trace(mongory_matcher *matcher) {
+  if (matcher->trace_stack == NULL)
+    return;
   mongory_array *sorted_trace_stack = mongory_matcher_traces_sort(matcher->trace_stack, 0);
   int total = (int)sorted_trace_stack->count;
   for (int i = 0; i < total; i++) {
