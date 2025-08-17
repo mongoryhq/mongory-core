@@ -289,7 +289,7 @@ void mongory_custom_matcher_match_func_set(bool (*match)(void *external_matcher,
   mongory_custom_matcher_adapter->match = match;
 }
 
-void mongory_custom_matcher_build_func_set(mongory_matcher_custom_context *(*build)(char *key, mongory_value *condition)) {
+void mongory_custom_matcher_build_func_set(mongory_matcher_custom_context *(*build)(char *key, mongory_value *condition, void *extern_ctx)) {
   if (mongory_custom_matcher_adapter == NULL) {
     mongory_custom_matcher_adapter_init();
   }

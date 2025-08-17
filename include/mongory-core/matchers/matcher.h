@@ -30,7 +30,7 @@ typedef struct mongory_matcher mongory_matcher;
  * @return mongory_matcher* A pointer to the newly created matcher, or NULL on
  * failure.
  */
-mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 /**
  * @brief Matches a value against a matcher.

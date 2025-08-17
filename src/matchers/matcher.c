@@ -38,11 +38,11 @@
  * @return mongory_matcher* A pointer to the newly constructed matcher, or NULL
  * if allocation fails or the condition is invalid.
  */
-mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition) {
+mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
   // The core logic is delegated to a more specific constructor.
   // This design allows for easy extension; for example, a different constructor
   // could be chosen here based on the `condition->type`.
-  mongory_matcher *matcher = mongory_matcher_table_cond_new(pool, condition);
+  mongory_matcher *matcher = mongory_matcher_table_cond_new(pool, condition, extern_ctx);
   if (matcher == NULL) {
     return NULL;
   }
@@ -90,7 +90,7 @@ typedef struct mongory_matcher_traced_match_context {
 
 static bool mongory_matcher_traced_match(mongory_matcher *matcher, mongory_value *value) {
   bool matched = matcher->original_match(matcher, value);
-  mongory_memory_pool *pool = value->pool;
+  mongory_memory_pool *pool = matcher->trace_stack->pool;
 
   char *res = matched ? "\e[30;42mMatched\e[0m" : "\e[30;41mDismatch\e[0m";
   char *cdtn = matcher->condition->to_str(matcher->condition, pool);

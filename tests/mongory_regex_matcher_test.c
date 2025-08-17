@@ -29,7 +29,7 @@ void tearDown(void) {
 
 void test_regex_matcher_match(void) {
   mongory_value *condition = mongory_value_wrap_s(pool, "test");
-  mongory_matcher *matcher = mongory_matcher_regex_new(pool, condition);
+  mongory_matcher *matcher = mongory_matcher_regex_new(pool, condition, NULL);
   TEST_ASSERT_NOT_NULL(matcher);
   TEST_ASSERT_NULL(pool->error);
 
@@ -45,7 +45,7 @@ void test_regex_matcher_match(void) {
 
 void test_regex_matcher_match_with_invalid_condition(void) {
   mongory_value *condition = mongory_value_wrap_i(pool, 42);
-  mongory_matcher *matcher = mongory_matcher_regex_new(pool, condition);
+  mongory_matcher *matcher = mongory_matcher_regex_new(pool, condition, NULL);
   TEST_ASSERT_NULL(matcher);
   TEST_ASSERT_NOT_NULL(pool->error);
   TEST_ASSERT_EQUAL(MONGORY_ERROR_INVALID_ARGUMENT, pool->error->type);
@@ -54,7 +54,7 @@ void test_regex_matcher_match_with_invalid_condition(void) {
 
 void test_regex_matcher_match_with_invalid_value(void) {
   mongory_value *condition = mongory_value_wrap_s(pool, "test");
-  mongory_matcher *matcher = mongory_matcher_regex_new(pool, condition);
+  mongory_matcher *matcher = mongory_matcher_regex_new(pool, condition, NULL);
   TEST_ASSERT_NOT_NULL(matcher);
   TEST_ASSERT_NULL(pool->error);
 

@@ -50,7 +50,7 @@ static inline bool mongory_matcher_regex_condition_validate(mongory_value *condi
   return condition != NULL && (condition->type == MONGORY_TYPE_STRING || condition->type == MONGORY_TYPE_REGEX);
 }
 
-mongory_matcher *mongory_matcher_regex_new(mongory_memory_pool *pool, mongory_value *condition) {
+mongory_matcher *mongory_matcher_regex_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
   if (!mongory_matcher_regex_condition_validate(condition)) {
     pool->error = MG_ALLOC_PTR(pool, mongory_error);
     if (pool->error) {
@@ -60,7 +60,7 @@ mongory_matcher *mongory_matcher_regex_new(mongory_memory_pool *pool, mongory_va
     return NULL;
   }
 
-  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
+  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition, extern_ctx);
   if (!matcher) {
     return NULL;
   }
@@ -99,13 +99,13 @@ bool mongory_matcher_custom_match(mongory_matcher *matcher, mongory_value *value
  * @return mongory_matcher* A pointer to the newly created custom matcher, or
  * NULL on failure.
  */
-mongory_matcher *mongory_matcher_custom_new(mongory_memory_pool *pool, char *key, mongory_value *condition) {
+mongory_matcher *mongory_matcher_custom_new(mongory_memory_pool *pool, char *key, mongory_value *condition, void *extern_ctx) {
   if (mongory_custom_matcher_adapter == NULL || mongory_custom_matcher_adapter->build == NULL)
     return NULL; // Custom matcher adapter not initialized.
   mongory_custom_matcher *matcher = MG_ALLOC_PTR(pool, mongory_custom_matcher);
   if (matcher == NULL)
     return NULL;
-  mongory_matcher_custom_context *context = mongory_custom_matcher_adapter->build(key, condition);
+  mongory_matcher_custom_context *context = mongory_custom_matcher_adapter->build(key, condition, extern_ctx);
   if (context == NULL)
     return NULL;
   matcher->base.pool = pool;
@@ -115,6 +115,7 @@ mongory_matcher *mongory_matcher_custom_new(mongory_memory_pool *pool, char *key
   matcher->base.original_match = mongory_matcher_custom_match;
   matcher->base.explain = mongory_matcher_base_explain;
   matcher->base.traverse = mongory_matcher_leaf_traverse;
+  matcher->base.extern_ctx = extern_ctx;
   matcher->external_matcher = context->external_matcher;
   return (mongory_matcher *)matcher;
 }

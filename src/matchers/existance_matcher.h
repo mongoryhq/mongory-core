@@ -26,7 +26,7 @@
  * @param condition A `mongory_value` of type `MONGORY_TYPE_BOOL`.
  * @return A new `$exists` matcher, or NULL on failure or invalid condition.
  */
-mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 /**
  * @brief Creates a "present" ($present) matcher.
@@ -43,6 +43,6 @@ mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool, mongory_v
  * @param condition A `mongory_value` of type `MONGORY_TYPE_BOOL`.
  * @return A new `$present` matcher, or NULL on failure or invalid condition.
  */
-mongory_matcher *mongory_matcher_present_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_present_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 #endif /* MONGORY_MATCHER_EXISTANCE_H */

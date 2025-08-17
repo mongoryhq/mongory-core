@@ -29,7 +29,7 @@
  * @return A new $regex matcher, or NULL on failure or if the condition is
  * invalid.
  */
-mongory_matcher *mongory_matcher_regex_new(mongory_memory_pool *pool, mongory_value *condition);
+mongory_matcher *mongory_matcher_regex_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 /**
  * @brief Creates a new custom matcher instance.
@@ -41,6 +41,6 @@ mongory_matcher *mongory_matcher_regex_new(mongory_memory_pool *pool, mongory_va
  * @return mongory_matcher* A pointer to the newly created custom matcher, or
  * NULL on failure.
  */
-mongory_matcher *mongory_matcher_custom_new(mongory_memory_pool *pool, char *key, mongory_value *condition);
+mongory_matcher *mongory_matcher_custom_new(mongory_memory_pool *pool, char *key, mongory_value *condition, void *extern_ctx);
 
 #endif /* MONGORY_MATCHER_EXTERNAL_H */

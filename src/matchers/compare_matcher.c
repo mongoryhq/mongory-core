@@ -26,8 +26,8 @@
  * or NULL on failure.
  */
 static inline mongory_matcher *mongory_matcher_compare_new(mongory_memory_pool *pool, mongory_value *condition,
-                                                           mongory_matcher_match_func match_func) {
-  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition);
+                                                           mongory_matcher_match_func match_func, void *extern_ctx) {
+  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition, extern_ctx);
   if (matcher == NULL) {
     return NULL; // Base matcher allocation failed.
   }
@@ -65,8 +65,8 @@ static inline bool mongory_matcher_equal_match(mongory_matcher *matcher, mongory
   return result == 0; // 0 indicates equality.
 }
 
-mongory_matcher *mongory_matcher_equal_new(mongory_memory_pool *pool, mongory_value *condition) {
-  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_equal_match);
+mongory_matcher *mongory_matcher_equal_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
+  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_equal_match, extern_ctx);
   if (!matcher) {
     return NULL;
   }
@@ -96,8 +96,8 @@ static inline bool mongory_matcher_not_equal_match(mongory_matcher *matcher, mon
   return result != 0; // Non-zero indicates inequality.
 }
 
-mongory_matcher *mongory_matcher_not_equal_new(mongory_memory_pool *pool, mongory_value *condition) {
-  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_not_equal_match);
+mongory_matcher *mongory_matcher_not_equal_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
+  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_not_equal_match, extern_ctx);
   if (!matcher) {
     return NULL;
   }
@@ -122,8 +122,8 @@ static inline bool mongory_matcher_greater_than_match(mongory_matcher *matcher, 
   return result == 1; // 1 indicates value > condition.
 }
 
-mongory_matcher *mongory_matcher_greater_than_new(mongory_memory_pool *pool, mongory_value *condition) {
-  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_greater_than_match);
+mongory_matcher *mongory_matcher_greater_than_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
+  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_greater_than_match, extern_ctx);
   if (!matcher) {
     return NULL;
   }
@@ -148,8 +148,8 @@ static inline bool mongory_matcher_less_than_match(mongory_matcher *matcher, mon
   return result == -1; // -1 indicates value < condition.
 }
 
-mongory_matcher *mongory_matcher_less_than_new(mongory_memory_pool *pool, mongory_value *condition) {
-  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_less_than_match);
+mongory_matcher *mongory_matcher_less_than_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
+  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_less_than_match, extern_ctx);
   if (!matcher) {
     return NULL;
   }
@@ -174,8 +174,8 @@ static inline bool mongory_matcher_greater_than_or_equal_match(mongory_matcher *
   return result >= 0; // 0 or 1 indicates value >= condition.
 }
 
-mongory_matcher *mongory_matcher_greater_than_or_equal_new(mongory_memory_pool *pool, mongory_value *condition) {
-  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_greater_than_or_equal_match);
+mongory_matcher *mongory_matcher_greater_than_or_equal_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
+  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_greater_than_or_equal_match, extern_ctx);
   if (!matcher) {
     return NULL;
   }
@@ -200,8 +200,8 @@ static inline bool mongory_matcher_less_than_or_equal_match(mongory_matcher *mat
   return result <= 0; // 0 or -1 indicates value <= condition.
 }
 
-mongory_matcher *mongory_matcher_less_than_or_equal_new(mongory_memory_pool *pool, mongory_value *condition) {
-  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_less_than_or_equal_match);
+mongory_matcher *mongory_matcher_less_than_or_equal_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
+  mongory_matcher *matcher = mongory_matcher_compare_new(pool, condition, mongory_matcher_less_than_or_equal_match, extern_ctx);
   if (!matcher) {
     return NULL;
   }

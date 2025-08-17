@@ -53,9 +53,10 @@ void test_mongory_regex_func_set(void) {
   TEST_ASSERT_EQUAL(test_regex_func, mongory_internal_regex_adapter->match_func);
 }
 
-static mongory_matcher *test_matcher_build_func(mongory_memory_pool *pool, mongory_value *condition) {
+static mongory_matcher *test_matcher_build_func(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
   (void)pool;
   (void)condition;
+  (void)extern_ctx;
   return NULL;
 }
 
