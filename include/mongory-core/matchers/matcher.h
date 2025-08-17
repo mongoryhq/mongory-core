@@ -54,4 +54,23 @@ void mongory_matcher_explain(mongory_matcher *matcher, mongory_memory_pool *temp
  */
 void mongory_matcher_trace(mongory_matcher *matcher, mongory_value *value);
 
+/**
+ * @brief Prints the trace of a matcher.
+ * @param matcher The matcher to print the trace of.
+ */
+void mongory_matcher_print_trace(mongory_matcher *matcher);
+
+/**
+ * @brief Enables the trace of a matcher.
+ * @param matcher The matcher to enable the trace of.
+ * @param temp_pool The temporary pool to use for the trace.
+ */
+void mongory_matcher_enable_trace(mongory_matcher *matcher, mongory_memory_pool *temp_pool);
+
+/**
+ * @brief Disables the trace of a matcher.
+ * @param matcher The matcher to disable the trace of.
+ */
+void mongory_matcher_disable_trace(mongory_matcher *matcher);
+
 #endif /* MONGORY_MATCHER_H */

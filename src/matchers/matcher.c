@@ -90,36 +90,38 @@ typedef struct mongory_matcher_traced_match_context {
 
 static bool mongory_matcher_traced_match(mongory_matcher *matcher, mongory_value *value) {
   bool matched = matcher->original_match(matcher, value);
-  mongory_memory_pool *pool = matcher->pool;
-  mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
+  mongory_memory_pool *pool = value->pool;
+
   char *res = matched ? "\e[30;42mMatched\e[0m" : "\e[30;41mDismatch\e[0m";
   char *cdtn = matcher->condition->to_str(matcher->condition, pool);
   char *rcd = value == NULL ? "Nothing" : value->to_str(value, pool);
   char *name = matcher->name;
+  char *message;
+
   if (strcmp(name, "Field") == 0) {
     mongory_field_matcher *field_matcher = (mongory_field_matcher *)matcher;
     char *fd = field_matcher->field;
-    mongory_string_buffer_appendf(buffer, "%s: %s, field: \"%s\", condition: %s, record: %s\n", name, res, fd, cdtn, rcd);
+    message = mongory_string_cpyf(pool, "%s: %s, field: \"%s\", condition: %s, record: %s\n", name, res, fd, cdtn, rcd);
   } else {
-    mongory_string_buffer_appendf(buffer, "%s: %s, condition: %s, record: %s\n", name, res, cdtn, rcd);
+    message = mongory_string_cpyf(pool, "%s: %s, condition: %s, record: %s\n", name, res, cdtn, rcd);
   }
 
   mongory_matcher_traced_match_context *trace_result = MG_ALLOC_PTR(pool, mongory_matcher_traced_match_context);
-  trace_result->message = mongory_string_buffer_cstr(buffer);
+  trace_result->message = message;
   trace_result->level = matcher->trace_level;
-  mongory_value *wrapped = mongory_value_wrap_ptr(pool, (void *)trace_result);
-  matcher->trace_stack->push(matcher->trace_stack, wrapped);
+  matcher->trace_stack->push(matcher->trace_stack, mongory_value_wrap_ptr(pool, (void *)trace_result));
+
   return matched;
 }
 
-static bool mongory_matcher_enable_trace(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx) {
+static bool mongory_matcher_enable_trace_cb(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx) {
   matcher->trace_stack = (mongory_array *)ctx->acc;
   matcher->trace_level = ctx->level;
   matcher->match = mongory_matcher_traced_match;
   return true;
 }
 
-static bool mongory_matcher_disable_trace(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx) {
+static bool mongory_matcher_disable_trace_cb(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx) {
   (void)ctx;
   matcher->match = matcher->original_match;
   matcher->trace_stack = NULL;
@@ -148,30 +150,44 @@ static mongory_array *mongory_matcher_traces_sort(mongory_array *self, int level
   return sorted_array;
 }
 
-void mongory_matcher_trace(mongory_matcher *matcher, mongory_value *value) {
-  mongory_array *trace_stack = mongory_array_new(value->pool);
+void mongory_matcher_enable_trace(mongory_matcher *matcher, mongory_memory_pool *temp_pool) {
+  mongory_array *trace_stack = mongory_array_new(temp_pool);
   mongory_matcher_traverse_context ctx = {
-      .pool = value->pool,
+      .pool = temp_pool,
       .level = 0,
       .count = 0,
       .total = 0,
       .acc = (void *)trace_stack,
-      .callback = mongory_matcher_enable_trace,
+      .callback = mongory_matcher_enable_trace_cb,
   };
   matcher->traverse(matcher, &ctx);
-  matcher->match(matcher, value);
-  ctx.callback = mongory_matcher_disable_trace;
+}
+
+void mongory_matcher_disable_trace(mongory_matcher *matcher) {
+  mongory_matcher_traverse_context ctx = {
+      .level = 0,
+      .count = 0,
+      .total = 0,
+      .callback = mongory_matcher_disable_trace_cb,
+  };
   matcher->traverse(matcher, &ctx);
-  mongory_array *sorted_trace_stack = mongory_matcher_traces_sort(trace_stack, 0);
+}
+
+void mongory_matcher_print_trace(mongory_matcher *matcher) {
+  mongory_array *sorted_trace_stack = mongory_matcher_traces_sort(matcher->trace_stack, 0);
   int total = (int)sorted_trace_stack->count;
   for (int i = 0; i < total; i++) {
-    mongory_string_buffer *buffer = mongory_string_buffer_new(value->pool);
     mongory_value *item = sorted_trace_stack->get(sorted_trace_stack, i);
     mongory_matcher_traced_match_context *trace = (mongory_matcher_traced_match_context *)item->data.ptr;
-    for (int k = 0; k < trace->level; k++) {
-      mongory_string_buffer_append(buffer, "  ");
-    }
-    mongory_string_buffer_append(buffer, trace->message);
-    printf("%s", mongory_string_buffer_cstr(buffer));
+    char *indent = MG_ALLOC(sorted_trace_stack->pool, trace->level * 2);
+    memset(indent, ' ', trace->level * 2);
+    printf("%s%s", indent, trace->message);
   }
+}
+
+void mongory_matcher_trace(mongory_matcher *matcher, mongory_value *value) {
+  mongory_matcher_enable_trace(matcher, value->pool);
+  matcher->match(matcher, value);
+  mongory_matcher_print_trace(matcher);
+  mongory_matcher_disable_trace(matcher);
 }
