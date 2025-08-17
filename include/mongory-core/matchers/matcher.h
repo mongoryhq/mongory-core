@@ -52,7 +52,7 @@ void mongory_matcher_explain(mongory_matcher *matcher, mongory_memory_pool *temp
  * @param matcher The matcher to trace.
  * @param value The value to trace.
  */
-void mongory_matcher_trace(mongory_matcher *matcher, mongory_value *value);
+bool mongory_matcher_trace(mongory_matcher *matcher, mongory_value *value);
 
 /**
  * @brief Prints the trace of a matcher.
