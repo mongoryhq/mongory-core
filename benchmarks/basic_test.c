@@ -63,7 +63,7 @@ int main() {
   mongory_memory_pool *matcher_pool = mongory_memory_pool_new();
   mongory_value *condition =
       json_string_to_mongory_value(matcher_pool, "{\"$or\": [{\"age\": {\"$gte\": 18}}, {\"status\": \"active\"}]}");
-  mongory_matcher *matcher = mongory_matcher_new(matcher_pool, condition);
+  mongory_matcher *matcher = mongory_matcher_new(matcher_pool, condition, NULL);
   mongory_array *json_array = mongory_array_new(matcher_pool);
 
   int times = 100000;
