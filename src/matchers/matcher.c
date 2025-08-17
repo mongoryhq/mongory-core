@@ -179,8 +179,10 @@ void mongory_matcher_print_trace(mongory_matcher *matcher) {
   for (int i = 0; i < total; i++) {
     mongory_value *item = sorted_trace_stack->get(sorted_trace_stack, i);
     mongory_matcher_traced_match_context *trace = (mongory_matcher_traced_match_context *)item->data.ptr;
-    char *indent = MG_ALLOC(sorted_trace_stack->pool, trace->level * 2);
-    memset(indent, ' ', trace->level * 2);
+    int indent_size = trace->level * 2;
+    char *indent = MG_ALLOC(sorted_trace_stack->pool, indent_size + 1);
+    memset(indent, ' ', indent_size);
+    indent[indent_size] = '\0';
     printf("%s%s", indent, trace->message);
   }
 }
