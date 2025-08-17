@@ -1,3 +1,5 @@
+#ifndef MONGORY_ERROR_C
+#define MONGORY_ERROR_C
 /**
  * @file error.c
  * @brief Implements error type to string conversion for the Mongory library.
@@ -28,3 +30,9 @@ const char *mongory_error_type_to_string(enum mongory_error_type type) {
     return "Unknown Error Type";
   }
 }
+
+mongory_error MONGORY_ALLOC_ERROR = {
+  .type = MONGORY_ERROR_MEMORY,
+  .message = "Memory Allocation Failed",
+};
+#endif
