@@ -49,26 +49,20 @@ int main() {
     mongory_memory_pool *pool = mongory_memory_pool_new();
 
     // 3. Create the document to be queried as a mongory_table
-    mongory_table *doc_table = mongory_table_new(pool);
-    doc_table->set(doc_table, "name", mongory_value_wrap_s(pool, "Jules"));
-    doc_table->set(doc_table, "language", mongory_value_wrap_s(pool, "C"));
-    doc_table->set(doc_table, "year", mongory_value_wrap_i(pool, 2024));
-    mongory_value *doc = mongory_value_wrap_t(pool, doc_table);
+    mongory_value *doc = MG_TABLE_WRAP(pool, 3,
+        "name", mongory_value_wrap_s(pool, "Jules"),
+        "language", mongory_value_wrap_s(pool, "C"),
+        "year", mongory_value_wrap_i(pool, 2024)
+    );
 
     // 4. Create the query condition
     // { "language": "C", "year": { "$gt": 2020 } }
-    mongory_table *query_table = mongory_table_new(pool);
-    mongory_table *year_cond_table = mongory_table_new(pool);
-
-    // "$gt": 2020
-    year_cond_table->set(year_cond_table, "$gt", mongory_value_wrap_i(pool, 2020));
-
-    // "year": { ... }
-    query_table->set(query_table, "year", mongory_value_wrap_t(pool, year_cond_table));
-    // "language": "C"
-    query_table->set(query_table, "language", mongory_value_wrap_s(pool, "C"));
-
-    mongory_value *query = mongory_value_wrap_t(pool, query_table);
+    mongory_value *query = MG_TABLE_WRAP(pool, 2,
+        "language", mongory_value_wrap_s(pool, "C"),
+        "year", MG_TABLE_WRAP(pool, 1,
+            "$gt", mongory_value_wrap_i(pool, 2020)
+        )
+    );
 
     // 5. Create a matcher with the query condition
     mongory_matcher *matcher = mongory_matcher_new(pool, query);
