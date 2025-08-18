@@ -32,12 +32,12 @@ static inline bool mongory_matcher_regex_match(mongory_matcher *matcher, mongory
   if (!value || value->type != MONGORY_TYPE_STRING) {
     return false; // Regex matching applies only to strings.
   }
-  if (!mongory_internal_regex_adapter || !mongory_internal_regex_adapter->match_func) {
+  if (!mongory_internal_regex_adapter.match_func) {
     return false; // Regex adapter or function not configured.
   }
 
   // Delegate to the configured regex function.
-  return mongory_internal_regex_adapter->match_func(matcher->pool, matcher->condition, value);
+  return mongory_internal_regex_adapter.match_func(matcher->pool, matcher->condition, value);
 }
 
 /**
@@ -83,11 +83,11 @@ typedef struct mongory_custom_matcher {
  * @return True if the value matches the matcher, false otherwise.
  */
 bool mongory_matcher_custom_match(mongory_matcher *matcher, mongory_value *value) {
-  if (mongory_custom_matcher_adapter == NULL || mongory_custom_matcher_adapter->match == NULL) {
+  if (mongory_custom_matcher_adapter.match == NULL) {
     return false; // Custom matcher adapter not initialized.
   }
   mongory_custom_matcher *custom_matcher = (mongory_custom_matcher *)matcher;
-  return mongory_custom_matcher_adapter->match(custom_matcher->external_matcher, value);
+  return mongory_custom_matcher_adapter.match(custom_matcher->external_matcher, value);
 }
 
 /**
@@ -101,12 +101,12 @@ bool mongory_matcher_custom_match(mongory_matcher *matcher, mongory_value *value
  * NULL on failure.
  */
 mongory_matcher *mongory_matcher_custom_new(mongory_memory_pool *pool, char *key, mongory_value *condition, void *extern_ctx) {
-  if (mongory_custom_matcher_adapter == NULL || mongory_custom_matcher_adapter->build == NULL)
+  if (mongory_custom_matcher_adapter.build == NULL)
     return NULL; // Custom matcher adapter not initialized.
   mongory_custom_matcher *matcher = MG_ALLOC_PTR(pool, mongory_custom_matcher);
   if (matcher == NULL)
     return NULL;
-  mongory_matcher_custom_context *context = mongory_custom_matcher_adapter->build(key, condition, extern_ctx);
+  mongory_matcher_custom_context *context = mongory_custom_matcher_adapter.build(key, condition, extern_ctx);
   if (context == NULL)
     return NULL;
   matcher->base.pool = pool;
