@@ -12,6 +12,7 @@
 #include "array_private.h"
 #include <mongory-core/foundations/array.h>
 #include <mongory-core/foundations/memory_pool.h>
+#include <stdarg.h>
 #include <mongory-core/foundations/value.h>
 
 /**
@@ -204,7 +205,35 @@ mongory_array *mongory_array_new(mongory_memory_pool *pool) {
   return &internal->base; // Return pointer to the public structure.
 }
 
-static mongory_value** mongory_array_merge(mongory_memory_pool *pool, mongory_value **left, mongory_value **right, size_t count, void *ctx, size_t(*callback)(mongory_value *value, void *ctx)) {
+/**
+ * @brief Creates a new mongory_array instance with a nested array.
+ *
+ * This function is used to create a new mongory_array instance with a nested
+ * array. The nested array is created with the given memory pool and the given
+ * values. The nested array is returned as a pointer to the mongory_array structure.
+ *
+ * @param pool A pointer to the mongory_memory_pool to be used for allocations.
+ * @param argc The number of values to be set.
+ * @param ... The values to be set.
+ * @return mongory_array* A pointer to the newly created mongory_array, or NULL
+ * if creation fails (e.g., memory allocation failure).
+ */
+mongory_array *mongory_array_nested_wrap(mongory_memory_pool *pool, int argc, ...) {
+  mongory_array *array = mongory_array_new(pool);
+  if (!array) {
+    return NULL;
+  }
+  va_list args;
+  va_start(args, argc);
+  for (int i = 0; i < argc; i++) {
+    mongory_value *value = va_arg(args, mongory_value *);
+    array->push(array, value);
+  }
+  va_end(args);
+  return array;
+}
+
+static mongory_value** mongory_array_merge_sort_finalize(mongory_memory_pool *pool, mongory_value **left, mongory_value **right, size_t count, void *ctx, size_t(*callback)(mongory_value *value, void *ctx)) {
   mongory_value **result = MG_ALLOC_ARY(pool, mongory_value*, count);
   size_t i = 0, j = 0, k = 0;
   while (i < count / 2 && j < count - count / 2) {
@@ -230,7 +259,7 @@ static mongory_value** mongory_array_merge_sort(mongory_memory_pool *pool, mongo
   size_t mid = count / 2;
   mongory_value **left = mongory_array_merge_sort(pool, origin_items, mid, ctx, callback);
   mongory_value **right = mongory_array_merge_sort(pool, origin_items + mid, count - mid, ctx, callback);
-  return mongory_array_merge(pool, left, right, count, ctx, callback);
+  return mongory_array_merge_sort_finalize(pool, left, right, count, ctx, callback);
 }
 
 mongory_array *mongory_array_sort_by(mongory_array *self, mongory_memory_pool *temp_pool, void *ctx, size_t(*callback)(mongory_value *value, void *ctx)) {

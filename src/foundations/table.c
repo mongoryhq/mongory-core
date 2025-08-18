@@ -13,6 +13,7 @@
 #include <mongory-core/foundations/config.h> // For mongory_string_cpy
 #include <mongory-core/foundations/table.h>
 #include <mongory-core/foundations/value.h>
+#include <stdarg.h>
 #include <string.h> // For strcmp, strlen
 
 /**
@@ -455,4 +456,20 @@ mongory_table *mongory_table_new(mongory_memory_pool *pool) {
   internal->capacity = init_capacity;
 
   return &internal->base; // Return pointer to the public structure.
+}
+
+mongory_table *mongory_table_nested_wrap(mongory_memory_pool *pool, int argc, ...) {
+  mongory_table *table = mongory_table_new(pool);
+  if (!table) {
+    return NULL;
+  }
+  va_list args;
+  va_start(args, argc);
+  for (int i = 0; i < argc; i++) {
+    char *key = va_arg(args, char *);
+    mongory_value *value = va_arg(args, mongory_value *);
+    mongory_table_set(table, key, value);
+  }
+  va_end(args);
+  return table;
 }

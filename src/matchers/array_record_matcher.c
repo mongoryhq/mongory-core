@@ -131,22 +131,6 @@ static inline mongory_value *mongory_matcher_array_record_parse_table(mongory_va
   return mongory_value_wrap_t(pool, parsed_table);
 }
 
-/**
- * @brief Wraps a table in a value.
- * @param pool Memory pool.
- * @param key Key to set in the table.
- * @param value Value to set in the table.
- * @return A new `mongory_value` (table) containing the wrapped table.
- */
-static inline mongory_value *mongory_matcher_array_record_parse_table_wrap(mongory_memory_pool *pool, char *key, mongory_value *value) {
-  if (!pool || !key || !value)
-    return NULL;
-  mongory_table *table = mongory_table_new(pool);
-  if (!table)
-    return NULL;
-  table->set(table, key, value);
-  return mongory_value_wrap_t(pool, table);
-}
 
 /**
  * @brief Helper to create an $elemMatch matcher with an inner $regex condition.
@@ -158,10 +142,7 @@ static inline mongory_value *mongory_matcher_array_record_parse_table_wrap(mongo
  */
 static inline mongory_matcher *mongory_matcher_array_record_elem_match_regex_new(mongory_memory_pool *pool,
                                                                                  mongory_value *regex_condition, void *extern_ctx) {
-  mongory_value *wrapped_table = mongory_matcher_array_record_parse_table_wrap(pool, "$regex", regex_condition);
-  if (!wrapped_table)
-    return NULL;
-  return mongory_matcher_elem_match_new(pool, wrapped_table, extern_ctx);
+  return mongory_matcher_elem_match_new(pool, MG_TABLE_WRAP(pool, 1, "$regex", regex_condition), extern_ctx);
 }
 
 /**
@@ -174,44 +155,9 @@ static inline mongory_matcher *mongory_matcher_array_record_elem_match_regex_new
  */
 static inline mongory_matcher *mongory_matcher_array_record_elem_match_equal_new(mongory_memory_pool *pool,
                                                                                  mongory_value *literal_condition, void *extern_ctx) {
-  mongory_value *wrapped_table = mongory_matcher_array_record_parse_table_wrap(pool, "$eq", literal_condition);
-  if (!wrapped_table)
-    return NULL;
-  return mongory_matcher_elem_match_new(pool, wrapped_table, extern_ctx);
+  return mongory_matcher_elem_match_new(pool, MG_TABLE_WRAP(pool, 1, "$eq", literal_condition), extern_ctx);
 }
 
-/**
- * @brief Delegates creation of the "left" part of an array_record_matcher.
- *
- * This part typically handles conditions related to array elements (e.g.,
- * $elemMatch logic).
- * - If `condition` is a table, it's parsed by
- * `mongory_matcher_array_record_parse_table` and then a
- * `mongory_matcher_table_cond_new` is created.
- * - If `condition` is regex, creates an $elemMatch with inner $regex.
- * - Otherwise (literal), creates an $elemMatch with inner $eq.
- *
- * @param pool Memory pool.
- * @param condition The original condition for the array_record_matcher.
- * @return The "left" child matcher, or NULL on failure.
- */
-static inline mongory_matcher *mongory_matcher_array_record_generic_delegate(mongory_memory_pool *pool,
-                                                                          mongory_value *condition, void *extern_ctx) {
-  if (!condition)
-    return NULL;
-  switch (condition->type) {
-  case MONGORY_TYPE_TABLE: {
-    mongory_value *parsed_table_condition = mongory_matcher_array_record_parse_table(condition);
-    if (!parsed_table_condition)
-      return NULL;
-    return mongory_matcher_table_cond_new(pool, parsed_table_condition, extern_ctx);
-  }
-  case MONGORY_TYPE_REGEX:
-    return mongory_matcher_array_record_elem_match_regex_new(pool, condition, extern_ctx);
-  default: // Literals (string, int, bool, etc.)
-    return mongory_matcher_array_record_elem_match_equal_new(pool, condition, extern_ctx);
-  }
-}
 
 /**
  * @brief Delegates creation of the "right" part of an array_record_matcher.
@@ -225,39 +171,13 @@ static inline mongory_matcher *mongory_matcher_array_record_generic_delegate(mon
  */
 static inline mongory_matcher *mongory_matcher_array_record_array_cond_delegate(mongory_memory_pool *pool,
                                                                            mongory_value *condition, void *extern_ctx) {
-  if (!condition)
-    return NULL;
-  switch (condition->type) {
-  case MONGORY_TYPE_ARRAY:
-    // If original condition is an array, right delegate is for direct equality.
-    return mongory_matcher_equal_new(pool, condition, extern_ctx);
-  default:
-    return NULL; // No whole-array equality check needed for other types.
-  }
-}
-
-/**
- * @brief Match function for the array_record_matcher.
- *
- * It expects the `matcher` to be a composite OR matcher.
- * It checks if the input `value` is an array, then applies the OR logic.
- * This OR logic typically combines:
- * 1. Matching based on element conditions (via `composite->left` from
- * `left_delegate`).
- * 2. Matching based on whole-array equality (via `composite->right` from
- * `right_delegate`, if applicable).
- *
- * @param matcher The array_record_matcher instance (cast as base `mongory_matcher`).
- * @param value The `mongory_value` to check, expected to be an array.
- * @return True if the array matches according to the ORed conditions, false
- * otherwise.
- */
-static inline bool mongory_matcher_array_record_match(mongory_matcher *matcher, mongory_value *value) {
-  if (value == NULL || value->type != MONGORY_TYPE_ARRAY) {
-    return false; // Only applies to arrays.
-  }
-  // This matcher is constructed as a composite OR internally.
-  return mongory_matcher_or_match(matcher, value);
+  mongory_value *new_or_condition = MG_ARRAY_WRAP(pool, 2,
+    MG_TABLE_WRAP(pool, 1, "$eq", condition),
+    MG_TABLE_WRAP(pool, 1, "$elemMatch",
+      MG_TABLE_WRAP(pool, 1, "$eq", condition)
+    )
+  );
+  return mongory_matcher_or_new(pool, new_or_condition, extern_ctx);
 }
 
 /**
@@ -278,32 +198,16 @@ static inline bool mongory_matcher_array_record_match(mongory_matcher *matcher, 
  * @return The constructed array_record_matcher, or NULL on failure.
  */
 mongory_matcher *mongory_matcher_array_record_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
-  if (!pool || !condition)
+  if (!condition)
     return NULL;
-
-  mongory_matcher *generic_child = mongory_matcher_array_record_generic_delegate(pool, condition, extern_ctx);
-  mongory_matcher *array_cond_child = mongory_matcher_array_record_array_cond_delegate(pool, condition, extern_ctx);
-
-  if (!(generic_child && array_cond_child)) {
-    return generic_child ? generic_child : array_cond_child;
+  switch (condition->type) {
+  case MONGORY_TYPE_TABLE:
+    return mongory_matcher_table_cond_new(pool, mongory_matcher_array_record_parse_table(condition), extern_ctx);
+  case MONGORY_TYPE_ARRAY:
+    return mongory_matcher_array_record_array_cond_delegate(pool, condition, extern_ctx);
+  case MONGORY_TYPE_REGEX:
+    return mongory_matcher_array_record_elem_match_regex_new(pool, condition, extern_ctx);
+  default: // Literals (string, int, bool, etc.)
+    return mongory_matcher_array_record_elem_match_equal_new(pool, condition, extern_ctx);
   }
-
-  // Both left (element-wise) and right (whole-array equality) are possible.
-  // Combine them with an OR.
-  mongory_composite_matcher *final_or_composite = mongory_matcher_composite_new(pool, condition, extern_ctx);
-  if (!final_or_composite) {
-    return NULL;
-  }
-
-  final_or_composite->children = mongory_array_new(pool);
-  if (!final_or_composite->children) {
-    return NULL;
-  }
-  final_or_composite->children->push(final_or_composite->children, (mongory_value *)generic_child);
-  final_or_composite->children->push(final_or_composite->children, (mongory_value *)array_cond_child);
-  final_or_composite->base.match = mongory_matcher_array_record_match; // Uses or_match
-  final_or_composite->base.original_match = mongory_matcher_array_record_match;
-
-  final_or_composite->base.name = mongory_string_cpy(pool, "ArrayRecord");
-  return (mongory_matcher *)final_or_composite;
 }

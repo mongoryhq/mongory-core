@@ -87,6 +87,23 @@ typedef bool (*mongory_table_del_func)(mongory_table *self, char *key);
 mongory_table *mongory_table_new(mongory_memory_pool *pool);
 
 /**
+ * @brief Creates a new mongory_table instance with a nested table.
+ *
+ * This function is used to create a new mongory_table instance with a nested
+ * table. The nested table is created with the given memory pool and the given
+ * key-value pairs. The nested table is returned as a pointer to the
+ * mongory_table structure.
+ *
+ * @param pool A pointer to the mongory_memory_pool to be used for allocations.
+ * @param argc The number of key-value pairs to be set.
+ * @param ... The key-value pairs to be set.
+ * @return mongory_table* A pointer to the newly created mongory_table, or NULL
+ * if creation fails (e.g., memory allocation failure).
+ */
+mongory_table *mongory_table_nested_wrap(mongory_memory_pool *pool, int argc, ...);
+#define MG_TABLE_WRAP(pool, n, ...) mongory_value_wrap_t(pool, mongory_table_nested_wrap(pool, n, __VA_ARGS__))
+
+/**
  * @struct mongory_table
  * @brief Represents a hash table mapping string keys to mongory_value pointers.
  *
