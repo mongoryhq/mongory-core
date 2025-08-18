@@ -156,4 +156,6 @@ void mongory_custom_matcher_match_func_set(bool (*match)(void *external_matcher,
 void mongory_custom_matcher_build_func_set(mongory_matcher_custom_context *(*build)(char *key, mongory_value *condition, void *extern_ctx));
 void mongory_custom_matcher_lookup_func_set(bool (*lookup)(char *key));
 
+void mongory_matcher_trace_result_colorful_set(bool colorful);
+
 #endif /* MONGORY_FOUNDATIONS_CONFIG_H */

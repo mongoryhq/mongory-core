@@ -37,6 +37,7 @@ extern mongory_regex_adapter mongory_internal_regex_adapter;
 extern mongory_table *mongory_matcher_mapping;
 extern mongory_value_converter mongory_internal_value_converter;
 extern mongory_matcher_custom_adapter mongory_custom_matcher_adapter;
+extern bool mongory_matcher_trace_result_colorful;
 
 typedef mongory_matcher *(*mongory_matcher_build_func)(mongory_memory_pool *pool,
                                                        mongory_value *condition,

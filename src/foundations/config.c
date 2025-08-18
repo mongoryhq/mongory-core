@@ -49,6 +49,8 @@ mongory_matcher_custom_adapter mongory_custom_matcher_adapter = {
   .match = NULL,
 };
 
+bool mongory_matcher_trace_result_colorful = true;
+
 /**
  * @brief Initializes the internal memory pool if it hasn't been already.
  * This pool is used for allocations by various library components.
@@ -207,6 +209,10 @@ void mongory_custom_matcher_build_func_set(mongory_matcher_custom_context *(*bui
 
 void mongory_custom_matcher_lookup_func_set(bool (*lookup)(char *key)) {
   mongory_custom_matcher_adapter.lookup = lookup;
+}
+
+void mongory_matcher_trace_result_colorful_set(bool colorful) {
+  mongory_matcher_trace_result_colorful = colorful;
 }
 
 /**
