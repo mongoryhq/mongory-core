@@ -40,7 +40,7 @@ bool mongory_array_resize(mongory_array *self, size_t size) {
   // Allocate a new, larger block of memory for the items.
   mongory_value **new_items = MG_ALLOC_ARY(self->pool, mongory_value*, size);
   if (!new_items) {
-    // TODO: Propagate error via self->pool->error.
+    self->pool->error = &MONGORY_ALLOC_ERROR;
     return false;
   }
 
@@ -177,7 +177,7 @@ mongory_array *mongory_array_new(mongory_memory_pool *pool) {
   // First, allocate the private structure that holds all array metadata.
   mongory_array_private *internal = MG_ALLOC_PTR(pool, mongory_array_private);
   if (!internal) {
-    // TODO: Propagate error via pool->error (if pool is not NULL)
+    pool->error = &MONGORY_ALLOC_ERROR;
     return NULL;
   }
 
@@ -186,7 +186,7 @@ mongory_array *mongory_array_new(mongory_memory_pool *pool) {
   if (!items) {
     // If this fails, the 'internal' struct allocated above will be cleaned up
     // by the pool, assuming it's a tracing pool.
-    // TODO: Propagate error via pool->error (if pool is not NULL)
+    pool->error = &MONGORY_ALLOC_ERROR;
     return NULL;
   }
 
