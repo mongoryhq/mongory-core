@@ -5,6 +5,7 @@
  */
 #include "inclusion_matcher.h"
 #include "base_matcher.h"                   // For mongory_matcher_base_new
+#include "../foundations/array_private.h"   // For mongory_array_includes
 #include "mongory-core/foundations/array.h" // For mongory_array operations
 #include "mongory-core/foundations/error.h" // For mongory_error
 #include "mongory-core/foundations/value.h" // For mongory_value
