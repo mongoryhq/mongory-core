@@ -19,48 +19,139 @@
 // Forward declaration of the memory pool structure.
 typedef struct mongory_memory_pool mongory_memory_pool;
 
+/** @name Memory Allocation Macros
+ *  @brief Convenience macros for simplified memory allocation from a pool.
+ *  @{
+ */
+/** @def MG_ALLOC(p, n)
+ *  @brief Allocates a raw block of memory of size `n` from pool `p`.
+ *  @param p Pointer to the `mongory_memory_pool`.
+ *  @param n The number of bytes to allocate.
+ *  @return A `void*` pointer to the allocated memory.
+ */
 #define MG_ALLOC(p, n) (p->alloc(p, n))
-#define MG_ALLOC_PTR(p, t) ((t*)MG_ALLOC(p, sizeof(t)))
+
+/** @def MG_ALLOC_PTR(p, t)
+ *  @brief Allocates memory for a single instance of type `t` from pool `p` and returns a pointer of type `t*`.
+ *  @param p Pointer to the `mongory_memory_pool`.
+ *  @param t The type of the object to allocate (e.g., `my_struct`).
+ *  @return A pointer of type `t*` to the allocated memory.
+ */
+#define MG_ALLOC_PTR(p, t) ((t *)MG_ALLOC(p, sizeof(t)))
+
+/** @def MG_ALLOC_OBJ(p, t)
+ *  @brief Deprecated. Use `MG_ALLOC_PTR` instead. Allocates memory for a single instance of type `t`.
+ *  @param p Pointer to the `mongory_memory_pool`.
+ *  @param t The type of the object to allocate.
+ *  @return A pointer of type `t` (often used for pointer types) to the allocated memory.
+ */
 #define MG_ALLOC_OBJ(p, t) ((t)MG_ALLOC(p, sizeof(t)))
-#define MG_ALLOC_ARY(p, t, n) ((t*)MG_ALLOC(p, sizeof(t) * (n)))
+
+/** @def MG_ALLOC_ARY(p, t, n)
+ *  @brief Allocates memory for an array of `n` elements of type `t` from pool `p`.
+ *  @param p Pointer to the `mongory_memory_pool`.
+ *  @param t The type of the array elements.
+ *  @param n The number of elements in the array.
+ *  @return A pointer of type `t*` to the beginning of the allocated array memory.
+ */
+#define MG_ALLOC_ARY(p, t, n) ((t *)MG_ALLOC(p, sizeof(t) * (n)))
+/** @} */
+
 /**
  * @struct mongory_memory_pool
  * @brief Represents a memory pool for managing memory allocations.
  *
- * The pool uses a context (`ctx`) to store its internal state, which typically
- * includes a list of allocated memory chunks.
- * It provides function pointers for allocation, tracing (optional), and freeing
- * the entire pool. An error field can store information about the last error
- * encountered during pool operations.
+ * The pool uses a context (`ctx`) to store its internal state. The default
+ * implementation uses a linked list of memory chunks. The struct is designed
+ * as an interface, allowing users to provide their own memory management
+ * strategy by populating the function pointers (`alloc`, `free`, etc.) with
+ * custom logic.
+ *
+ * @section custom_pool_example Custom Memory Pool Example
+ * For memory-sensitive environments, you can implement your own pool. For
+ * example, a simple bump allocator using a static buffer:
+ *
+ * @code
+ * #include <string.h> // for memcpy
+ *
+ * // Custom context for the bump allocator
+ * typedef struct {
+ *     char* buffer;
+ *     size_t capacity;
+ *     size_t offset;
+ * } bump_alloc_ctx;
+ *
+ * // Custom allocation function
+ * void* bump_alloc(mongory_memory_pool* pool, size_t size) {
+ *     bump_alloc_ctx* ctx = (bump_alloc_ctx*)pool->ctx;
+ *     if (ctx->offset + size > ctx->capacity) {
+ *         return NULL; // Out of memory
+ *     }
+ *     void* ptr = ctx->buffer + ctx->offset;
+ *     ctx->offset += size;
+ *     return ptr;
+ * }
+ *
+ * // Custom free function (for a bump allocator, this might do nothing or reset)
+ * void bump_free(mongory_memory_pool* pool) {
+ *     // In this simple case, we free the entire pool, including the context
+ *     // and the buffer itself, which were allocated externally.
+ *     free(pool->ctx);
+ *     free(pool);
+ * }
+ *
+ * // Create and initialize the custom pool
+ * char my_static_buffer[1024];
+ * bump_alloc_ctx my_ctx = { .buffer = my_static_buffer, .capacity = 1024, .offset = 0 };
+ *
+ * mongory_memory_pool my_pool = {
+ *     .alloc = bump_alloc,
+ *     .free = bump_free,
+ *     .trace = NULL, // Not implemented for this simple example
+ *     .reset = NULL, // Not implemented
+ *     .ctx = &my_ctx,
+ *     .error = NULL
+ * };
+ *
+ * // Now, `&my_pool` can be passed to any mongory function.
+ * mongory_value *v = mongory_value_wrap_i(&my_pool, 123);
+ * @endcode
  */
 struct mongory_memory_pool {
   /**
    * @brief Allocates a block of memory from the pool.
-   * @param ctx A pointer to the pool's internal context.
+   * @param pool A pointer to the pool itself.
    * @param size The number of bytes to allocate.
    * @return void* A pointer to the allocated memory block, or NULL on failure.
-   * Memory allocated this way is typically aligned.
+   * Memory allocated this way should be suitably aligned for any fundamental
+   * type.
    */
   void *(*alloc)(mongory_memory_pool *pool, size_t size);
 
   /**
-   * @brief Traces an externally allocated memory block, associating it with the
-   * pool.
+   * @brief Associates an externally allocated memory block with the pool.
    *
-   * This is useful if memory is allocated outside the pool's `alloc` function
-   * (e.g., by an external library) but its lifecycle should be tied to the
-   * pool. When the pool is freed, traced memory blocks might also be freed
-   * depending on the pool's implementation.
+   * This function is a hint to the memory pool that a piece of memory,
+   * allocated by external code (e.g., a third-party library), should be
+   * considered part of the pool's managed set. A sophisticated pool
+   * implementation could use this for garbage collection or tracking. The
+   * default pool implementation does not use this.
    *
-   * @param ctx A pointer to the pool's internal context.
+   * @param pool A pointer to the pool itself.
    * @param ptr A pointer to the memory block to trace.
    * @param size The size of the memory block.
    */
   void (*trace)(mongory_memory_pool *pool, void *ptr, size_t size);
 
   /**
-   * @brief Resets the memory pool to its initial state.
-   * @param ctx A pointer to the pool's internal context.
+   * @brief Resets the memory pool to its initial state, freeing all allocated
+   * memory but keeping the pool itself alive.
+   *
+   * For the default implementation, this frees all memory chunks but allows
+   * the pool to be used for new allocations. For a custom bump allocator,
+   * this might simply reset the offset to zero.
+   *
+   * @param pool A pointer to the pool itself.
    */
   void (*reset)(mongory_memory_pool *pool);
 
