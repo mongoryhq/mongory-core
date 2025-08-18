@@ -122,4 +122,6 @@ struct mongory_table {
   mongory_table_del_func del;   /**< Function to delete a key-value pair. */
 };
 
+mongory_table *mongory_table_merge(mongory_table *table, mongory_table *other);
+
 #endif /* MONGORY_TABLE_H */
