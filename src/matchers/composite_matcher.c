@@ -7,6 +7,7 @@
 #include "composite_matcher.h"
 #include "external_matcher.h"
 #include "../foundations/config_private.h"  // For mongory_matcher_build_func_get
+#include "../foundations/array_private.h"   // For mongory_array_sort_by
 #include "../foundations/string_buffer.h"   // For mongory_string_buffer_new
 #include "base_matcher.h"                   // For mongory_matcher_always_true_new, etc.
 #include "literal_matcher.h"                // For mongory_matcher_field_new
@@ -22,6 +23,7 @@
 
 // Forward declaration.
 double mongory_matcher_calculate_priority(mongory_array *sub_matchers);
+mongory_array *mongory_matcher_sort_matchers(mongory_array *sub_matchers);
 
 /**
  * @brief Allocates and initializes a `mongory_composite_matcher` structure.
@@ -234,10 +236,9 @@ mongory_matcher *mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongo
   mongory_composite_matcher *final_matcher = mongory_matcher_composite_new(pool, condition, extern_ctx);
   if (final_matcher == NULL)
     return NULL;
-  final_matcher->children = sub_matchers;
+  final_matcher->children = mongory_matcher_sort_matchers(sub_matchers);
   final_matcher->base.match = mongory_matcher_and_match;
   final_matcher->base.original_match = mongory_matcher_and_match;
-  final_matcher->base.condition = condition;
   final_matcher->base.sub_count = sub_matchers->count;
   final_matcher->base.name = mongory_string_cpy(pool, "Condition");
   final_matcher->base.priority += mongory_matcher_calculate_priority(sub_matchers);
@@ -332,10 +333,9 @@ mongory_matcher *mongory_matcher_and_new(mongory_memory_pool *pool, mongory_valu
   mongory_composite_matcher *final_matcher = mongory_matcher_composite_new(pool, condition, extern_ctx);
   if (final_matcher == NULL)
     return NULL;
-  final_matcher->children = sub_matchers;
+  final_matcher->children = mongory_matcher_sort_matchers(sub_matchers);
   final_matcher->base.match = mongory_matcher_and_match;
   final_matcher->base.original_match = mongory_matcher_and_match;
-  final_matcher->base.condition = condition;
   final_matcher->base.sub_count = sub_matchers->count;
   final_matcher->base.name = mongory_string_cpy(pool, "And");
   final_matcher->base.priority += mongory_matcher_calculate_priority(sub_matchers);
@@ -415,10 +415,9 @@ mongory_matcher *mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value
   mongory_composite_matcher *final_matcher = mongory_matcher_composite_new(pool, condition, extern_ctx);
   if (final_matcher == NULL)
     return NULL;
-  final_matcher->children = sub_matchers;
+  final_matcher->children = mongory_matcher_sort_matchers(sub_matchers);
   final_matcher->base.match = mongory_matcher_or_match;
   final_matcher->base.original_match = mongory_matcher_or_match;
-  final_matcher->base.condition = condition;
   final_matcher->base.sub_count = sub_matchers->count;
   final_matcher->base.name = mongory_string_cpy(pool, "Or");
   final_matcher->base.priority += mongory_matcher_calculate_priority(sub_matchers);
@@ -478,7 +477,7 @@ mongory_matcher *mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongo
   if (composite == NULL)
     return NULL;
 
-  composite->children = sub_matchers;
+  composite->children = mongory_matcher_sort_matchers(sub_matchers);
   composite->base.match = mongory_matcher_elem_match_match;
   composite->base.original_match = mongory_matcher_elem_match_match;
   composite->base.sub_count = sub_matchers->count;
@@ -537,7 +536,7 @@ mongory_matcher *mongory_matcher_every_new(mongory_memory_pool *pool, mongory_va
   if (composite == NULL)
     return NULL;
 
-  composite->children = sub_matchers;
+  composite->children = mongory_matcher_sort_matchers(sub_matchers);
   composite->base.match = mongory_matcher_every_match;
   composite->base.original_match = mongory_matcher_every_match;
   composite->base.sub_count = sub_matchers->count;
@@ -557,4 +556,25 @@ double mongory_matcher_calculate_priority(mongory_array *sub_matchers) {
     priority += ((mongory_matcher *)sub_matchers->get(sub_matchers, i))->priority;
   }
   return priority;
+}
+
+static inline size_t mongory_matcher_calc_priority(mongory_value *matcher_value, void *ctx) {
+  (void)ctx;
+  mongory_matcher *matcher = (mongory_matcher *)matcher_value;
+  return (size_t)(matcher->priority * 10000);
+}
+
+/**
+ * @brief Sorts the sub-matchers by priority.
+ * @param sub_matchers The array of sub-matchers.
+ * @return The sorted array of sub-matchers.
+ */
+mongory_array *mongory_matcher_sort_matchers(mongory_array *sub_matchers) {
+  mongory_memory_pool *temp_pool = mongory_memory_pool_new();
+  if (temp_pool == NULL) {
+    return NULL;
+  }
+  mongory_array *sorted_matchers = mongory_array_sort_by(sub_matchers, temp_pool, NULL, mongory_matcher_calc_priority);
+  temp_pool->free(temp_pool);
+  return sorted_matchers;
 }

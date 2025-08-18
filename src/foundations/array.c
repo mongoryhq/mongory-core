@@ -233,7 +233,9 @@ mongory_array *mongory_array_nested_wrap(mongory_memory_pool *pool, int argc, ..
   return array;
 }
 
-static mongory_value** mongory_array_merge_sort_finalize(mongory_memory_pool *pool, mongory_value **left, mongory_value **right, size_t count, void *ctx, size_t(*callback)(mongory_value *value, void *ctx)) {
+typedef size_t(*mongory_array_sort_cb)(mongory_value *value, void *ctx);
+
+static mongory_value** mongory_array_merge_sort_finalize(mongory_memory_pool *pool, mongory_value **left, mongory_value **right, size_t count, void *ctx, mongory_array_sort_cb callback) {
   mongory_value **result = MG_ALLOC_ARY(pool, mongory_value*, count);
   size_t i = 0, j = 0, k = 0;
   while (i < count / 2 && j < count - count / 2) {
@@ -252,7 +254,7 @@ static mongory_value** mongory_array_merge_sort_finalize(mongory_memory_pool *po
   return result;
 }
 
-static mongory_value** mongory_array_merge_sort(mongory_memory_pool *pool, mongory_value **origin_items, size_t count, void *ctx, size_t(*callback)(mongory_value *value, void *ctx)) {
+static mongory_value** mongory_array_merge_sort(mongory_memory_pool *pool, mongory_value **origin_items, size_t count, void *ctx, mongory_array_sort_cb callback) {
   if (count <= 1) {
     return origin_items;
   }
@@ -262,7 +264,7 @@ static mongory_value** mongory_array_merge_sort(mongory_memory_pool *pool, mongo
   return mongory_array_merge_sort_finalize(pool, left, right, count, ctx, callback);
 }
 
-mongory_array *mongory_array_sort_by(mongory_array *self, mongory_memory_pool *temp_pool, void *ctx, size_t(*callback)(mongory_value *value, void *ctx)) {
+mongory_array *mongory_array_sort_by(mongory_array *self, mongory_memory_pool *temp_pool, void *ctx, mongory_array_sort_cb callback) {
   mongory_array_private *internal = (mongory_array_private *)self;
 
   mongory_value **new_items = mongory_array_merge_sort(temp_pool, internal->items, self->count, ctx, callback);
