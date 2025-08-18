@@ -20,6 +20,9 @@
 #include <mongory-core.h> // General include
 #include <stdio.h>        // For sprintf
 
+// Forward declaration.
+double mongory_matcher_calculate_priority(mongory_array *sub_matchers);
+
 /**
  * @brief Allocates and initializes a `mongory_composite_matcher` structure.
  *
@@ -54,6 +57,7 @@ mongory_composite_matcher *mongory_matcher_composite_new(mongory_memory_pool *po
   composite->base.condition = condition;
   composite->base.traverse = mongory_matcher_composite_traverse;
   composite->base.extern_ctx = extern_ctx;
+  composite->base.priority = 2.0;
   return composite;
 }
 
@@ -236,6 +240,7 @@ mongory_matcher *mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongo
   final_matcher->base.condition = condition;
   final_matcher->base.sub_count = sub_matchers->count;
   final_matcher->base.name = mongory_string_cpy(pool, "Condition");
+  final_matcher->base.priority += mongory_matcher_calculate_priority(sub_matchers);
   return (mongory_matcher *)final_matcher;
 }
 
@@ -333,6 +338,7 @@ mongory_matcher *mongory_matcher_and_new(mongory_memory_pool *pool, mongory_valu
   final_matcher->base.condition = condition;
   final_matcher->base.sub_count = sub_matchers->count;
   final_matcher->base.name = mongory_string_cpy(pool, "And");
+  final_matcher->base.priority += mongory_matcher_calculate_priority(sub_matchers);
   return (mongory_matcher *)final_matcher;
 }
 
@@ -415,6 +421,7 @@ mongory_matcher *mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value
   final_matcher->base.condition = condition;
   final_matcher->base.sub_count = sub_matchers->count;
   final_matcher->base.name = mongory_string_cpy(pool, "Or");
+  final_matcher->base.priority += mongory_matcher_calculate_priority(sub_matchers);
   return (mongory_matcher *)final_matcher;
 }
 
@@ -476,6 +483,7 @@ mongory_matcher *mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongo
   composite->base.original_match = mongory_matcher_elem_match_match;
   composite->base.sub_count = sub_matchers->count;
   composite->base.name = mongory_string_cpy(pool, "ElemMatch");
+  composite->base.priority = 3.0 + mongory_matcher_calculate_priority(sub_matchers);
   return (mongory_matcher *)composite;
 }
 
@@ -534,6 +542,19 @@ mongory_matcher *mongory_matcher_every_new(mongory_memory_pool *pool, mongory_va
   composite->base.original_match = mongory_matcher_every_match;
   composite->base.sub_count = sub_matchers->count;
   composite->base.name = mongory_string_cpy(pool, "Every");
-
+  composite->base.priority = 3.0 + mongory_matcher_calculate_priority(sub_matchers);
   return (mongory_matcher *)composite;
+}
+
+/**
+ * @brief Calculates the priority of a composite matcher.
+ * @param sub_matchers The array of sub-matchers.
+ * @return The priority of the composite matcher.
+ */
+double mongory_matcher_calculate_priority(mongory_array *sub_matchers) {
+  double priority = 0.0;
+  for (size_t i = 0; i < sub_matchers->count; i++) {
+    priority += ((mongory_matcher *)sub_matchers->get(sub_matchers, i))->priority;
+  }
+  return priority;
 }

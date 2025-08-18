@@ -66,6 +66,7 @@ mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool, mongory_v
   matcher->match = mongory_matcher_exists_match;
   matcher->original_match = mongory_matcher_exists_match;
   matcher->name = mongory_string_cpy(pool, "Exists");
+  matcher->priority = 2.0;
   return matcher;
 }
 
@@ -141,5 +142,6 @@ mongory_matcher *mongory_matcher_present_new(mongory_memory_pool *pool, mongory_
   matcher->match = mongory_matcher_present_match;
   matcher->original_match = mongory_matcher_present_match;
   matcher->name = mongory_string_cpy(pool, "Present");
+  matcher->priority = 2.0;
   return matcher;
 }

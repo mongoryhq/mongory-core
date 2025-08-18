@@ -54,6 +54,7 @@ struct mongory_matcher {
   mongory_matcher_traverse_func traverse;    /**< Function pointer to the traversal logic for this matcher type. */
   mongory_array *trace_stack;                /**< The trace stack for this matcher. */
   int trace_level;                           /**< The trace level for this matcher. */
+  double priority;                           /**< The priority for this matcher. */
   void *extern_ctx;                          /**< External context for the matcher. */
 };
 
