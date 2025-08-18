@@ -7,7 +7,10 @@ void setUp(void) { setup_test_environment(); }
 
 void tearDown(void) { teardown_test_environment(); }
 
-void test_or_matcher(void) { execute_test_case("tests/jsons/or_matcher_test.json", mongory_matcher_or_new); }
+void test_or_matcher(void) {
+  mongory_test_context context = {mongory_matcher_or_new, false, false, false};
+  execute_test_case("tests/jsons/or_matcher_test.json", &context);
+}
 
 int main(void) {
   UNITY_BEGIN();
