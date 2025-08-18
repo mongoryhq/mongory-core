@@ -76,6 +76,12 @@ else()
     target_link_libraries(mongory-core ${CJSON_LIBRARIES})
 endif()
 
+# Link math library for platforms that require -lm (e.g., Linux)
+find_library(MATH_LIBRARY m)
+if(MATH_LIBRARY)
+    target_link_libraries(mongory-core ${MATH_LIBRARY})
+endif()
+
 # Test helper library (for testing)
 add_library(test_helper STATIC src/test_helper/test_helper.c)
 target_include_directories(test_helper PUBLIC src/test_helper)
@@ -124,6 +130,9 @@ if(BUILD_TESTS AND TARGET unity)
                 ${CJSON_LIBRARIES}
             )
         endif()
+        if(MATH_LIBRARY)
+            target_link_libraries(${test_name} ${MATH_LIBRARY})
+        endif()
         target_include_directories(${test_name} PRIVATE 
             tests
             ${UNITY_DIR}
@@ -162,6 +171,9 @@ if(BUILD_BENCHMARKS AND TARGET unity)
                 unity 
                 ${CJSON_LIBRARIES}
             )
+        endif()
+        if(MATH_LIBRARY)
+            target_link_libraries(${benchmark_target} ${MATH_LIBRARY})
         endif()
         target_include_directories(${benchmark_target} PRIVATE 
             tests
