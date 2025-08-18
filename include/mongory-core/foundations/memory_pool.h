@@ -19,7 +19,7 @@
 // Forward declaration of the memory pool structure.
 typedef struct mongory_memory_pool mongory_memory_pool;
 
-#define MG_ALLOC(p, n) (p->alloc(p->ctx, n))
+#define MG_ALLOC(p, n) (p->alloc(p, n))
 #define MG_ALLOC_PTR(p, t) ((t*)MG_ALLOC(p, sizeof(t)))
 #define MG_ALLOC_OBJ(p, t) ((t)MG_ALLOC(p, sizeof(t)))
 #define MG_ALLOC_ARY(p, t, n) ((t*)MG_ALLOC(p, sizeof(t) * (n)))
@@ -41,7 +41,7 @@ struct mongory_memory_pool {
    * @return void* A pointer to the allocated memory block, or NULL on failure.
    * Memory allocated this way is typically aligned.
    */
-  void *(*alloc)(void *ctx, size_t size);
+  void *(*alloc)(mongory_memory_pool *pool, size_t size);
 
   /**
    * @brief Traces an externally allocated memory block, associating it with the
@@ -56,13 +56,13 @@ struct mongory_memory_pool {
    * @param ptr A pointer to the memory block to trace.
    * @param size The size of the memory block.
    */
-  void (*trace)(void *ctx, void *ptr, size_t size);
+  void (*trace)(mongory_memory_pool *pool, void *ptr, size_t size);
 
   /**
    * @brief Resets the memory pool to its initial state.
    * @param ctx A pointer to the pool's internal context.
    */
-  void (*reset)(void *ctx);
+  void (*reset)(mongory_memory_pool *pool);
 
   /**
    * @brief Frees the entire memory pool, including all memory blocks allocated
