@@ -68,6 +68,7 @@ mongory_matcher *mongory_matcher_regex_new(mongory_memory_pool *pool, mongory_va
   matcher->match = mongory_matcher_regex_match;
   matcher->original_match = mongory_matcher_regex_match;
   matcher->name = mongory_string_cpy(pool, "Regex");
+  matcher->priority = 20.0;
   return matcher;
 }
 
@@ -118,5 +119,6 @@ mongory_matcher *mongory_matcher_custom_new(mongory_memory_pool *pool, char *key
   matcher->base.traverse = mongory_matcher_leaf_traverse;
   matcher->base.extern_ctx = extern_ctx;
   matcher->external_matcher = context->external_matcher;
+  matcher->base.priority = 20.0;
   return (mongory_matcher *)matcher;
 }

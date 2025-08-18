@@ -217,6 +217,7 @@ mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *fiel
     // Failed to create the delegate matcher for the condition.
     return NULL;
   }
+  field_m->literal.base.priority = 1.0 + field_m->literal.delegate_matcher->priority;
 
   return (mongory_matcher *)field_m;
 }
@@ -256,6 +257,7 @@ mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool, mongory_valu
   literal->base.traverse = mongory_matcher_literal_traverse;
   literal->base.sub_count = 1;
   literal->base.extern_ctx = extern_ctx;
+  literal->base.priority = 1.0 + literal->delegate_matcher->priority;
   return (mongory_matcher *)literal;
 }
 
@@ -306,6 +308,7 @@ mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool, mongory_val
   literal->base.traverse = mongory_matcher_literal_traverse;
   literal->base.sub_count = 1;
   literal->base.extern_ctx = extern_ctx;
+  literal->base.priority = 1.0 + literal->delegate_matcher->priority;
   return (mongory_matcher *)literal;
 }
 

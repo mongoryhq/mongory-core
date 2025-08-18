@@ -9,6 +9,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 
 /**
  * @brief Attempts to parse a string `key` into an integer `out`.
@@ -89,6 +90,10 @@ char *mongory_string_cpyf(mongory_memory_pool *pool, char *format, ...) {
   va_end(args);
   new_str[len] = '\0';
   return new_str;
+}
+
+double mongory_log(double x, double base) {
+  return log(x) / log(base);
 }
 
 #endif // MONGORY_UTILS_C

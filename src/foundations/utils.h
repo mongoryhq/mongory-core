@@ -49,4 +49,5 @@ char *mongory_string_cpy(mongory_memory_pool *pool, char *str);
  */
 char *mongory_string_cpyf(mongory_memory_pool *pool, char *format, ...);
 
+double mongory_log(double x, double base);
 #endif // MONGORY_UTILS_H

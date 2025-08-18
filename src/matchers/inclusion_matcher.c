@@ -88,6 +88,7 @@ mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool, mongory_value
   matcher->match = mongory_matcher_in_match;
   matcher->original_match = mongory_matcher_in_match;
   matcher->name = mongory_string_cpy(pool, "In");
+  matcher->priority = 1.0 + mongory_log((double)condition->data.a->count + 1.0, 1.5);
   return matcher;
 }
 
@@ -120,5 +121,6 @@ mongory_matcher *mongory_matcher_not_in_new(mongory_memory_pool *pool, mongory_v
   matcher->match = mongory_matcher_not_in_match;
   matcher->original_match = mongory_matcher_not_in_match;
   matcher->name = mongory_string_cpy(pool, "Nin");
+  matcher->priority = 1.0 + mongory_log((double)condition->data.a->count + 1.0, 1.5);
   return matcher;
 }
