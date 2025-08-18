@@ -87,6 +87,23 @@ typedef bool (*mongory_array_set_func)(mongory_array *self, size_t index, mongor
 mongory_array *mongory_array_new(mongory_memory_pool *pool);
 
 /**
+ * @brief Creates a new mongory_array instance with a nested array.
+ *
+ * This function is used to create a new mongory_array instance with a nested
+ * array. The nested array is created with the given memory pool and the given
+ * values. The nested array is returned as a pointer to the mongory_array
+ * structure.
+ *
+ * @param pool A pointer to the mongory_memory_pool to be used for allocations.
+ * @param argc The number of values to be set.
+ * @param ... The values to be set.
+ * @return mongory_array* A pointer to the newly created mongory_array, or NULL
+ * if creation fails (e.g., memory allocation failure).
+ */
+mongory_array *mongory_array_nested_wrap(mongory_memory_pool *pool, int argc, ...);
+#define MG_ARRAY_WRAP(pool, n, ...) mongory_value_wrap_a(pool, mongory_array_nested_wrap(pool, n, __VA_ARGS__))
+
+/**
  * @struct mongory_array
  * @brief Represents a dynamic array of mongory_value pointers.
  *

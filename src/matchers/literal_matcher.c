@@ -84,35 +84,12 @@ static inline bool mongory_matcher_literal_match(mongory_matcher *matcher, mongo
  * @param condition The `mongory_value` which is of `MONGORY_TYPE_NULL`.
  * @return A composite matcher for the NULL condition, or NULL on failure.
  */
-static inline mongory_matcher *mongory_matcher_null_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
-  mongory_composite_matcher *composite = mongory_matcher_composite_new(pool, condition, extern_ctx);
-  if (!composite)
-    return NULL;
-
-  mongory_array *sub_matchers = mongory_array_new(pool);
-  if (!sub_matchers)
-    return NULL;
-
-  // Left branch: checks for actual MONGORY_TYPE_NULL
-  mongory_value *null_val = mongory_value_wrap_n(pool, NULL);
-  if (!null_val)
-    return NULL; // Failed to wrap null value
-  sub_matchers->push(sub_matchers, (mongory_value *)mongory_matcher_equal_new(pool, null_val, extern_ctx));
-
-  // Right branch: checks if the field does not exist (value is NULL from get)
-  // $exists: false
-  mongory_value *exists_false_cond = mongory_value_wrap_b(pool, false);
-  if (!exists_false_cond)
-    return NULL; // Failed to wrap bool
-  sub_matchers->push(sub_matchers, (mongory_value *)mongory_matcher_exists_new(pool, exists_false_cond, extern_ctx));
-
-  composite->children = sub_matchers;
-  composite->base.match = mongory_matcher_or_match; // OR logic
-  composite->base.original_match = mongory_matcher_or_match;
-  composite->base.sub_count = 1;
-  composite->base.name = mongory_string_cpy(pool, "Or");
-  // composite->base.condition is already set by mongory_matcher_composite_new
-  return (mongory_matcher *)composite;
+static inline mongory_matcher *mongory_matcher_null_new(mongory_memory_pool *pool, void *extern_ctx) {
+  mongory_value *new_or_condition = MG_ARRAY_WRAP(pool, 2,
+    MG_TABLE_WRAP(pool, 1, "$eq", mongory_value_wrap_n(pool, NULL)),
+    MG_TABLE_WRAP(pool, 1, "$exists", mongory_value_wrap_b(pool, false))
+  );
+  return mongory_matcher_or_new(pool, new_or_condition, extern_ctx);
 }
 
 /**
@@ -139,7 +116,7 @@ static inline mongory_matcher *mongory_matcher_literal_delegate(mongory_memory_p
     return mongory_matcher_regex_new(pool, condition, extern_ctx);
   case MONGORY_TYPE_NULL:
     // When the condition is explicitly `null`, e.g. `{ field: null }`
-    return mongory_matcher_null_new(pool, condition, extern_ctx);
+    return mongory_matcher_null_new(pool, extern_ctx);
   default:
     // For boolean, int, double, string, array (equality), pointer, unsupported.
     return mongory_matcher_equal_new(pool, condition, extern_ctx);
