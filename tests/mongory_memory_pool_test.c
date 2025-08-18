@@ -74,7 +74,7 @@ void test_reset_resets_used_and_current_to_head(void) {
   TEST_ASSERT_NOT_NULL(pool_ctx->head->next);
   TEST_ASSERT_NOT_EQUAL(pool_ctx->head, pool_ctx->current);
 
-  pool->reset(pool->ctx);
+  pool->reset(pool);
 
   // current 指回 head，並且所有節點 used 歸零
   TEST_ASSERT_EQUAL_PTR(pool_ctx->head, pool_ctx->current);
@@ -96,7 +96,7 @@ void test_reset_does_not_change_chunk_size_or_nodes(void) {
   for (mongory_memory_node *n = pool_ctx->head; n; n = n->next)
     node_count_before++;
 
-  pool->reset(pool->ctx);
+  pool->reset(pool);
 
   // chunk_size 與節點鏈結不應改變
   TEST_ASSERT_EQUAL(prev_chunk_size, pool_ctx->chunk_size);
@@ -110,7 +110,7 @@ void test_reset_does_not_change_chunk_size_or_nodes(void) {
 void test_reset_allows_reuse_from_start(void) {
   // 先使用一些空間
   (void)MG_ALLOC(pool, 128);
-  pool->reset(pool->ctx);
+  pool->reset(pool);
 
   // 重設後再次配置，應從 head->ptr 起始位置配置
   void *p = MG_ALLOC(pool, 16);
@@ -120,11 +120,11 @@ void test_reset_allows_reuse_from_start(void) {
 
 void test_multiple_resets_are_idempotent(void) {
   (void)MG_ALLOC(pool, 64);
-  pool->reset(pool->ctx);
+  pool->reset(pool);
   mongory_memory_node *head_after_first = pool_ctx->head;
   size_t used_after_first = pool_ctx->head->used;
 
-  pool->reset(pool->ctx);
+  pool->reset(pool);
   TEST_ASSERT_EQUAL_PTR(head_after_first, pool_ctx->head);
   TEST_ASSERT_EQUAL(used_after_first, pool_ctx->head->used);
 }
@@ -133,11 +133,11 @@ void test_reset_does_not_clear_traced_memory(void) {
   // 建立外部配置並追蹤
   char *ext = (char *)malloc(32);
   TEST_ASSERT_NOT_NULL(ext);
-  pool->trace(pool->ctx, ext, 32);
+  pool->trace(pool, ext, 32);
   TEST_ASSERT_NOT_NULL(pool_ctx->extra);
 
   mongory_memory_node *extra_before = pool_ctx->extra;
-  pool->reset(pool->ctx);
+  pool->reset(pool);
 
   // reset 不應清除 extra 的追蹤
   TEST_ASSERT_EQUAL_PTR(extra_before, pool_ctx->extra);

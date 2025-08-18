@@ -130,12 +130,12 @@ static inline bool mongory_memory_pool_grow(mongory_memory_pool_ctx *ctx, size_t
  * If the current chunk doesn't have enough space, `mongory_memory_pool_grow`
  * is called to add a new chunk.
  *
- * @param ctx Void pointer to the pool's `mongory_memory_pool_ctx`.
+ * @param pool Pointer to the `mongory_memory_pool`.
  * @param size The number of bytes to allocate.
  * @return void* Pointer to the allocated memory, or NULL on failure.
  */
-static inline void *mongory_memory_pool_alloc(void *ctx, size_t size) {
-  mongory_memory_pool_ctx *pool_ctx = (mongory_memory_pool_ctx *)ctx;
+static inline void *mongory_memory_pool_alloc(mongory_memory_pool *pool, size_t size) {
+  mongory_memory_pool_ctx *pool_ctx = (mongory_memory_pool_ctx *)pool->ctx;
   size = MONGORY_ALIGN8(size); // Ensure 8-byte alignment.
 
   size_t balance = pool_ctx->current->size - pool_ctx->current->used;
@@ -154,8 +154,8 @@ static inline void *mongory_memory_pool_alloc(void *ctx, size_t size) {
   return ptr;
 }
 
-static inline void mongory_memory_pool_reset(void *ctx) {
-  mongory_memory_pool_ctx *pool_ctx = (mongory_memory_pool_ctx *)ctx;
+static inline void mongory_memory_pool_reset(mongory_memory_pool *pool) {
+  mongory_memory_pool_ctx *pool_ctx = (mongory_memory_pool_ctx *)pool->ctx;
   pool_ctx->current = pool_ctx->head;
   mongory_memory_node *node = pool_ctx->head;
   while (node) {
@@ -227,12 +227,12 @@ static inline void mongory_memory_pool_destroy(mongory_memory_pool *pool) {
  * freed when `mongory_memory_pool_destroy` is called if this trace function
  * is used.
  *
- * @param ctx Void pointer to the pool's `mongory_memory_pool_ctx`.
+ * @param pool Pointer to the `mongory_memory_pool`.
  * @param ptr Pointer to the externally allocated memory.
  * @param size Size of the externally allocated memory.
  */
-static inline void mongory_memory_pool_trace(void *ctx, void *ptr, size_t size) {
-  mongory_memory_pool_ctx *pool_ctx = (mongory_memory_pool_ctx *)ctx;
+static inline void mongory_memory_pool_trace(mongory_memory_pool *pool, void *ptr, size_t size) {
+  mongory_memory_pool_ctx *pool_ctx = (mongory_memory_pool_ctx *)pool->ctx;
 
   // Create a new node to trace this external allocation.
   mongory_memory_node *extra_alloc_tracer = calloc(1, sizeof(mongory_memory_node));
