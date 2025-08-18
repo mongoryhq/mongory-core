@@ -20,9 +20,6 @@
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/table.h"
 #include "mongory-core/foundations/value.h"
-#include <stdarg.h> // For va_list, va_start, va_end, vsnprintf
-#include <stdio.h>  // For snprintf
-#include <string.h> // For strlen, strcpy
 
 static bool mongory_regex_default_func(mongory_memory_pool *pool, mongory_value *pattern, mongory_value *value);
 static char *mongory_regex_default_stringify_func(mongory_memory_pool *pool, mongory_value *pattern);
