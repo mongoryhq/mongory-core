@@ -128,13 +128,18 @@ mongory_value *json_to_mongory_value_from_file(mongory_memory_pool *pool, const 
 typedef struct mongory_test_execute_context {
   mongory_matcher *matcher;
   int index;
+  bool enable_trace;
+  bool enable_explain;
+  bool show_progress;
 } mongory_test_execute_context;
 
 bool execute_test_record(mongory_value *test_record, void *acc) {
   mongory_test_execute_context *context = (mongory_test_execute_context *)acc;
   mongory_string_buffer *record_buffer = mongory_string_buffer_new(test_record->pool);
   mongory_string_buffer_append(record_buffer, test_record->to_str(test_record, test_record->pool));
-  printf("Running test record: %d -> %s\n", context->index, mongory_string_buffer_cstr(record_buffer));
+  if (context->show_progress) {
+    printf("Running test record: %d -> %s\n", context->index, mongory_string_buffer_cstr(record_buffer));
+  }
   mongory_matcher *matcher = context->matcher;
   mongory_value *data_value = test_record->data.t->get(test_record->data.t, "data");
   mongory_value *expected_value = test_record->data.t->get(test_record->data.t, "expected");
@@ -143,7 +148,9 @@ bool execute_test_record(mongory_value *test_record, void *acc) {
   TEST_ASSERT_NOT_NULL(expected_value);
 
   bool result = matcher->match(matcher, data_value);
-  mongory_matcher_trace(matcher, data_value);
+  if (context->enable_trace) {
+    mongory_matcher_trace(matcher, data_value);
+  }
   if (expected != result) {
     printf("Test failed\n");
   }
@@ -153,35 +160,39 @@ bool execute_test_record(mongory_value *test_record, void *acc) {
 }
 
 bool execute_each_test_case(mongory_value *test_case, void *acc) {
-  mongory_matcher_build_func matcher_build_func = (mongory_matcher_build_func)acc;
+  mongory_test_context *context = (mongory_test_context *)acc;
   mongory_value *description_value = test_case->data.t->get(test_case->data.t, "description");
   mongory_value *condition_value = test_case->data.t->get(test_case->data.t, "condition");
   mongory_value *records_value = test_case->data.t->get(test_case->data.t, "records");
   TEST_ASSERT_NOT_NULL(description_value);
-  printf("====\n");
-  printf("Running test case: %s\n", description_value->data.s);
+  if (context->show_progress) {
+    printf("====\n");
+    printf("Running test case: %s\n", description_value->data.s);
+  }
   TEST_ASSERT_NOT_NULL(condition_value);
   TEST_ASSERT_NOT_NULL(records_value);
   mongory_memory_pool *matcher_pool = mongory_memory_pool_new();
-  mongory_matcher *matcher = matcher_build_func(matcher_pool, condition_value, NULL);
+  mongory_matcher *matcher = context->matcher_build_func(matcher_pool, condition_value, NULL);
   TEST_ASSERT_NOT_NULL(matcher);
   TEST_ASSERT_NULL(matcher_pool->error);
   mongory_array *records = records_value->data.a;
-  mongory_test_execute_context context = {matcher, 0};
-  records->each(records, &context, execute_test_record);
-  mongory_memory_pool *stdout_pool = mongory_memory_pool_new();
-  mongory_matcher_explain(matcher, stdout_pool);
-  stdout_pool->free(stdout_pool);
+  mongory_test_execute_context execute_context = {matcher, 0, context->enable_trace, context->enable_explain, context->show_progress};
+  records->each(records, &execute_context, execute_test_record);
+  if (context->enable_explain) {
+    mongory_memory_pool *stdout_pool = mongory_memory_pool_new();
+    mongory_matcher_explain(matcher, stdout_pool);
+    stdout_pool->free(stdout_pool);
+  }
   matcher->pool->free(matcher->pool);
   return true;
 }
 
-void execute_test_case(char *file_name, mongory_matcher_build_func matcher_build_func) {
+void execute_test_case(char *file_name, mongory_test_context *context) {
   mongory_value *parsed = json_to_mongory_value_from_file(get_test_pool(), file_name);
   TEST_ASSERT_NOT_NULL(parsed);
   mongory_array *test_cases = parsed->data.a;
   TEST_ASSERT_NOT_NULL(test_cases);
-  test_cases->each(test_cases, matcher_build_func, execute_each_test_case);
+  test_cases->each(test_cases, context, execute_each_test_case);
 }
 
 void setup_test_environment(void) {

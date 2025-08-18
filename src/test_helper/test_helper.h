@@ -16,7 +16,14 @@ void setup_test_environment(void);
 void teardown_test_environment(void);
 mongory_memory_pool *get_test_pool(void);
 
-void execute_test_case(char *file_name, mongory_matcher_build_func matcher_build_func);
+typedef struct mongory_test_context {
+  mongory_matcher_build_func matcher_build_func;
+  bool enable_trace;
+  bool enable_explain;
+  bool show_progress;
+} mongory_test_context;
+
+void execute_test_case(char *file_name, mongory_test_context *context);
 
 // Assertion helper functions
 void assert_value_equals(mongory_value *expected, mongory_value *actual);
