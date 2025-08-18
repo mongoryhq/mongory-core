@@ -181,7 +181,7 @@ static inline bool mongory_table_rehash(mongory_table *self) {
   if (!mongory_array_resize(internal->array, new_capacity)) {
     // Error: Rehashing failed because the underlying array could not be resized.
     // The table remains functional but may have a suboptimal load factor.
-    // TODO: Propagate this error condition, perhaps by setting self->pool->error.
+    self->pool->error = &MONGORY_ALLOC_ERROR;
     internal->array->count = self->count; // Try to restore roughly
     return false;
   }
@@ -291,13 +291,13 @@ bool mongory_table_set(mongory_table *self, char *key, mongory_value *value) {
   // Key not found, create a new node and prepend it to the bucket list.
   mongory_table_node *new_node = mongory_table_node_new(self);
   if (!new_node) {
-    // TODO: Propagate error via self->pool->error.
+    self->pool->error = &MONGORY_ALLOC_ERROR;
     return false; // Node allocation failed.
   }
 
   char *key_copy = mongory_string_cpy(self->pool, key);
   if (!key_copy) {
-    // TODO: Propagate error via self->pool->error.
+    self->pool->error = &MONGORY_ALLOC_ERROR;
     return false; // Key copy failed.
   }
 
@@ -312,7 +312,7 @@ bool mongory_table_set(mongory_table *self, char *key, mongory_value *value) {
     if (!mongory_table_rehash(self)) {
       // Rehashing failed. The table will still work, but its performance
       // may be degraded due to a higher-than-optimal load factor.
-      // TODO: Propagate this error condition via self->pool->error.
+      self->pool->error = &MONGORY_ALLOC_ERROR;
     }
   }
   return true;
@@ -429,7 +429,7 @@ mongory_table *mongory_table_new(mongory_memory_pool *pool) {
     // If array initialization fails, we cannot proceed.
     // The memory for `bucket_array` itself (if allocated) will be handled
     // by the memory pool when it's eventually freed.
-    // TODO: Propagate this error condition via pool->error.
+    pool->error = &MONGORY_ALLOC_ERROR;
     return NULL;
   }
   // After initialization, bucket_array->count will equal init_capacity.
@@ -440,7 +440,7 @@ mongory_table *mongory_table_new(mongory_memory_pool *pool) {
 
   mongory_table_internal *internal = MG_ALLOC_PTR(pool, mongory_table_internal);
   if (!internal) {
-    // TODO: Propagate error via pool->error.
+    pool->error = &MONGORY_ALLOC_ERROR;
     return NULL;
   }
 
