@@ -119,4 +119,6 @@ struct mongory_array {
   mongory_array_set_func set;   /**< Function to set or replace an element at an index. */
 };
 
+bool mongory_array_includes(mongory_array *self, mongory_value *value);
+
 #endif /* MONGORY_ARRAY */

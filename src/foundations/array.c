@@ -273,3 +273,13 @@ mongory_array *mongory_array_sort_by(mongory_array *self, mongory_memory_pool *t
   memcpy(new_array->items, new_items, sizeof(mongory_value *) * self->count);
   return &new_array->base;
 }
+
+bool mongory_array_includes(mongory_array *self, mongory_value *value) {
+  for (size_t i = 0; i < self->count; i++) {
+    mongory_value *item = self->get(self, i);
+    if (item->comp(item, value) == 0) {
+      return true;
+    }
+  }
+  return false;
+}
