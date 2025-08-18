@@ -16,6 +16,7 @@
 #include "mongory-core/foundations/value.h"
 #include "matcher_explainable.h"
 #include "matcher_traversable.h"
+#include "../foundations/utils.h"
 #include <mongory-core.h> // General include
 #include <stdio.h>        // For sprintf
 

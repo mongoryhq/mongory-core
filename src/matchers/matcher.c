@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "mongory-core/matchers/matcher.h" // Public API
-
+#include "../foundations/utils.h"           // For mongory_string_cpyf
 // Required internal headers for delegation
 #include "../foundations/config_private.h" // Potentially for global settings
 #include "base_matcher.h"                  // For mongory_matcher_base_new if used directly

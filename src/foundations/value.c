@@ -9,7 +9,8 @@
  */
 #include "string_buffer.h"
 #include <mongory-core/foundations/array.h>
-#include <mongory-core/foundations/config.h> // For mongory_string_cpy
+#include <mongory-core/foundations/config.h> 
+#include "utils.h" // For mongory_string_cpy
 #include <mongory-core/foundations/memory_pool.h>
 #include <mongory-core/foundations/table.h>
 #include <mongory-core/foundations/value.h>

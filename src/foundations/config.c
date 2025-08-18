@@ -304,46 +304,6 @@ void mongory_custom_matcher_lookup_func_set(bool (*lookup)(char *key)) {
 }
 
 /**
- * @brief Creates a copy of a string using the specified memory pool.
- * @param pool The memory pool to use for allocation.
- * @param str The null-terminated string to copy.
- * @return A pointer to the newly allocated copy, or NULL if str is NULL or
- * allocation fails.
- */
-char *mongory_string_cpy(mongory_memory_pool *pool, char *str) {
-  if (str == NULL) {
-    return NULL;
-  }
-
-  size_t len = strlen(str);
-  char *new_str = (char *)MG_ALLOC(pool, len + 1); // +1 for null terminator.
-  if (new_str == NULL) {
-    pool->error = &MONGORY_ALLOC_ERROR;
-    return NULL;
-  }
-
-  strcpy(new_str, str);
-  return new_str;
-}
-
-char *mongory_string_cpyf(mongory_memory_pool *pool, char *format, ...) {
-  va_list args;
-  va_start(args, format);
-  int len = vsnprintf(NULL, 0, format, args);
-  va_end(args);
-  char *new_str = (char *)MG_ALLOC(pool, len + 1);
-  if (new_str == NULL) {
-    pool->error = &MONGORY_ALLOC_ERROR;
-    return NULL;
-  }
-  va_start(args, format);
-  vsnprintf(new_str, len + 1, format, args);
-  va_end(args);
-  new_str[len] = '\0';
-  return new_str;
-}
-
-/**
  * @brief Initializes all core Mongory library components.
  * This includes the internal memory pool, regex adapter, matcher mapping table,
  * and value converter. It then registers all standard matcher types.

@@ -11,10 +11,11 @@
  * - $size checks the number of elements in an array against a condition.
  */
 #include "literal_matcher.h"
-#include "../foundations/config_private.h"  // For mongory_internal_value_converter, mongory_string_cpy
+#include "../foundations/config_private.h"  // For mongory_internal_value_converter
+#include "../foundations/utils.h"           // For mongory_try_parse_int, mongory_string_cpy
 #include "../foundations/string_buffer.h"   // For mongory_string_buffer_appendf
 #include "array_record_matcher.h"           // For handling array-specific matching logic
-#include "base_matcher.h"                   // For mongory_try_parse_int, mongory_matcher_base_new
+#include "base_matcher.h"                   // For mongory_matcher_base_new
 #include "compare_matcher.h"                // For mongory_matcher_equal_new
 #include "composite_matcher.h"              // For mongory_matcher_composite_new, mongory_matcher_table_cond_new
 #include "existance_matcher.h"              // For mongory_matcher_exists_new (used by null_new)

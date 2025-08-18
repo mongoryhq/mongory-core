@@ -13,6 +13,7 @@
 #include <mongory-core/foundations/config.h> // For mongory_string_cpy
 #include <mongory-core/foundations/table.h>
 #include <mongory-core/foundations/value.h>
+#include "utils.h"
 #include <stdarg.h>
 #include <string.h> // For strcmp, strlen
 

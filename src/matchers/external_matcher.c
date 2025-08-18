@@ -6,7 +6,8 @@
 #include "external_matcher.h"
 #include "../foundations/config_private.h"   // For mongory_internal_regex_adapter
 #include "base_matcher.h"                    // For mongory_matcher_base_new
-#include "mongory-core/foundations/config.h" // For mongory_string_cpy
+#include "mongory-core/foundations/config.h"
+#include "../foundations/utils.h"            // For mongory_string_cpy
 #include "mongory-core/foundations/error.h"  // For MONGORY_ERROR_INVALID_ARGUMENT
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"

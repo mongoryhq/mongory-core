@@ -12,8 +12,9 @@
  * It often constructs a composite OR matcher to combine these possibilities.
  */
 #include "array_record_matcher.h"
-#include "../foundations/config_private.h" // For mongory_try_parse_int
-#include "base_matcher.h"                  // For mongory_matcher_base_new, mongory_try_parse_int
+#include "../foundations/config_private.h"
+#include "../foundations/utils.h"          // For mongory_try_parse_int
+#include "base_matcher.h"                  // For mongory_matcher_base_new
 #include "compare_matcher.h"               // For mongory_matcher_equal_new
 #include "composite_matcher.h"             // For mongory_matcher_composite_new, $elemMatch, table_cond_new, or_match
 #include "literal_matcher.h"               // Potentially used by table_cond_new

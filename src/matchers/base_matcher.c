@@ -13,6 +13,7 @@
 #include <stdlib.h> // For strtol
 #include "matcher_explainable.h"
 #include "matcher_traversable.h"
+#include "../foundations/utils.h"
 
 /**
  * @brief Allocates and initializes common fields of a `mongory_matcher`.
@@ -117,45 +118,4 @@ mongory_matcher *mongory_matcher_always_false_new(mongory_memory_pool *pool, mon
   matcher->explain = mongory_matcher_base_explain;
   // matcher->context.original_match = mongory_matcher_always_false_match;
   return matcher;
-}
-
-/**
- * @brief Attempts to parse a string `key` into an integer `out`.
- *
- * Uses `strtol` for conversion and checks for common parsing errors:
- * - Input string is NULL or empty.
- * - The string contains non-numeric characters after the number.
- * - The parsed number is out of the range of `int` (`INT_MIN`, `INT_MAX`).
- *
- * @param key The null-terminated string to parse.
- * @param out Pointer to an integer where the result is stored.
- * @return `true` if parsing is successful and the value fits in an `int`.
- *         `false` otherwise. `errno` may be set by `strtol`.
- */
-bool mongory_try_parse_int(const char *key, int *out) {
-  if (key == NULL || *key == '\0') {
-    return false; // Invalid input string.
-  }
-  if (out == NULL) {
-    return false; // Output pointer must be valid.
-  }
-
-  char *endptr = NULL;
-  errno = 0;                           // Clear errno before calling strtol.
-  long val = strtol(key, &endptr, 10); // Base 10 conversion.
-
-  // Check for parsing errors reported by strtol.
-  if (endptr == key) {
-    return false; // No digits were found.
-  }
-  if (*endptr != '\0') {
-    return false; // Additional characters after the number.
-  }
-  if (errno == ERANGE || val < INT_MIN || val > INT_MAX) {
-    // Value out of range for int. ERANGE is set by strtol for overflow/underflow.
-    return false;
-  }
-
-  *out = (int)val; // Successfully parsed and within int range.
-  return true;
 }

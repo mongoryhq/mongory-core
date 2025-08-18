@@ -96,20 +96,4 @@ mongory_matcher *mongory_matcher_always_true_new(mongory_memory_pool *pool, mong
  */
 mongory_matcher *mongory_matcher_always_false_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
-/**
- * @brief Attempts to parse an integer from a string.
- *
- * This utility function is useful for matchers that might operate on array
- * indices or numeric string fields. It checks for valid integer formats and
- * range (`INT_MIN`, `INT_MAX`).
- *
- * @param key The null-terminated string to parse. Must not be NULL or empty.
- * @param out A pointer to an integer where the parsed value will be stored if
- * successful. Must not be NULL.
- * @return bool True if the string was successfully parsed as an integer and is
- * within `int` range, false otherwise. `errno` might be set by `strtol` on
- * failure (e.g. `ERANGE`).
- */
-bool mongory_try_parse_int(const char *key, int *out);
-
 #endif /* MONGORY_MATCHER_BASE_H */
