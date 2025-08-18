@@ -10,6 +10,7 @@
 #include "mongory-core/foundations/table.h" // For value->data.t->count
 #include "mongory-core/foundations/value.h" // For mongory_value types
 #include <mongory-core.h>                   // General include
+#include "../foundations/utils.h"
 
 /**
  * @brief Validates that the condition for an existence/presence matcher is a

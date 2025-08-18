@@ -9,6 +9,7 @@
 #include "mongory-core/foundations/error.h" // For mongory_error
 #include "mongory-core/foundations/value.h" // For mongory_value
 #include <mongory-core.h>                   // General include
+#include "../foundations/utils.h"            // For mongory_string_cpy
 
 /**
  * @struct mongory_matcher_inclusion_context

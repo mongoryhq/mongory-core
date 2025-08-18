@@ -11,6 +11,7 @@
 #include "compare_matcher.h"
 #include "base_matcher.h" // For mongory_matcher_base_new
 #include <mongory-core.h> // For mongory_value, mongory_matcher types
+#include "../foundations/utils.h"
 
 /**
  * @brief Generic constructor for comparison matchers.
