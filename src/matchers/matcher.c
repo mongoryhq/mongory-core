@@ -91,8 +91,12 @@ typedef struct mongory_matcher_traced_match_context {
 static bool mongory_matcher_traced_match(mongory_matcher *matcher, mongory_value *value) {
   bool matched = matcher->original_match(matcher, value);
   mongory_memory_pool *pool = matcher->trace_stack->pool;
-
-  char *res = matched ? "\e[30;42mMatched\e[0m" : "\e[30;41mDismatch\e[0m";
+  char *res = NULL;
+  if (mongory_matcher_trace_result_colorful) {
+    res = matched ? "\e[30;42mMatched\e[0m" : "\e[30;41mDismatch\e[0m"; // Green for matched, red for mismatch.
+  } else {
+    res = matched ? "Matched" : "Dismatch";
+  }
   char *cdtn = matcher->condition->to_str(matcher->condition, pool);
   char *rcd = value == NULL ? "Nothing" : value->to_str(value, pool);
   char *name = matcher->name;
