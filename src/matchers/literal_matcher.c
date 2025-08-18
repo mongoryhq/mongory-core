@@ -172,12 +172,11 @@ static inline bool mongory_matcher_field_match(mongory_matcher *matcher, mongory
 
   // If the extracted field value is a pointer type that needs conversion
   // (e.g., from a language binding), convert it.
-  if (field_value && field_value->type == MONGORY_TYPE_POINTER && mongory_internal_value_converter &&
-      mongory_internal_value_converter->shallow_convert) {
+  if (field_value && field_value->type == MONGORY_TYPE_POINTER && mongory_internal_value_converter.shallow_convert) {
     // The pool for the converted value should ideally be the field_value's pool
     // or the matcher's pool.
     mongory_memory_pool *conversion_pool = field_value->pool ? field_value->pool : matcher->pool;
-    field_value = mongory_internal_value_converter->shallow_convert(conversion_pool, field_value->data.ptr);
+    field_value = mongory_internal_value_converter.shallow_convert(conversion_pool, field_value->data.ptr);
   }
   // Now, use the literal_match logic (which uses composite.left primarily)
   // to match the extracted field_value.

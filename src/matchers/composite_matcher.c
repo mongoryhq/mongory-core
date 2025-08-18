@@ -156,8 +156,7 @@ static inline bool mongory_matcher_table_build_sub_matcher(char *key, mongory_va
     build_func = mongory_matcher_build_func_get(key);
     if (build_func != NULL) {
       sub_matcher = build_func(pool, value, ctx->extern_ctx);
-    } else if (mongory_custom_matcher_adapter != NULL && mongory_custom_matcher_adapter->lookup != NULL &&
-               mongory_custom_matcher_adapter->lookup(key)) {
+    } else if (mongory_custom_matcher_adapter.lookup != NULL && mongory_custom_matcher_adapter.lookup(key)) {
       sub_matcher = mongory_matcher_custom_new(pool, key, value, ctx->extern_ctx);
     } else {
       sub_matcher = mongory_matcher_field_new(pool, key, value, ctx->extern_ctx);  

@@ -337,7 +337,7 @@ mongory_value *mongory_value_wrap_u(mongory_memory_pool *pool, void *u_val) {
 }
 
 static char *mongory_value_regex_to_str(mongory_value *value, mongory_memory_pool *pool) {
-  char *str = mongory_internal_regex_adapter->stringify_func(pool, value);
+  char *str = mongory_internal_regex_adapter.stringify_func(pool, value);
   if (!str)
     return NULL;
   return str;
