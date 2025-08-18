@@ -68,16 +68,11 @@ void test_array_set(void) {
 }
 
 void test_array_each(void) {
-  mongory_value *value1 = mongory_value_wrap_i(pool, 1);
-  mongory_value *value2 = mongory_value_wrap_i(pool, 2);
-  mongory_value *value3 = mongory_value_wrap_i(pool, 3);
-  TEST_ASSERT_NOT_NULL(value1);
-  TEST_ASSERT_NOT_NULL(value2);
-  TEST_ASSERT_NOT_NULL(value3);
-
-  array->push(array, value1);
-  array->push(array, value2);
-  array->push(array, value3);
+  mongory_array *array = mongory_array_nested_wrap(pool, 3,
+    mongory_value_wrap_i(pool, 1),
+    mongory_value_wrap_i(pool, 2),
+    mongory_value_wrap_i(pool, 3)
+  );
 
   int sum = 0;
   bool each_result = array->each(array, &sum, sum_callback);
@@ -92,16 +87,18 @@ void test_array_out_of_bounds(void) {
 }
 
 void test_array_sort_by(void) {
-  array->push(array, mongory_value_wrap_i(pool, 7));
-  array->push(array, mongory_value_wrap_i(pool, 3));
-  array->push(array, mongory_value_wrap_i(pool, 8));
-  array->push(array, mongory_value_wrap_i(pool, 6));
-  array->push(array, mongory_value_wrap_i(pool, 10));
-  array->push(array, mongory_value_wrap_i(pool, 5));
-  array->push(array, mongory_value_wrap_i(pool, 4));
-  array->push(array, mongory_value_wrap_i(pool, 9));
-  array->push(array, mongory_value_wrap_i(pool, 1));
-  array->push(array, mongory_value_wrap_i(pool, 2));
+  mongory_array *array = mongory_array_nested_wrap(pool, 10,
+    mongory_value_wrap_i(pool, 7),
+    mongory_value_wrap_i(pool, 3),
+    mongory_value_wrap_i(pool, 8),
+    mongory_value_wrap_i(pool, 6),
+    mongory_value_wrap_i(pool, 10),
+    mongory_value_wrap_i(pool, 5),
+    mongory_value_wrap_i(pool, 4),
+    mongory_value_wrap_i(pool, 9),
+    mongory_value_wrap_i(pool, 1),
+    mongory_value_wrap_i(pool, 2)
+  );
 
   mongory_array *sorted_array = mongory_array_sort_by(array, pool, NULL, sort_callback);
 
