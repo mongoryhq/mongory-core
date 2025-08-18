@@ -474,3 +474,14 @@ mongory_table *mongory_table_nested_wrap(mongory_memory_pool *pool, int argc, ..
   va_end(args);
   return table;
 }
+
+static inline bool mongory_table_merge_cb(char *key, mongory_value *value, void *acc) {
+  mongory_table *table = (mongory_table *)acc;
+  mongory_table_set(table, key, value);
+  return true;
+}
+
+mongory_table *mongory_table_merge(mongory_table *table, mongory_table *other) {
+  mongory_table_each_pair(other, table, mongory_table_merge_cb);
+  return table;
+}
