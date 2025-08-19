@@ -64,6 +64,11 @@ mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *c
  */
 bool mongory_matcher_match(mongory_matcher *matcher, mongory_value *value) { return matcher->match(matcher, value); }
 
+static bool mongory_matcher_explain_cb(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx) {
+  matcher->explain(matcher, ctx);
+  return true;
+}
+
 /**
  * @brief Generates a human-readable explanation of the matcher's criteria.
  *
@@ -74,13 +79,14 @@ bool mongory_matcher_match(mongory_matcher *matcher, mongory_value *value) { ret
  * @param temp_pool A temporary memory pool for allocating the explanation string(s).
  */
 void mongory_matcher_explain(mongory_matcher *matcher, mongory_memory_pool *temp_pool) {
-  mongory_matcher_explain_context ctx = {
+  mongory_matcher_traverse_context ctx = {
       .pool = temp_pool,
       .count = 0,
       .total = 0,
-      .prefix = "",
+      .acc = "",
+      .callback = mongory_matcher_explain_cb,
   };
-  matcher->explain(matcher, &ctx);
+  matcher->traverse(matcher, &ctx);
 }
 
 typedef struct mongory_matcher_traced_match_context {

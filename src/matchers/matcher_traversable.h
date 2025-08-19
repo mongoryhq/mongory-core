@@ -3,16 +3,16 @@
 
 #include "mongory-core/matchers/matcher.h"
 
-typedef struct mongory_matcher_traverse_context {
+typedef struct mongory_matcher_traverse_context mongory_matcher_traverse_context;
+typedef bool (*mongory_matcher_traverse_func)(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx);
+struct mongory_matcher_traverse_context {
   mongory_memory_pool *pool;
   int level;
   int count;
   int total;
   void *acc;
-  bool (*callback)(mongory_matcher *matcher, struct mongory_matcher_traverse_context *ctx);
-} mongory_matcher_traverse_context;
-
-typedef bool (*mongory_matcher_traverse_func)(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx);
+  mongory_matcher_traverse_func callback;
+} ;
 
 bool mongory_matcher_leaf_traverse(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx);
 
