@@ -46,7 +46,7 @@ struct mongory_matcher {
                                            logic for this matcher type. */
   mongory_memory_pool *pool;            /**< The memory pool used for allocations related
                                            to this matcher instance. */
-  mongory_matcher_explain_func explain; /**< Function pointer to the explanation
+  mongory_matcher_traverse_func explain; /**< Function pointer to the explanation
                                           logic for this matcher type. */
   mongory_matcher_match_func original_match; /**< Stores the original match function, potentially for
                                                 restoration or delegation. */

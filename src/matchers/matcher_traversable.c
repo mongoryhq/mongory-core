@@ -15,6 +15,7 @@ bool mongory_matcher_leaf_traverse(mongory_matcher *matcher, mongory_matcher_tra
 }
 
 bool mongory_matcher_composite_traverse(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx) {
+  void *prev_acc = ctx->acc;
   if (!mongory_matcher_leaf_traverse(matcher, ctx))
     return false;
   mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
@@ -34,10 +35,12 @@ bool mongory_matcher_composite_traverse(mongory_matcher *matcher, mongory_matche
     if (!child->traverse(child, &child_ctx))
       return false;
   }
+  ctx->acc = prev_acc;
   return true;
 }
 
 bool mongory_matcher_literal_traverse(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx) {
+  void *prev_acc = ctx->acc;
   if (!mongory_matcher_leaf_traverse(matcher, ctx))
     return false;
   mongory_literal_matcher *literal = (mongory_literal_matcher *)matcher;
@@ -50,6 +53,8 @@ bool mongory_matcher_literal_traverse(mongory_matcher *matcher, mongory_matcher_
       .acc = ctx->acc,
       .callback = ctx->callback,
   };
-  return next_matcher->traverse(next_matcher, &child_ctx);
+  bool result = next_matcher->traverse(next_matcher, &child_ctx);
+  ctx->acc = prev_acc;
+  return result;
 }
 #endif /* MONGORY_MATCHER_TRAVERSABLE_C */
