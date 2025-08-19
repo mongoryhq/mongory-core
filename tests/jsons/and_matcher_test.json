@@ -79,7 +79,7 @@
         "data": {
           "name": "John",
           "age": 30,
-          "tags": ["engineer", "developer"],
+          "tags": ["developer", "engineer"],
           "salary": 100000
         },
         "expected": false
@@ -97,7 +97,7 @@
         "data": {
           "name": "Frank",
           "age": 30,
-          "tags": ["engineer", "developer"],
+          "tags": ["developer", "architect", "programmer", "engineer"],
           "salary": 100000
         },
         "expected": false
