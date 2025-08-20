@@ -166,12 +166,12 @@ static inline int mongory_value_int_compare(mongory_value *a, mongory_value *b) 
 }
 
 /** Wraps an integer (promoted to int64_t). */
-mongory_value *mongory_value_wrap_i(mongory_memory_pool *pool, int i_val) {
+mongory_value *mongory_value_wrap_i(mongory_memory_pool *pool, int64_t i_val) {
   mongory_value *value = mongory_value_new(pool);
   if (!value)
     return NULL;
   value->type = MONGORY_TYPE_INT;
-  value->data.i = (int64_t)i_val; // Store as int64_t.
+  value->data.i = i_val;
   value->comp = mongory_value_int_compare;
   value->to_str = mongory_value_int_to_str;
   return value;
