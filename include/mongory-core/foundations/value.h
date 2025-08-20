@@ -82,7 +82,7 @@ void *mongory_value_extract(mongory_value *value);
  */
 mongory_value *mongory_value_wrap_n(mongory_memory_pool *pool, void *n);
 mongory_value *mongory_value_wrap_b(mongory_memory_pool *pool, bool b);
-mongory_value *mongory_value_wrap_i(mongory_memory_pool *pool, int i);
+mongory_value *mongory_value_wrap_i(mongory_memory_pool *pool, int64_t i);
 mongory_value *mongory_value_wrap_d(mongory_memory_pool *pool, double d);
 mongory_value *mongory_value_wrap_s(mongory_memory_pool *pool, char *s);
 mongory_value *mongory_value_wrap_a(mongory_memory_pool *pool, struct mongory_array *a);
