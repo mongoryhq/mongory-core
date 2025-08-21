@@ -282,7 +282,9 @@ mongory_matcher *mongory_matcher_and_new(mongory_memory_pool *pool, mongory_valu
   if (array_of_tables->count == 0) {
     return mongory_matcher_always_true_new(pool, and_condition, extern_ctx); // $and:[] is true
   }
-  if (!MONGORY_VALIDATE_TABLE(pool, array_of_tables->get(array_of_tables, 0))) {
+  mongory_value *sub_condition_of_and_condition = array_of_tables->get(array_of_tables, 0);
+
+  if (!MONGORY_VALIDATE_TABLE(pool, sub_condition_of_and_condition)) {
     return NULL;
   }
 
@@ -369,7 +371,8 @@ mongory_matcher *mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value
   if (array_of_tables->count == 0) {
     return mongory_matcher_always_false_new(pool, or_condition, extern_ctx); // $or:[] is false
   }
-  if (!MONGORY_VALIDATE_TABLE(pool, array_of_tables->get(array_of_tables, 0))) {
+  mongory_value *sub_condition_of_or_condition = array_of_tables->get(array_of_tables, 0);
+  if (!MONGORY_VALIDATE_TABLE(pool, sub_condition_of_or_condition)) {
     return NULL;
   }
 
