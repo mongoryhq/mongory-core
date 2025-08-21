@@ -135,6 +135,8 @@ typedef struct mongory_matcher_table_build_sub_matcher_context {
   void *extern_ctx;          /**< External context for the matcher. */
 } mongory_matcher_table_build_sub_matcher_context;
 
+static inline mongory_matcher *mongory_matcher_build_sub_matcher(char *key, mongory_value *value, mongory_matcher_table_build_sub_matcher_context *ctx);
+
 /**
  * @brief Callback for iterating over a condition table's key-value pairs.
  *
@@ -148,29 +150,10 @@ typedef struct mongory_matcher_table_build_sub_matcher_context {
  * @param acc Pointer to `mongory_matcher_table_build_sub_matcher_context`.
  * @return True to continue iteration, false if a sub-matcher creation fails.
  */
-// ============================================================================
-// Matcher Construction from Conditions
-// ============================================================================
 static inline bool mongory_matcher_table_build_sub_matcher(char *key, mongory_value *value, void *acc) {
   mongory_matcher_table_build_sub_matcher_context *ctx = (mongory_matcher_table_build_sub_matcher_context *)acc;
-  mongory_memory_pool *pool = ctx->pool;
   mongory_array *matchers_array = ctx->matchers;
-  mongory_matcher *sub_matcher = NULL;
-  mongory_matcher_build_func build_func = NULL;
-
-  if (key[0] == '$') { // Operator key (e.g., "$eq", "$in")
-    build_func = mongory_matcher_build_func_get(key);
-    if (build_func != NULL) {
-      sub_matcher = build_func(pool, value, ctx->extern_ctx);
-    } else if (mongory_custom_matcher_adapter.lookup != NULL && mongory_custom_matcher_adapter.lookup(key)) {
-      sub_matcher = mongory_matcher_custom_new(pool, key, value, ctx->extern_ctx);
-    } else {
-      sub_matcher = mongory_matcher_field_new(pool, key, value, ctx->extern_ctx);  
-    }
-  } else {
-    sub_matcher = mongory_matcher_field_new(pool, key, value, ctx->extern_ctx);
-  }
-
+  mongory_matcher *sub_matcher = mongory_matcher_build_sub_matcher(key, value, ctx);
   if (sub_matcher == NULL) {
     // Failed to create sub-matcher (e.g., allocation error, invalid condition
     // for sub-matcher)
@@ -179,6 +162,37 @@ static inline bool mongory_matcher_table_build_sub_matcher(char *key, mongory_va
 
   matchers_array->push(matchers_array, (mongory_value *)sub_matcher);
   return true;
+}
+
+/**
+ * @brief Builds a sub-matcher from a key-value pair.
+ *
+ * This function determines the appropriate sub-matcher type based on the key:
+ * - If the key starts with '$', it looks up a registered matcher builder.
+ * - Otherwise, it creates a field matcher.
+ *
+ * @param key The key from the condition table.
+ * @param value The value associated with the key.
+ * @param ctx Pointer to `mongory_matcher_table_build_sub_matcher_context`.
+ * @return A new sub-matcher, or NULL on failure.
+ */
+// ============================================================================
+// Matcher Construction from Conditions
+// ============================================================================
+static inline mongory_matcher *mongory_matcher_build_sub_matcher(char *key, mongory_value *value, mongory_matcher_table_build_sub_matcher_context *ctx) {
+  mongory_memory_pool *pool = ctx->pool;
+  mongory_matcher_build_func build_func = NULL;
+
+  if (key[0] == '$') { // Operator key (e.g., "$eq", "$in")
+    build_func = mongory_matcher_build_func_get(key);
+    if (build_func != NULL) {
+      return build_func(pool, value, ctx->extern_ctx);
+    } else if (mongory_custom_matcher_adapter.lookup != NULL && mongory_custom_matcher_adapter.lookup(key)) {
+      return mongory_matcher_custom_new(pool, key, value, ctx->extern_ctx);
+    }
+  }
+
+  return mongory_matcher_field_new(pool, key, value, ctx->extern_ctx);
 }
 
 /**
