@@ -110,6 +110,11 @@ bool mongory_validate_ptr(mongory_memory_pool *pool, char *name, void *ptr, char
   return true;
 }
 
+static char *error_format =
+  "[Mongory Core Error]\n"
+  "%s needs %s, got %s\n"
+  "(%s:%d)\n";
+
 bool mongory_validate_table(mongory_memory_pool *pool, char *name, mongory_value *value, char *file, int line) {
   if (pool->error != NULL) {
     return false;
@@ -120,8 +125,9 @@ bool mongory_validate_table(mongory_memory_pool *pool, char *name, mongory_value
   if (value->type != MONGORY_TYPE_TABLE) {
     mongory_error *error = MG_ALLOC_PTR(pool, mongory_error);
     error->type = MONGORY_ERROR_INVALID_ARGUMENT;
-    error->message = mongory_string_cpyf(pool, "%s needs a table, got %s: (at %s:%d)",
+    error->message = mongory_string_cpyf(pool, error_format,
       name,
+      "Table",
       mongory_type_to_string(value),
       file,
       line
@@ -142,8 +148,9 @@ bool mongory_validate_array(mongory_memory_pool *pool, char *name, mongory_value
   if (value->type != MONGORY_TYPE_ARRAY) {
     mongory_error *error = MG_ALLOC_PTR(pool, mongory_error);
     error->type = MONGORY_ERROR_INVALID_ARGUMENT;
-    error->message = mongory_string_cpyf(pool, "%s needs an array, got %s: (at %s:%d)",
+    error->message = mongory_string_cpyf(pool, error_format,
       name,
+      "Array",
       mongory_type_to_string(value),
       file,
       line
@@ -164,8 +171,9 @@ bool mongory_validate_string(mongory_memory_pool *pool, char *name, mongory_valu
   if (value->type != MONGORY_TYPE_STRING) {
     mongory_error *error = MG_ALLOC_PTR(pool, mongory_error);
     error->type = MONGORY_ERROR_INVALID_ARGUMENT;
-    error->message = mongory_string_cpyf(pool, "%s needs a string, got %s: (at %s:%d)",
+    error->message = mongory_string_cpyf(pool, error_format,
       name,
+      "String",
       mongory_type_to_string(value),
       file,
       line
@@ -186,8 +194,9 @@ bool mongory_validate_number(mongory_memory_pool *pool, char *name, mongory_valu
   if (value->type != MONGORY_TYPE_INT && value->type != MONGORY_TYPE_DOUBLE) {
     mongory_error *error = MG_ALLOC_PTR(pool, mongory_error);
     error->type = MONGORY_ERROR_INVALID_ARGUMENT;
-    error->message = mongory_string_cpyf(pool, "%s needs an integer, got %s: (at %s:%d)",
+    error->message = mongory_string_cpyf(pool, error_format,
       name,
+      "Number",
       mongory_type_to_string(value),
       file,
       line

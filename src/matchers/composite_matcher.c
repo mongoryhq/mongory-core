@@ -530,6 +530,10 @@ mongory_matcher *mongory_matcher_every_new(mongory_memory_pool *pool, mongory_va
   return (mongory_matcher *)composite;
 }
 
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
 /**
  * @brief Calculates the priority of a composite matcher.
  * @param sub_matchers The array of sub-matchers.
