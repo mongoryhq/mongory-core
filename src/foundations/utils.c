@@ -96,4 +96,106 @@ double mongory_log(double x, double base) {
   return log(x) / log(base);
 }
 
+bool mongory_validate_ptr(mongory_memory_pool *pool, char *name, void *ptr, char *file, int line) {
+  if (pool->error != NULL) {
+    return false;
+  }
+  if (ptr == NULL) {
+    mongory_error *error = MG_ALLOC_PTR(pool, mongory_error);
+    error->type = MONGORY_ERROR_INVALID_ARGUMENT;
+    error->message = mongory_string_cpyf(pool, "Null pointer: %s (at %s:%d)", name, file, line);
+    pool->error = error;
+    return false;
+  }
+  return true;
+}
+
+bool mongory_validate_table(mongory_memory_pool *pool, char *name, mongory_value *value, char *file, int line) {
+  if (pool->error != NULL) {
+    return false;
+  }
+  if (!mongory_validate_ptr(pool, name, value, file, line)) {
+    return false;
+  }
+  if (value->type != MONGORY_TYPE_TABLE) {
+    mongory_error *error = MG_ALLOC_PTR(pool, mongory_error);
+    error->type = MONGORY_ERROR_INVALID_ARGUMENT;
+    error->message = mongory_string_cpyf(pool, "%s needs a table, got %s: (at %s:%d)",
+      name,
+      mongory_type_to_string(value),
+      file,
+      line
+    );
+    pool->error = error;
+    return false;
+  }
+  return true;
+}
+
+bool mongory_validate_array(mongory_memory_pool *pool, char *name, mongory_value *value, char *file, int line) {
+  if (pool->error != NULL) {
+    return false;
+  }
+  if (!mongory_validate_ptr(pool, name, value, file, line)) {
+    return false;
+  }
+  if (value->type != MONGORY_TYPE_ARRAY) {
+    mongory_error *error = MG_ALLOC_PTR(pool, mongory_error);
+    error->type = MONGORY_ERROR_INVALID_ARGUMENT;
+    error->message = mongory_string_cpyf(pool, "%s needs an array, got %s: (at %s:%d)",
+      name,
+      mongory_type_to_string(value),
+      file,
+      line
+    );
+    pool->error = error;
+    return false;
+  }
+  return true;
+}
+
+bool mongory_validate_string(mongory_memory_pool *pool, char *name, mongory_value *value, char *file, int line) {
+  if (pool->error != NULL) {
+    return false;
+  }
+  if (!mongory_validate_ptr(pool, name, value, file, line)) {
+    return false;
+  }
+  if (value->type != MONGORY_TYPE_STRING) {
+    mongory_error *error = MG_ALLOC_PTR(pool, mongory_error);
+    error->type = MONGORY_ERROR_INVALID_ARGUMENT;
+    error->message = mongory_string_cpyf(pool, "%s needs a string, got %s: (at %s:%d)",
+      name,
+      mongory_type_to_string(value),
+      file,
+      line
+    );
+    pool->error = error;
+    return false;
+  }
+  return true;
+}
+
+bool mongory_validate_number(mongory_memory_pool *pool, char *name, mongory_value *value, char *file, int line) {
+  if (pool->error != NULL) {
+    return false;
+  }
+  if (!mongory_validate_ptr(pool, name, value, file, line)) {
+    return false;
+  }
+  if (value->type != MONGORY_TYPE_INT && value->type != MONGORY_TYPE_DOUBLE) {
+    mongory_error *error = MG_ALLOC_PTR(pool, mongory_error);
+    error->type = MONGORY_ERROR_INVALID_ARGUMENT;
+    error->message = mongory_string_cpyf(pool, "%s needs an integer, got %s: (at %s:%d)",
+      name,
+      mongory_type_to_string(value),
+      file,
+      line
+    );
+    pool->error = error;
+    return false;
+  }
+  return true;
+}
+
 #endif // MONGORY_UTILS_C

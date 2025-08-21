@@ -8,6 +8,7 @@
 #include <mongory-core.h>
 #include <mongory-core/foundations/memory_pool.h>
 #include <mongory-core/foundations/value.h>
+#include "../foundations/utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -147,14 +148,16 @@ bool execute_test_record(mongory_value *test_record, void *acc) {
   TEST_ASSERT_NOT_NULL(data_value);
   TEST_ASSERT_NOT_NULL(expected_value);
 
-  bool result = matcher->match(matcher, data_value);
+  bool result;
   if (context->enable_trace) {
-    mongory_matcher_trace(matcher, data_value);
+    result = mongory_matcher_trace(matcher, data_value);
+  } else {
+    result = matcher->match(matcher, data_value);
   }
   if (expected != result) {
     printf("Test failed\n");
   }
-  TEST_ASSERT_EQUAL(expected, matcher->match(matcher, data_value));
+  TEST_ASSERT_EQUAL(expected, result);
   context->index++;
   return true;
 }
