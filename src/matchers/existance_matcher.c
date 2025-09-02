@@ -95,7 +95,7 @@ static inline bool mongory_matcher_present_match(mongory_matcher *matcher, mongo
     return !condition_expects_presence;
   }
 
-  bool actual_value_is_present;
+  bool actual_value_is_present = false;
   switch (value->type) {
   case MONGORY_TYPE_ARRAY:
     actual_value_is_present = (value->data.a != NULL && value->data.a->count > 0);
@@ -103,9 +103,22 @@ static inline bool mongory_matcher_present_match(mongory_matcher *matcher, mongo
   case MONGORY_TYPE_TABLE:
     actual_value_is_present = (value->data.t != NULL && value->data.t->count > 0);
     break;
-  case MONGORY_TYPE_STRING:
-    actual_value_is_present = (value->data.s != NULL && *(value->data.s) != '\0');
+  case MONGORY_TYPE_STRING: {
+    // If the string is NULL, it is not "present".
+    // If the strint is "  " or more than one space, it is not "present".
+    char *s = value->data.s;
+    if (s != NULL && *s != '\0') {
+      char *p = s;
+      while (*p != '\0') {
+        if (*p != ' ') {
+          actual_value_is_present = true;
+          break;
+        }
+        p++;
+      }
+    }
     break;
+  }
   case MONGORY_TYPE_NULL:
     actual_value_is_present = false; // An explicit BSON-style Null is not "present".
     break;
