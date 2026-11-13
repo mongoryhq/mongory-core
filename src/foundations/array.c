@@ -146,8 +146,8 @@ static inline mongory_value *mongory_array_get(mongory_array *self, size_t index
  */
 static inline bool mongory_array_set(mongory_array *self, size_t index, mongory_value *value) {
   mongory_array_private *internal = (mongory_array_private *)self;
-  // Ensure capacity for the given index (index + 1 elements).
-  if (!mongory_array_grow_if_needed(self, index + 1)) {
+  // Ensure capacity for the given 0-based index.
+  if (!mongory_array_grow_if_needed(self, index)) {
     return false;
   }
 
@@ -163,17 +163,10 @@ static inline bool mongory_array_set(mongory_array *self, size_t index, mongory_
   return true;
 }
 
-/**
- * @brief Creates and initializes a new mongory_array.
- *
- * Allocates memory for the array structure itself and its initial item storage
- * using the provided memory pool. Assigns function pointers for array
- * operations.
- *
- * @param pool The memory pool to use for allocations.
- * @return Pointer to the new mongory_array, or NULL on allocation failure.
- */
-mongory_array *mongory_array_new(mongory_memory_pool *pool) {
+mongory_array *mongory_array_new_with_capacity(mongory_memory_pool *pool, size_t capacity) {
+  if (capacity == 0) {
+    capacity = MONGORY_ARRAY_INIT_SIZE;
+  }
   // First, allocate the private structure that holds all array metadata.
   mongory_array_private *internal = MG_ALLOC_PTR(pool, mongory_array_private);
   if (!internal) {
@@ -182,7 +175,7 @@ mongory_array *mongory_array_new(mongory_memory_pool *pool) {
   }
 
   // Then, allocate the initial block of memory for the array items.
-  mongory_value **items = MG_ALLOC_ARY(pool, mongory_value*, MONGORY_ARRAY_INIT_SIZE);
+  mongory_value **items = MG_ALLOC_ARY(pool, mongory_value*, capacity);
   if (!items) {
     // If this fails, the 'internal' struct allocated above will be cleaned up
     // by the pool, assuming it's a tracing pool.
@@ -200,9 +193,23 @@ mongory_array *mongory_array_new(mongory_memory_pool *pool) {
 
   // Initialize the private part of the array structure.
   internal->items = items;
-  internal->capacity = MONGORY_ARRAY_INIT_SIZE;
+  internal->capacity = capacity;
 
   return &internal->base; // Return pointer to the public structure.
+}
+
+/**
+ * @brief Creates and initializes a new mongory_array.
+ *
+ * Allocates memory for the array structure itself and its initial item storage
+ * using the provided memory pool. Assigns function pointers for array
+ * operations.
+ *
+ * @param pool The memory pool to use for allocations.
+ * @return Pointer to the new mongory_array, or NULL on allocation failure.
+ */
+mongory_array *mongory_array_new(mongory_memory_pool *pool) {
+  return mongory_array_new_with_capacity(pool, MONGORY_ARRAY_INIT_SIZE);
 }
 
 /**

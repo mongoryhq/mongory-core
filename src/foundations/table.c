@@ -178,11 +178,12 @@ static inline bool mongory_table_rehash(mongory_table *self) {
   // might copy elements if count is not zero. We are managing elements manually.
   internal->array->count = 0;
 
-  if (!mongory_array_resize(internal->array, new_capacity)) {
+  if (!mongory_array_resize(internal->array, new_capacity) ||
+      !internal->array->set(internal->array, new_capacity - 1, NULL)) {
     // Error: Rehashing failed because the underlying array could not be resized.
     // The table remains functional but may have a suboptimal load factor.
     self->pool->error = &MONGORY_ALLOC_ERROR;
-    internal->array->count = self->count; // Try to restore roughly
+    internal->array->count = original_capacity; // Restore previous bucket count
     return false;
   }
   // After resize, internal->array (and old_array_private_view) points to the
@@ -416,14 +417,12 @@ mongory_table *mongory_table_new(mongory_memory_pool *pool) {
     return NULL; // Must have a valid pool.
 
   size_t init_capacity = MONGORY_TABLE_INIT_SIZE;
-  mongory_array *bucket_array = mongory_array_new(pool);
+  mongory_array *bucket_array = mongory_array_new_with_capacity(pool, init_capacity);
 
-  // Initialize the bucket array. We resize it to the initial capacity and
-  // then set the last element to NULL. The `mongory_array_set` function
-  // will automatically fill all intermediate slots with NULL if the index is
-  // out of bounds, which perfectly initializes our bucket array.
-  bool array_init_success = bucket_array && mongory_array_resize(bucket_array, init_capacity) &&
-                            bucket_array->set(bucket_array, init_capacity - 1, NULL);
+  // Initialize the bucket array by setting the last element to NULL.
+  // The `mongory_array_set` function will automatically fill all intermediate
+  // slots with NULL without triggering a resize.
+  bool array_init_success = bucket_array && bucket_array->set(bucket_array, init_capacity - 1, NULL);
 
   if (!array_init_success) {
     // If array initialization fails, we cannot proceed.

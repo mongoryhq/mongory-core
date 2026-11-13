@@ -1,7 +1,14 @@
 #include "unity.h"
 #include <mongory-core.h>
+#include "../src/foundations/array_private.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+typedef struct mongory_table_internal_test_view {
+  mongory_table base;
+  size_t capacity;
+  mongory_array *array;
+} mongory_table_internal_test_view;
 
 mongory_memory_pool *pool;
 mongory_table *table;
@@ -85,6 +92,33 @@ void test_table_get_nonexistent(void) {
   TEST_ASSERT_NULL(retrieved);
 }
 
+void test_table_capacity_and_rehash(void) {
+  mongory_table_internal_test_view *internal = (mongory_table_internal_test_view *)table;
+  mongory_array_private *bucket_array = (mongory_array_private *)internal->array;
+
+  TEST_ASSERT_EQUAL(17, internal->capacity);
+  TEST_ASSERT_EQUAL(17, bucket_array->capacity);
+  TEST_ASSERT_EQUAL(17, internal->array->count);
+
+  char key_buf[16];
+  for (int i = 0; i < 15; i++) {
+    snprintf(key_buf, sizeof(key_buf), "key_%d", i);
+    TEST_ASSERT_TRUE(table->set(table, key_buf, mongory_value_wrap_i(pool, i)));
+  }
+
+  TEST_ASSERT_EQUAL(15, table->count);
+  TEST_ASSERT_EQUAL(37, internal->capacity);
+  TEST_ASSERT_EQUAL(37, bucket_array->capacity);
+  TEST_ASSERT_EQUAL(37, internal->array->count);
+
+  for (int i = 0; i < 15; i++) {
+    snprintf(key_buf, sizeof(key_buf), "key_%d", i);
+    mongory_value *v = table->get(table, key_buf);
+    TEST_ASSERT_NOT_NULL(v);
+    TEST_ASSERT_EQUAL(i, v->data.i);
+  }
+}
+
 int main(void) {
   UNITY_BEGIN();
   mongory_init();
@@ -92,6 +126,7 @@ int main(void) {
   RUN_TEST(test_table_delete);
   RUN_TEST(test_table_each);
   RUN_TEST(test_table_get_nonexistent);
+  RUN_TEST(test_table_capacity_and_rehash);
   mongory_cleanup();
   return UNITY_END();
 }

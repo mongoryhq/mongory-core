@@ -59,12 +59,25 @@ void test_array_set(void) {
   TEST_ASSERT_NOT_NULL(value1);
   TEST_ASSERT_NOT_NULL(value2);
 
+  mongory_array_private *internal = (mongory_array_private *)array;
+  TEST_ASSERT_EQUAL(4, internal->capacity);
+
   bool set_result = array->set(array, 1, value2);
   TEST_ASSERT_TRUE(set_result);
 
   mongory_value *retrieved = array->get(array, 1);
   TEST_ASSERT_NOT_NULL(retrieved);
   TEST_ASSERT_EQUAL(2, *(int *)mongory_value_extract(retrieved));
+
+  // Setting at capacity - 1 (index 3) should not trigger resize
+  TEST_ASSERT_TRUE(array->set(array, 3, value1));
+  TEST_ASSERT_EQUAL(4, internal->capacity);
+  TEST_ASSERT_EQUAL(4, array->count);
+
+  // Setting at capacity (index 4) should double capacity to 8
+  TEST_ASSERT_TRUE(array->set(array, 4, value2));
+  TEST_ASSERT_EQUAL(8, internal->capacity);
+  TEST_ASSERT_EQUAL(5, array->count);
 }
 
 void test_array_each(void) {

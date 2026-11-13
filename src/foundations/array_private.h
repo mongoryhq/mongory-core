@@ -6,6 +6,7 @@
 #include <stdbool.h>
 
 bool mongory_array_resize(mongory_array *self, size_t size); // resize array
+mongory_array *mongory_array_new_with_capacity(mongory_memory_pool *pool, size_t capacity);
 
 typedef struct mongory_array_private {
   mongory_array base;    // public array
