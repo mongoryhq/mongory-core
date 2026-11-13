@@ -62,6 +62,9 @@ static inline bool mongory_matcher_literal_match(mongory_matcher *matcher, mongo
       // Lazily create the array_record_matcher if needed.
       // The condition for array_record_new is the original condition of the literal matcher.
       literal->array_record_matcher = mongory_matcher_array_record_new(literal->base.pool, literal->base.condition, literal->base.extern_ctx);
+      if (literal->array_record_matcher && literal->base.trace_stack) {
+        mongory_matcher_enable_trace_at(literal->array_record_matcher, literal->base.trace_stack, literal->base.trace_level + 1);
+      }
     }
     // If right child exists (or was successfully created), use it.
     return literal->array_record_matcher ? literal->array_record_matcher->match(literal->array_record_matcher, value) : false;

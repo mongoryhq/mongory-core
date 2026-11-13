@@ -147,13 +147,38 @@ static bool mongory_matcher_enable_trace_cb(mongory_matcher *matcher, mongory_ma
   matcher->trace_stack = (mongory_array *)ctx->acc;
   matcher->trace_level = ctx->level;
   matcher->match = mongory_matcher_traced_match;
+  if (matcher->traverse == mongory_matcher_literal_traverse) {
+    mongory_literal_matcher *literal = (mongory_literal_matcher *)matcher;
+    if (literal->array_record_matcher && literal->delegate_matcher) {
+      mongory_matcher_traverse_context delegate_ctx = {
+          .pool = ctx->pool,
+          .level = ctx->level + 1,
+          .count = 0,
+          .total = 1,
+          .acc = ctx->acc,
+          .callback = ctx->callback,
+      };
+      literal->delegate_matcher->traverse(literal->delegate_matcher, &delegate_ctx);
+    }
+  }
   return true;
 }
 
 static bool mongory_matcher_disable_trace_cb(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx) {
-  (void)ctx;
   matcher->match = matcher->original_match;
   matcher->trace_stack = NULL;
+  if (matcher->traverse == mongory_matcher_literal_traverse) {
+    mongory_literal_matcher *literal = (mongory_literal_matcher *)matcher;
+    if (literal->array_record_matcher && literal->delegate_matcher) {
+      mongory_matcher_traverse_context delegate_ctx = {
+          .level = ctx->level + 1,
+          .count = 0,
+          .total = 1,
+          .callback = ctx->callback,
+      };
+      literal->delegate_matcher->traverse(literal->delegate_matcher, &delegate_ctx);
+    }
+  }
   return true;
 }
 
@@ -192,21 +217,32 @@ static mongory_array *mongory_matcher_traces_sort(mongory_array *self, int level
   return sorted_array;
 }
 
-void mongory_matcher_enable_trace(mongory_matcher *matcher, mongory_memory_pool *temp_pool) {
-  MONGORY_VALIDATE_PTR(temp_pool, matcher) && MONGORY_VALIDATE_PTR(temp_pool, matcher->traverse);
-  if (temp_pool->error != NULL) {
+void mongory_matcher_enable_trace_at(mongory_matcher *matcher, mongory_array *trace_stack, int level) {
+  if (!matcher || !trace_stack) {
     return;
   }
-  mongory_array *trace_stack = mongory_array_new(temp_pool);
+  MONGORY_VALIDATE_PTR(trace_stack->pool, matcher->traverse);
+  if (trace_stack->pool->error != NULL) {
+    return;
+  }
   mongory_matcher_traverse_context ctx = {
-      .pool = temp_pool,
-      .level = 0,
+      .pool = trace_stack->pool,
+      .level = level,
       .count = 0,
       .total = 0,
       .acc = (void *)trace_stack,
       .callback = mongory_matcher_enable_trace_cb,
   };
   matcher->traverse(matcher, &ctx);
+}
+
+void mongory_matcher_enable_trace(mongory_matcher *matcher, mongory_memory_pool *temp_pool) {
+  MONGORY_VALIDATE_PTR(temp_pool, matcher) && MONGORY_VALIDATE_PTR(temp_pool, matcher->traverse);
+  if (temp_pool->error != NULL) {
+    return;
+  }
+  mongory_array *trace_stack = mongory_array_new(temp_pool);
+  mongory_matcher_enable_trace_at(matcher, trace_stack, 0);
 }
 
 void mongory_matcher_disable_trace(mongory_matcher *matcher) {

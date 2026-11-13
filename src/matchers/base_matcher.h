@@ -97,4 +97,6 @@ mongory_matcher *mongory_matcher_always_true_new(mongory_memory_pool *pool, mong
  */
 mongory_matcher *mongory_matcher_always_false_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
+void mongory_matcher_enable_trace_at(mongory_matcher *matcher, mongory_array *trace_stack, int level);
+
 #endif /* MONGORY_MATCHER_BASE_H */

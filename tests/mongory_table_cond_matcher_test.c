@@ -1,4 +1,5 @@
 #include "../src/matchers/composite_matcher.h"
+#include "../src/matchers/literal_matcher.h"
 #include "../src/test_helper/test_helper.h"
 #include "mongory-core.h"
 #include "unity.h"
@@ -56,9 +57,40 @@ void test_field_matcher_propagates_extern_ctx_to_lazy_array_matcher(void) {
   TEST_ASSERT_EQUAL_PTR(&dummy_ctx, captured_extern_ctx);
 }
 
+void test_trace_with_lazy_array_record_matcher_restores_delegate_matcher(void) {
+  mongory_memory_pool *pool = get_test_pool();
+  mongory_value *condition = MG_TABLE_WRAP(pool, 1,
+    "tags", mongory_value_wrap_s(pool, "ruby")
+  );
+  mongory_matcher *matcher = mongory_matcher_new(pool, condition, NULL);
+  TEST_ASSERT_NOT_NULL(matcher);
+
+  mongory_memory_pool *trace_pool = mongory_memory_pool_new();
+  mongory_value *array_record = MG_TABLE_WRAP(trace_pool, 1,
+    "tags", MG_ARRAY_WRAP(trace_pool, 2,
+      mongory_value_wrap_s(trace_pool, "c"),
+      mongory_value_wrap_s(trace_pool, "ruby")
+    )
+  );
+
+  // First trace on an array record triggers lazy array_record_matcher creation
+  TEST_ASSERT_TRUE(mongory_matcher_trace(matcher, array_record));
+  trace_pool->free(trace_pool);
+
+  // Subsequent normal match on a scalar record must use restored delegate_matcher
+  mongory_value *scalar_record = MG_TABLE_WRAP(pool, 1,
+    "tags", mongory_value_wrap_s(pool, "ruby")
+  );
+  mongory_field_matcher *field_m = (mongory_field_matcher *)matcher;
+  TEST_ASSERT_NULL(field_m->literal.delegate_matcher->trace_stack);
+  TEST_ASSERT_NULL(field_m->literal.array_record_matcher->trace_stack);
+  TEST_ASSERT_TRUE(mongory_matcher_match(matcher, scalar_record));
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_table_cond_matcher);
   RUN_TEST(test_field_matcher_propagates_extern_ctx_to_lazy_array_matcher);
+  RUN_TEST(test_trace_with_lazy_array_record_matcher_restores_delegate_matcher);
   return UNITY_END();
 }
