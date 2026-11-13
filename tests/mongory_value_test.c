@@ -130,6 +130,14 @@ void test_double_comparison(void) {
   TEST_ASSERT_EQUAL(1, val_1_5->comp(val_1_5, val_1_0));
   TEST_ASSERT_EQUAL(0, val_1_0->comp(val_1_0, int_val));
   TEST_ASSERT_EQUAL(mongory_value_compare_fail, val_1_0->comp(val_1_0, bool_val));
+
+  double nan_num = 0.0 / 0.0;
+  mongory_value *nan_val = mongory_value_wrap_d(pool, nan_num);
+  TEST_ASSERT_EQUAL(mongory_value_compare_fail, nan_val->comp(nan_val, val_1_0));
+  TEST_ASSERT_EQUAL(mongory_value_compare_fail, val_1_0->comp(val_1_0, nan_val));
+  TEST_ASSERT_EQUAL(mongory_value_compare_fail, nan_val->comp(nan_val, nan_val));
+  TEST_ASSERT_EQUAL(mongory_value_compare_fail, nan_val->comp(nan_val, int_val));
+  TEST_ASSERT_EQUAL(mongory_value_compare_fail, int_val->comp(int_val, nan_val));
 }
 
 void test_string_comparison(void) {

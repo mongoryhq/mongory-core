@@ -154,6 +154,9 @@ static inline int mongory_value_int_compare(mongory_value *a, mongory_value *b) 
     // Compare int (a) as double with double (b).
     double a_as_double = (double)a->data.i;
     double b_value = b->data.d;
+    if (b_value != b_value) {
+      return mongory_value_compare_fail; // NaN is not comparable.
+    }
     return (a_as_double > b_value) - (a_as_double < b_value);
   }
   if (b->type == MONGORY_TYPE_INT) {
@@ -179,14 +182,19 @@ mongory_value *mongory_value_wrap_i(mongory_memory_pool *pool, int64_t i_val) {
 
 /** Compares MONGORY_TYPE_DOUBLE with DOUBLE or INT. */
 static inline int mongory_value_double_compare(mongory_value *a, mongory_value *b) {
+  double a_value = a->data.d;
+  if (a_value != a_value) {
+    return mongory_value_compare_fail; // NaN is not comparable.
+  }
   if (b->type == MONGORY_TYPE_DOUBLE) {
-    double a_value = a->data.d;
     double b_value = b->data.d;
+    if (b_value != b_value) {
+      return mongory_value_compare_fail; // NaN is not comparable.
+    }
     return (a_value > b_value) - (a_value < b_value);
   }
   if (b->type == MONGORY_TYPE_INT) {
     // Compare double (a) with int (b) as double.
-    double a_value = a->data.d;
     double b_as_double = (double)b->data.i;
     return (a_value > b_as_double) - (a_value < b_as_double);
   }
