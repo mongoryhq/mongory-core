@@ -207,6 +207,7 @@ mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *fiel
   field_m->literal.base.name = mongory_string_cpy(pool, "Field");
   field_m->literal.base.explain = mongory_matcher_field_explain;
   field_m->literal.base.traverse = mongory_matcher_literal_traverse;
+  field_m->literal.base.extern_ctx = extern_ctx;
   // The 'left' child of the composite is the actual matcher for the field's value,
   // determined by the type of 'condition_for_field'.
   field_m->literal.delegate_matcher = mongory_matcher_literal_delegate(pool, condition_for_field, extern_ctx);
