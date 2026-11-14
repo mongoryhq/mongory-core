@@ -49,11 +49,8 @@ bool mongory_try_parse_int(const char *key, int *out) {
   errno = 0;                           // Clear errno before calling strtol.
   long val = strtol(key, &endptr, 10); // Base 10 conversion.
 
-  if (*endptr != '\0') {
-    return false; // Additional characters after the number.
-  }
-  if (val < INT_MIN || val > INT_MAX) {
-    return false; // Value out of range for int.
+  if (*endptr != '\0' || errno == ERANGE || val < INT_MIN || val > INT_MAX) {
+    return false; // Additional characters or value out of range for int.
   }
 
   if (out != NULL) {
