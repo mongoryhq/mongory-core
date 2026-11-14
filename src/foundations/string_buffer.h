@@ -40,10 +40,4 @@ char *mongory_string_buffer_cstr(mongory_string_buffer *buffer);
  */
 void mongory_string_buffer_clear(mongory_string_buffer *buffer);
 
-/**
- * @brief Frees the buffer.
- * @param buffer The buffer to free.
- */
-void mongory_string_buffer_free(mongory_string_buffer *buffer);
-
 #endif

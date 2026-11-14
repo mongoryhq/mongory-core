@@ -16,8 +16,6 @@ mongory_string_buffer *mongory_string_buffer_new(mongory_memory_pool *pool) {
   return buffer;
 }
 
-void mongory_string_buffer_free(mongory_string_buffer *buffer) { buffer->pool->free(buffer->pool->ctx); }
-
 static inline void mongory_string_buffer_grow(mongory_string_buffer *buffer, size_t additional_size) {
   bool trigger_grow = false;
   while (buffer->size + additional_size + 1 > buffer->capacity) {
