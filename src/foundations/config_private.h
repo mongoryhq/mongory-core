@@ -7,6 +7,7 @@
 
 typedef struct mongory_regex_adapter {
   mongory_regex_func match_func;
+  mongory_regex_options_func options_match_func;
   mongory_regex_stringify_func stringify_func;
 } mongory_regex_adapter;
 

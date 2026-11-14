@@ -14,13 +14,18 @@
 #include "matcher_explainable.h"
 #include "matcher_traversable.h"
 
+typedef struct mongory_regex_matcher {
+  mongory_matcher base;
+  char *options; // Validated $options flags; NULL when absent or empty.
+} mongory_regex_matcher;
+
 /**
  * @brief Match function for the $regex matcher.
  *
  * Checks if the input `value` (which must be a string) matches the regex
  * pattern stored in `matcher->condition`. The actual regex matching is
- * performed by the function pointed to by
- * `mongory_internal_regex_adapter->match_func`.
+ * delegated to `mongory_internal_regex_adapter`: `options_match_func` when
+ * `$options` flags are present, `match_func` otherwise.
  *
  * @param matcher The $regex matcher instance.
  * @param value The `mongory_value` to test; must be of type
@@ -31,6 +36,10 @@
 static inline bool mongory_matcher_regex_match(mongory_matcher *matcher, mongory_value *value) {
   if (!value || value->type != MONGORY_TYPE_STRING) {
     return false; // Regex matching applies only to strings.
+  }
+  char *options = ((mongory_regex_matcher *)matcher)->options;
+  if (options) {
+    return mongory_internal_regex_adapter.options_match_func(matcher->pool, matcher->condition, options, value);
   }
   if (!mongory_internal_regex_adapter.match_func) {
     return false; // Regex adapter or function not configured.
@@ -51,25 +60,76 @@ static inline bool mongory_matcher_regex_condition_validate(mongory_value *condi
   return condition != NULL && (condition->type == MONGORY_TYPE_STRING || condition->type == MONGORY_TYPE_REGEX);
 }
 
-mongory_matcher *mongory_matcher_regex_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
-  if (!mongory_matcher_regex_condition_validate(condition)) {
-    pool->error = MG_ALLOC_PTR(pool, mongory_error);
-    if (pool->error) {
-      pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
-      pool->error->message = "$regex condition must be a string or a regex object.";
+static inline void mongory_matcher_regex_error_set(mongory_memory_pool *pool, mongory_error_type type, const char *message) {
+  pool->error = MG_ALLOC_PTR(pool, mongory_error);
+  if (pool->error) {
+    pool->error->type = type;
+    pool->error->message = message;
+  }
+}
+
+/**
+ * @brief Validates `$options`: a string made only of the flags i, m, s.
+ * @return True if valid, false (with `pool->error` set) otherwise.
+ */
+static inline bool mongory_matcher_regex_options_validate(mongory_memory_pool *pool, mongory_value *options) {
+  if (options->type != MONGORY_TYPE_STRING || options->data.s == NULL) {
+    mongory_matcher_regex_error_set(pool, MONGORY_ERROR_INVALID_ARGUMENT, "$options must be a string.");
+    return false;
+  }
+  for (char *flag = options->data.s; *flag; flag++) {
+    if (*flag != 'i' && *flag != 'm' && *flag != 's') {
+      mongory_matcher_regex_error_set(pool, MONGORY_ERROR_INVALID_ARGUMENT,
+                                      mongory_string_cpyf(pool, "$options has unsupported flag '%c'; allowed flags are i, m, s.", *flag));
+      return false;
     }
+  }
+  return true;
+}
+
+mongory_matcher *mongory_matcher_regex_with_options_new(mongory_memory_pool *pool, mongory_value *condition,
+                                                        mongory_value *options, void *extern_ctx) {
+  if (!mongory_matcher_regex_condition_validate(condition)) {
+    mongory_matcher_regex_error_set(pool, MONGORY_ERROR_INVALID_ARGUMENT, "$regex condition must be a string or a regex object.");
+    return NULL;
+  }
+  if (options && !mongory_matcher_regex_options_validate(pool, options)) {
+    return NULL;
+  }
+  bool has_options = options && options->data.s[0] != '\0';
+  if (has_options && condition->type == MONGORY_TYPE_REGEX) {
+    // Flags belong to the compiled regex; mixing them is ambiguous.
+    mongory_matcher_regex_error_set(pool, MONGORY_ERROR_INVALID_ARGUMENT,
+                                    "$options cannot modify a compiled regex object.");
+    return NULL;
+  }
+  if (has_options && !mongory_internal_regex_adapter.options_match_func) {
+    mongory_matcher_regex_error_set(pool, MONGORY_ERROR_UNSUPPORTED_OPERATION,
+                                    "$options requires a regex adapter set via mongory_regex_options_func_set.");
     return NULL;
   }
 
-  mongory_matcher *matcher = mongory_matcher_base_new(pool, condition, extern_ctx);
+  mongory_regex_matcher *matcher = MG_ALLOC_PTR(pool, mongory_regex_matcher);
   if (!matcher) {
+    pool->error = &MONGORY_ALLOC_ERROR;
     return NULL;
   }
-  matcher->match = mongory_matcher_regex_match;
-  matcher->original_match = mongory_matcher_regex_match;
-  matcher->name = mongory_string_cpy(pool, "Regex");
-  matcher->priority = 20.0;
-  return matcher;
+  matcher->base.pool = pool;
+  matcher->base.condition = condition;
+  matcher->base.sub_count = 0;
+  matcher->base.match = mongory_matcher_regex_match;
+  matcher->base.original_match = mongory_matcher_regex_match;
+  matcher->base.explain = mongory_matcher_base_explain;
+  matcher->base.traverse = mongory_matcher_leaf_traverse;
+  matcher->base.extern_ctx = extern_ctx;
+  matcher->base.name = mongory_string_cpy(pool, "Regex");
+  matcher->base.priority = 20.0;
+  matcher->options = has_options ? mongory_string_cpy(pool, options->data.s) : NULL;
+  return (mongory_matcher *)matcher;
+}
+
+mongory_matcher *mongory_matcher_regex_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
+  return mongory_matcher_regex_with_options_new(pool, condition, NULL, extern_ctx);
 }
 
 typedef struct mongory_custom_matcher {

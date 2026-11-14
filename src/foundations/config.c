@@ -29,6 +29,7 @@ mongory_memory_pool *mongory_internal_pool = NULL;
 // Global adapter for regex operations.
 mongory_regex_adapter mongory_internal_regex_adapter = {
   .match_func = mongory_regex_default_func,
+  .options_match_func = NULL,
   .stringify_func = mongory_regex_default_stringify_func,
 };
 // Global table mapping matcher names (e.g., "$eq") to their build functions.
@@ -88,6 +89,14 @@ static char *mongory_regex_default_stringify_func(mongory_memory_pool *pool, mon
  */
 void mongory_regex_func_set(mongory_regex_func func) {
   mongory_internal_regex_adapter.match_func = func;
+}
+
+/**
+ * @brief Sets the global regex matching function used with `$options`.
+ * @param func The custom regex function to use.
+ */
+void mongory_regex_options_func_set(mongory_regex_options_func func) {
+  mongory_internal_regex_adapter.options_match_func = func;
 }
 
 /**

@@ -20,6 +20,7 @@
 #include "../foundations/utils.h"
 #include <mongory-core.h> // General include
 #include <stdio.h>        // For sprintf
+#include <string.h>       // For strcmp
 
 // Forward declaration.
 double mongory_matcher_calculate_priority(mongory_array *sub_matchers);
@@ -121,9 +122,18 @@ typedef struct mongory_matcher_table_build_sub_matcher_context {
   mongory_memory_pool *pool; /**< Main pool for allocating created matchers. */
   mongory_array *matchers;   /**< Array to store the created sub-matchers. */
   void *extern_ctx;          /**< External context for the matcher. */
+  mongory_table *table;      /**< Table being iterated, for sibling lookups ($regex/$options). */
 } mongory_matcher_table_build_sub_matcher_context;
 
 static inline mongory_matcher *mongory_matcher_build_sub_matcher(char *key, mongory_value *value, mongory_matcher_table_build_sub_matcher_context *ctx);
+
+static inline void mongory_matcher_build_error_set(mongory_memory_pool *pool, const char *message) {
+  pool->error = MG_ALLOC_PTR(pool, mongory_error);
+  if (pool->error) {
+    pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
+    pool->error->message = message;
+  }
+}
 
 /**
  * @brief Callback for iterating over a condition table's key-value pairs.
@@ -141,6 +151,14 @@ static inline mongory_matcher *mongory_matcher_build_sub_matcher(char *key, mong
 static inline bool mongory_matcher_table_build_sub_matcher(char *key, mongory_value *value, void *acc) {
   mongory_matcher_table_build_sub_matcher_context *ctx = (mongory_matcher_table_build_sub_matcher_context *)acc;
   mongory_array *matchers_array = ctx->matchers;
+  if (strcmp(key, "$options") == 0) {
+    // Consumed by the sibling $regex; only its presence is checked here.
+    if (ctx->table == NULL || ctx->table->get(ctx->table, "$regex") == NULL) {
+      mongory_matcher_build_error_set(ctx->pool, "$options requires a sibling $regex.");
+      return false;
+    }
+    return true;
+  }
   mongory_matcher *sub_matcher = mongory_matcher_build_sub_matcher(key, value, ctx);
   if (sub_matcher == NULL) {
     // Failed to create sub-matcher (e.g., allocation error, invalid condition
@@ -156,7 +174,8 @@ static inline bool mongory_matcher_table_build_sub_matcher(char *key, mongory_va
  * @brief Builds a sub-matcher from a key-value pair.
  *
  * This function determines the appropriate sub-matcher type based on the key:
- * - If the key starts with '$', it looks up a registered matcher builder.
+ * - If the key starts with '$', it looks up a registered matcher builder
+ *   (`$regex` also takes its sibling `$options`). Unknown operators fail.
  * - Otherwise, it creates a field matcher.
  *
  * @param key The key from the condition table.
@@ -172,12 +191,18 @@ static inline mongory_matcher *mongory_matcher_build_sub_matcher(char *key, mong
   mongory_matcher_build_func build_func = NULL;
 
   if (key[0] == '$') { // Operator key (e.g., "$eq", "$in")
+    if (strcmp(key, "$regex") == 0) {
+      mongory_value *options = ctx->table ? ctx->table->get(ctx->table, "$options") : NULL;
+      return mongory_matcher_regex_with_options_new(pool, value, options, ctx->extern_ctx);
+    }
     build_func = mongory_matcher_build_func_get(key);
     if (build_func != NULL) {
       return build_func(pool, value, ctx->extern_ctx);
     } else if (mongory_custom_matcher_adapter.lookup != NULL && mongory_custom_matcher_adapter.lookup(key)) {
       return mongory_matcher_custom_new(pool, key, value, ctx->extern_ctx);
     }
+    mongory_matcher_build_error_set(pool, mongory_string_cpyf(pool, "Unknown operator: %s", key));
+    return NULL;
   }
 
   return mongory_matcher_field_new(pool, key, value, ctx->extern_ctx);
@@ -218,7 +243,7 @@ mongory_matcher *mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongo
   if (sub_matchers == NULL)
     return NULL; // Failed to create array for sub-matchers.
 
-  mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, sub_matchers, extern_ctx};
+  mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, sub_matchers, extern_ctx, table};
   // Iterate over the condition table, building sub-matchers.
   if (!table->each(table, &build_ctx, mongory_matcher_table_build_sub_matcher)) {
     // Building one of the sub-matchers failed.
@@ -258,6 +283,7 @@ static inline bool mongory_matcher_build_and_sub_matcher(mongory_value *and_sub_
   if (!MONGORY_VALIDATE_TABLE(and_sub_condition->pool, and_sub_condition)) {
     return false; // Element in $and array is not a table.
   }
+  ((mongory_matcher_table_build_sub_matcher_context *)acc)->table = and_sub_condition->data.t;
   return and_sub_condition->data.t->each(and_sub_condition->data.t, acc, mongory_matcher_table_build_sub_matcher);
 }
 
@@ -294,7 +320,7 @@ mongory_matcher *mongory_matcher_and_new(mongory_memory_pool *pool, mongory_valu
   }
 
   // Context for building matchers from EACH table within the $and array.
-  mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, sub_matchers, extern_ctx};
+  mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, sub_matchers, extern_ctx, NULL};
   // Iterate through the array of tables provided in the $and condition.
   // mongory_matcher_build_and_sub_matcher will then iterate keys of EACH table.
   int total = (int)array_of_tables->count;
@@ -381,7 +407,7 @@ mongory_matcher *mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value
     return NULL;
   }
 
-  mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, sub_matchers, extern_ctx};
+  mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, sub_matchers, extern_ctx, NULL};
   int total = (int)array_of_tables->count;
   for (int i = 0; i < total; i++) {
     mongory_value *table = array_of_tables->get(array_of_tables, i);
@@ -451,7 +477,7 @@ mongory_matcher *mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongo
   mongory_array *sub_matchers = mongory_array_new(pool);
   if (sub_matchers == NULL)
     return NULL;
-  mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, sub_matchers, extern_ctx};
+  mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, sub_matchers, extern_ctx, NULL};
   if (!mongory_matcher_build_and_sub_matcher(elem_match_condition, &build_ctx))
     return NULL;
 
@@ -510,7 +536,7 @@ mongory_matcher *mongory_matcher_every_new(mongory_memory_pool *pool, mongory_va
   mongory_array *sub_matchers = mongory_array_new(pool);
   if (sub_matchers == NULL)
     return NULL;
-  mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, sub_matchers, extern_ctx};
+  mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, sub_matchers, extern_ctx, NULL};
   if (!mongory_matcher_build_and_sub_matcher(every_condition, &build_ctx))
     return NULL;
 

@@ -31,6 +31,22 @@
 typedef bool (*mongory_regex_func)(mongory_memory_pool *pool, mongory_value *pattern, mongory_value *value);
 
 /**
+ * @brief Function pointer type for regex matching with `$options` flags.
+ *
+ * Called instead of `mongory_regex_func` when a `$regex` condition has a
+ * non-empty sibling `$options`.
+ *
+ * @param pool The memory pool to use for any allocations during the match.
+ * @param pattern The regex pattern (string or regex type).
+ * @param options Validated flags, a non-empty combination of 'i' (caseless),
+ * 'm' (multiline anchors) and 's' (dot matches newline).
+ * @param value The value to match against (typically a string).
+ * @return bool True if the value matches the pattern, false otherwise.
+ */
+typedef bool (*mongory_regex_options_func)(mongory_memory_pool *pool, mongory_value *pattern, const char *options,
+                                           mongory_value *value);
+
+/**
  * @brief Function pointer type for stringifying a regex pattern.
  *
  * This function is called when a regex pattern needs to be stringified.
@@ -113,6 +129,15 @@ void mongory_cleanup();
  * @param func The custom regex function to use.
  */
 void mongory_regex_func_set(mongory_regex_func func);
+
+/**
+ * @brief Sets the regex matching function that supports `$options` flags.
+ *
+ * If not set, compiling a condition with a non-empty `$options` fails.
+ *
+ * @param func The custom regex function to use.
+ */
+void mongory_regex_options_func_set(mongory_regex_options_func func);
 
 /**
  * @brief Sets the custom regex stringify function.

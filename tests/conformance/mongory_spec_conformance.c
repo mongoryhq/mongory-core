@@ -35,14 +35,13 @@ void tearDown(void) {}
 // Binding: regex adapter (PCRE2)
 // ============================================================================
 
-static bool spec_regex_match(mongory_memory_pool *pool, mongory_value *pattern, mongory_value *value) {
-  (void)pool;
+static bool spec_regex_match_with_flags(mongory_value *pattern, uint32_t flags, mongory_value *value) {
   if (!pattern || pattern->type != MONGORY_TYPE_STRING || !value || value->type != MONGORY_TYPE_STRING) {
     return false;
   }
   int error_code = 0;
   PCRE2_SIZE error_offset = 0;
-  pcre2_code *re = pcre2_compile((PCRE2_SPTR)pattern->data.s, PCRE2_ZERO_TERMINATED, PCRE2_UTF, &error_code,
+  pcre2_code *re = pcre2_compile((PCRE2_SPTR)pattern->data.s, PCRE2_ZERO_TERMINATED, PCRE2_UTF | flags, &error_code,
                                  &error_offset, NULL);
   if (!re) {
     return false;
@@ -52,6 +51,24 @@ static bool spec_regex_match(mongory_memory_pool *pool, mongory_value *pattern, 
   pcre2_match_data_free(match_data);
   pcre2_code_free(re);
   return rc >= 0;
+}
+
+static bool spec_regex_match(mongory_memory_pool *pool, mongory_value *pattern, mongory_value *value) {
+  (void)pool;
+  return spec_regex_match_with_flags(pattern, 0, value);
+}
+
+// `options` is validated by core: only i, m, s.
+static bool spec_regex_options_match(mongory_memory_pool *pool, mongory_value *pattern, const char *options,
+                                     mongory_value *value) {
+  (void)pool;
+  uint32_t flags = 0;
+  for (const char *flag = options; *flag; flag++) {
+    if (*flag == 'i') flags |= PCRE2_CASELESS;
+    if (*flag == 'm') flags |= PCRE2_MULTILINE;
+    if (*flag == 's') flags |= PCRE2_DOTALL;
+  }
+  return spec_regex_match_with_flags(pattern, flags, value);
 }
 
 // ============================================================================
@@ -323,6 +340,7 @@ int main(int argc, char **argv) {
 
   mongory_init();
   mongory_regex_func_set(spec_regex_match);
+  mongory_regex_options_func_set(spec_regex_options_match);
 
   for (int i = 1; i < argc; i++) {
     run_file(argv[i]);

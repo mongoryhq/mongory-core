@@ -268,6 +268,40 @@ void test_array_record_matcher_mongodb_comparison_semantics(void) {
   TEST_ASSERT_FALSE(mongory_matcher_match(matcher_eq_arr, record_scores));
 }
 
+static void assert_unknown_operator(mongory_value *condition) {
+  mongory_memory_pool *pool = get_test_pool();
+  pool->error = NULL;
+  TEST_ASSERT_NULL(mongory_matcher_new(pool, condition, NULL));
+  TEST_ASSERT_NOT_NULL(pool->error);
+  TEST_ASSERT_EQUAL(MONGORY_ERROR_INVALID_ARGUMENT, pool->error->type);
+  TEST_ASSERT_EQUAL_STRING("Unknown operator: $foo", pool->error->message);
+  pool->error = NULL;
+}
+
+void test_unknown_operator_fails_at_any_depth(void) {
+  mongory_memory_pool *pool = get_test_pool();
+  mongory_value *foo = MG_TABLE_WRAP(pool, 1, "$foo", mongory_value_wrap_i(pool, 1));
+
+  assert_unknown_operator(foo);
+  assert_unknown_operator(MG_TABLE_WRAP(pool, 1, "age", foo));
+  assert_unknown_operator(MG_TABLE_WRAP(pool, 1, "$and", MG_ARRAY_WRAP(pool, 1, MG_TABLE_WRAP(pool, 1, "age", foo))));
+  assert_unknown_operator(MG_TABLE_WRAP(pool, 1, "$or", MG_ARRAY_WRAP(pool, 1, foo)));
+  assert_unknown_operator(MG_TABLE_WRAP(pool, 1, "items", MG_TABLE_WRAP(pool, 1, "$elemMatch", foo)));
+  assert_unknown_operator(MG_TABLE_WRAP(pool, 1, "items", MG_TABLE_WRAP(pool, 1, "$every", foo)));
+  assert_unknown_operator(MG_TABLE_WRAP(pool, 1, "age", MG_TABLE_WRAP(pool, 1, "$not", foo)));
+  assert_unknown_operator(MG_TABLE_WRAP(pool, 1, "tags",
+    MG_TABLE_WRAP(pool, 2, "$size", mongory_value_wrap_i(pool, 1), "$foo", mongory_value_wrap_i(pool, 1))));
+}
+
+void test_dollar_inside_field_name_is_a_field(void) {
+  mongory_memory_pool *pool = get_test_pool();
+  mongory_value *condition = MG_TABLE_WRAP(pool, 1, "price$", mongory_value_wrap_i(pool, 1));
+  mongory_matcher *matcher = mongory_matcher_new(pool, condition, NULL);
+  TEST_ASSERT_NOT_NULL(matcher);
+  TEST_ASSERT_NULL(pool->error);
+  TEST_ASSERT_TRUE(mongory_matcher_match(matcher, MG_TABLE_WRAP(pool, 1, "price$", mongory_value_wrap_i(pool, 1))));
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_table_cond_matcher);
@@ -275,5 +309,7 @@ int main(void) {
   RUN_TEST(test_trace_with_lazy_array_record_matcher_restores_delegate_matcher);
   RUN_TEST(test_array_record_matcher_with_integer_index_condition);
   RUN_TEST(test_array_record_matcher_mongodb_comparison_semantics);
+  RUN_TEST(test_unknown_operator_fails_at_any_depth);
+  RUN_TEST(test_dollar_inside_field_name_is_a_field);
   return UNITY_END();
 }

@@ -32,6 +32,18 @@
 mongory_matcher *mongory_matcher_regex_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 /**
+ * @brief Creates a $regex matcher with the sibling `$options` value.
+ *
+ * `options` may be NULL (no `$options`). Otherwise it must be a string made
+ * only of the flags 'i', 'm', 's'. A non-empty `options` requires a regex
+ * adapter set via `mongory_regex_options_func_set`.
+ *
+ * @return A new $regex matcher, or NULL (with `pool->error` set) on failure.
+ */
+mongory_matcher *mongory_matcher_regex_with_options_new(mongory_memory_pool *pool, mongory_value *condition,
+                                                        mongory_value *options, void *extern_ctx);
+
+/**
  * @brief Creates a new custom matcher instance.
  *
  * @param pool The memory pool to use for the matcher's allocations.

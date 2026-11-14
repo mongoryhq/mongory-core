@@ -46,7 +46,7 @@ typedef struct mongory_matcher_array_record_parse_table_context {
  * - If `key` is "$elemMatch" and `value` is a table, its contents are added to
  *   `context->elem_match_table`.
  * - If `key` is an element-level comparison operator (`$gt`, `$gte`, `$lt`,
- *   `$lte`, `$regex`, or non-array `$eq`), it's added to
+ *   `$lte`, `$regex` with its `$options`, or non-array `$eq`), it's added to
  *   `context->elem_match_table`.
  * - If `key` starts with '$' (container operator like `$size`, `$in`, `$nin`,
  *   `$every`, `$ne`, or array `$eq`) or is a valid integer index, it's added to
@@ -62,7 +62,7 @@ typedef struct mongory_matcher_array_record_parse_table_context {
 static inline bool mongory_is_elem_match_operator(char *key, mongory_value *value) {
   if (strcmp(key, "$gt") == 0 || strcmp(key, "$gte") == 0 ||
       strcmp(key, "$lt") == 0 || strcmp(key, "$lte") == 0 ||
-      strcmp(key, "$regex") == 0) {
+      strcmp(key, "$regex") == 0 || strcmp(key, "$options") == 0) {
     return true;
   }
   if (strcmp(key, "$eq") == 0) {
