@@ -45,8 +45,12 @@ typedef struct mongory_matcher_array_record_parse_table_context {
  * Iterates through the main condition table:
  * - If `key` is "$elemMatch" and `value` is a table, its contents are added to
  *   `context->elem_match_table`.
- * - If `key` starts with '$' (another operator) or is numeric (array index),
- *   it's added to `context->parsed_table`.
+ * - If `key` is an element-level comparison operator (`$gt`, `$gte`, `$lt`,
+ *   `$lte`, `$regex`, or non-array `$eq`), it's added to
+ *   `context->elem_match_table`.
+ * - If `key` starts with '$' (container operator like `$size`, `$in`, `$nin`,
+ *   `$every`, `$ne`, or array `$eq`) or is a valid integer index, it's added to
+ *   `context->parsed_table`.
  * - Otherwise (plain field name), it's considered part of an implicit element
  *   match and added to `context->elem_match_table`.
  *
@@ -55,6 +59,18 @@ typedef struct mongory_matcher_array_record_parse_table_context {
  * @param acc Pointer to `mongory_matcher_array_record_parse_table_context`.
  * @return Always true to continue.
  */
+static inline bool mongory_is_elem_match_operator(char *key, mongory_value *value) {
+  if (strcmp(key, "$gt") == 0 || strcmp(key, "$gte") == 0 ||
+      strcmp(key, "$lt") == 0 || strcmp(key, "$lte") == 0 ||
+      strcmp(key, "$regex") == 0) {
+    return true;
+  }
+  if (strcmp(key, "$eq") == 0) {
+    return value == NULL || value->type != MONGORY_TYPE_ARRAY;
+  }
+  return false;
+}
+
 static inline bool mongory_matcher_array_record_parse_table_foreach(char *key, mongory_value *value, void *acc) {
   mongory_matcher_array_record_parse_table_context *context = (mongory_matcher_array_record_parse_table_context *)acc;
   mongory_table *parsed_table_for_operators = context->parsed_table;
@@ -63,8 +79,11 @@ static inline bool mongory_matcher_array_record_parse_table_foreach(char *key, m
   if (strcmp(key, "$elemMatch") == 0 && value->type == MONGORY_TYPE_TABLE && value->data.t != NULL) {
     // Explicit $elemMatch: iterate its sub-table and add to elem_match_table
     mongory_table_merge(table_for_elem_match_conditions, value->data.t);
+  } else if (mongory_is_elem_match_operator(key, value)) {
+    // Element-level comparison operators apply to array elements via $elemMatch
+    table_for_elem_match_conditions->set(table_for_elem_match_conditions, key, value);
   } else if (*key == '$' || mongory_try_parse_int(key, NULL)) {
-    // Operator (like $size) or numeric index: goes to parsed_table
+    // Array-level operator (like $size, $in, $nin, $every, $ne) or numeric index: goes to parsed_table
     parsed_table_for_operators->set(parsed_table_for_operators, key, value);
   } else {
     // Regular field name: implies a condition on elements, goes to

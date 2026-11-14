@@ -49,21 +49,31 @@ static inline mongory_matcher *mongory_matcher_compare_new(mongory_memory_pool *
  * @brief Match function for equality ($eq).
  *
  * Compares the input `value` with the matcher's `condition` using the
- * polymorphic `comp` function of the value.
+ * polymorphic `comp` function of the value. If `value` is an array, also
+ * checks if any element in the array is equal to `condition`.
  *
  * @param matcher The equality matcher instance.
  * @param value The value to check.
- * @return True if `value` is equal to `matcher->condition`; false otherwise or
- * if the types are not comparable.
+ * @return True if `value` (or any of its elements when `value` is an array)
+ * is equal to `matcher->condition`; false otherwise.
  */
 static inline bool mongory_matcher_equal_match(mongory_matcher *matcher, mongory_value *value) {
   if (!value || !value->comp || !matcher->condition)
     return false; // Invalid inputs
   int result = value->comp(value, matcher->condition);
-  if (result == mongory_value_compare_fail) {
-    return false; // Types are not comparable or other comparison error.
+  if (result == 0) {
+    return true; // 0 indicates equality.
   }
-  return result == 0; // 0 indicates equality.
+  if (value->type == MONGORY_TYPE_ARRAY && value->data.a) {
+    mongory_array *arr = value->data.a;
+    for (size_t i = 0; i < arr->count; i++) {
+      mongory_value *elem = arr->get(arr, i);
+      if (elem && elem->comp && elem->comp(elem, matcher->condition) == 0) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 mongory_matcher *mongory_matcher_equal_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
@@ -80,22 +90,31 @@ mongory_matcher *mongory_matcher_equal_new(mongory_memory_pool *pool, mongory_va
  * @brief Match function for inequality ($ne).
  *
  * This is the logical inverse of the `equal_match` function.
- * If the types are not comparable (comparison fails), it is considered "not
- * equal", so this function returns true in that case.
+ * If `value` is an array, returns false if either the array itself or any of
+ * its elements is equal to `matcher->condition`.
  *
  * @param matcher The inequality matcher instance.
  * @param value The value to check.
- * @return True if `value` is not equal to `matcher->condition` or if they
- * are not comparable.
+ * @return True if neither `value` nor any of its elements (when `value` is an
+ * array) is equal to `matcher->condition`.
  */
 static inline bool mongory_matcher_not_equal_match(mongory_matcher *matcher, mongory_value *value) {
   if (!value || !value->comp || !matcher->condition)
     return true; // Invalid inputs, treat as "not equal"
   int result = value->comp(value, matcher->condition);
-  if (result == mongory_value_compare_fail) {
-    return true; // Incomparable types are considered "not equal".
+  if (result == 0) {
+    return false;
   }
-  return result != 0; // Non-zero indicates inequality.
+  if (value->type == MONGORY_TYPE_ARRAY && value->data.a) {
+    mongory_array *arr = value->data.a;
+    for (size_t i = 0; i < arr->count; i++) {
+      mongory_value *elem = arr->get(arr, i);
+      if (elem && elem->comp && elem->comp(elem, matcher->condition) == 0) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 mongory_matcher *mongory_matcher_not_equal_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {

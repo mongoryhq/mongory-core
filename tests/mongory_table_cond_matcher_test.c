@@ -198,11 +198,82 @@ void test_array_record_matcher_with_integer_index_condition(void) {
   TEST_ASSERT_TRUE(mongory_matcher_match(matcher_leading_zero, record_elem_with_01));
 }
 
+void test_array_record_matcher_mongodb_comparison_semantics(void) {
+  mongory_memory_pool *pool = get_test_pool();
+
+  mongory_value *record_scores = MG_TABLE_WRAP(pool, 1,
+    "scores", MG_ARRAY_WRAP(pool, 3,
+      mongory_value_wrap_i(pool, 3),
+      mongory_value_wrap_i(pool, 6),
+      mongory_value_wrap_i(pool, 9)
+    )
+  );
+  mongory_value *record_low_scores = MG_TABLE_WRAP(pool, 1,
+    "scores", MG_ARRAY_WRAP(pool, 3,
+      mongory_value_wrap_i(pool, 1),
+      mongory_value_wrap_i(pool, 2),
+      mongory_value_wrap_i(pool, 3)
+    )
+  );
+
+  // {"scores": {"$gt": 5}} -> matches if any element > 5
+  mongory_value *cond_gt = MG_TABLE_WRAP(pool, 1,
+    "scores", MG_TABLE_WRAP(pool, 1, "$gt", mongory_value_wrap_i(pool, 5))
+  );
+  mongory_matcher *matcher_gt = mongory_matcher_new(pool, cond_gt, NULL);
+  TEST_ASSERT_NOT_NULL(matcher_gt);
+  TEST_ASSERT_TRUE(mongory_matcher_match(matcher_gt, record_scores));
+  TEST_ASSERT_FALSE(mongory_matcher_match(matcher_gt, record_low_scores));
+
+  // {"scores": {"$gt": 5, "$lt": 8}} -> element-level implicit $elemMatch (6 satisfies both > 5 and < 8)
+  mongory_value *cond_gt_lt = MG_TABLE_WRAP(pool, 1,
+    "scores", MG_TABLE_WRAP(pool, 2,
+      "$gt", mongory_value_wrap_i(pool, 5),
+      "$lt", mongory_value_wrap_i(pool, 8)
+    )
+  );
+  mongory_matcher *matcher_gt_lt = mongory_matcher_new(pool, cond_gt_lt, NULL);
+  TEST_ASSERT_NOT_NULL(matcher_gt_lt);
+  TEST_ASSERT_TRUE(mongory_matcher_match(matcher_gt_lt, record_scores));
+
+  // {"scores": {"$ne": 6}} -> false if any element is 6, true if no element is 6
+  mongory_value *cond_ne = MG_TABLE_WRAP(pool, 1,
+    "scores", MG_TABLE_WRAP(pool, 1, "$ne", mongory_value_wrap_i(pool, 6))
+  );
+  mongory_matcher *matcher_ne = mongory_matcher_new(pool, cond_ne, NULL);
+  TEST_ASSERT_NOT_NULL(matcher_ne);
+  TEST_ASSERT_FALSE(mongory_matcher_match(matcher_ne, record_scores));
+  TEST_ASSERT_TRUE(mongory_matcher_match(matcher_ne, record_low_scores));
+
+  // {"scores": {"$eq": 6}} -> true if any element is 6
+  mongory_value *cond_eq_scalar = MG_TABLE_WRAP(pool, 1,
+    "scores", MG_TABLE_WRAP(pool, 1, "$eq", mongory_value_wrap_i(pool, 6))
+  );
+  mongory_matcher *matcher_eq_scalar = mongory_matcher_new(pool, cond_eq_scalar, NULL);
+  TEST_ASSERT_NOT_NULL(matcher_eq_scalar);
+  TEST_ASSERT_TRUE(mongory_matcher_match(matcher_eq_scalar, record_scores));
+  TEST_ASSERT_FALSE(mongory_matcher_match(matcher_eq_scalar, record_low_scores));
+
+  // {"scores": {"$eq": [1, 2, 3]}} -> matches whole array [1, 2, 3] or nested [[1, 2, 3], 9]
+  mongory_value *cond_eq_arr = MG_TABLE_WRAP(pool, 1,
+    "scores", MG_TABLE_WRAP(pool, 1, "$eq", MG_ARRAY_WRAP(pool, 3,
+      mongory_value_wrap_i(pool, 1),
+      mongory_value_wrap_i(pool, 2),
+      mongory_value_wrap_i(pool, 3)
+    ))
+  );
+  mongory_matcher *matcher_eq_arr = mongory_matcher_new(pool, cond_eq_arr, NULL);
+  TEST_ASSERT_NOT_NULL(matcher_eq_arr);
+  TEST_ASSERT_TRUE(mongory_matcher_match(matcher_eq_arr, record_low_scores));
+  TEST_ASSERT_FALSE(mongory_matcher_match(matcher_eq_arr, record_scores));
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_table_cond_matcher);
   RUN_TEST(test_field_matcher_propagates_extern_ctx_to_lazy_array_matcher);
   RUN_TEST(test_trace_with_lazy_array_record_matcher_restores_delegate_matcher);
   RUN_TEST(test_array_record_matcher_with_integer_index_condition);
+  RUN_TEST(test_array_record_matcher_mongodb_comparison_semantics);
   return UNITY_END();
 }

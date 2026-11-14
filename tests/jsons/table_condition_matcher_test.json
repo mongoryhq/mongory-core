@@ -507,5 +507,226 @@
         "expected": false
       }
     ]
+  },
+  {
+    "description": "array field with integer and negative index keys",
+    "condition": {
+      "tags": {
+        "0": "ruby",
+        "-1": "c"
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "tags": ["ruby", "go", "c"]
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "tags": ["c", "go", "ruby"]
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "tags": {
+            "0": "ruby",
+            "-1": "c"
+          }
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "tags": [
+            {
+              "0": "ruby",
+              "-1": "c"
+            }
+          ]
+        },
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "array field with leading zero key is treated as element field, not index",
+    "condition": {
+      "tags": {
+        "01": "ruby"
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "tags": ["c", "ruby"]
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "tags": [
+            {
+              "01": "ruby"
+            }
+          ]
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "tags": {
+            "01": "ruby"
+          }
+        },
+        "expected": true
+      }
+    ]
+  },
+  {
+    "description": "array field with comparison operators ($gt, $lt)",
+    "condition": {
+      "scores": {
+        "$gt": 5,
+        "$lt": 8
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "scores": [3, 6, 9]
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "scores": [1, 2, 3]
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "scores": [3, 9]
+        },
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "array field with scalar $eq and $ne",
+    "condition": {
+      "tags": {
+        "$eq": "ruby",
+        "$ne": "archived"
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "tags": ["go", "ruby"]
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "tags": ["go", "ruby", "archived"]
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "tags": ["go", "c"]
+        },
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "array field with array $eq and $ne",
+    "condition": {
+      "tags": {
+        "$eq": ["go", "ruby"]
+      }
+    },
+    "records": [
+      {
+        "data": {
+          "tags": ["go", "ruby"]
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "tags": [["go", "ruby"], "c"]
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "tags": ["ruby", "go"]
+        },
+        "expected": false
+      }
+    ]
+  },
+  {
+    "description": "array of tables exact equality",
+    "condition": {
+      "items": [
+        {
+          "a": 1,
+          "b": "x"
+        }
+      ]
+    },
+    "records": [
+      {
+        "data": {
+          "items": [
+            {
+              "a": 1,
+              "b": "x"
+            }
+          ]
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "items": [
+            {
+              "b": "x",
+              "a": 1
+            }
+          ]
+        },
+        "expected": true
+      },
+      {
+        "data": {
+          "items": [
+            {
+              "a": 1,
+              "b": "y"
+            }
+          ]
+        },
+        "expected": false
+      },
+      {
+        "data": {
+          "items": [
+            {
+              "a": 1,
+              "b": "x",
+              "c": 2
+            }
+          ]
+        },
+        "expected": false
+      }
+    ]
   }
 ]
