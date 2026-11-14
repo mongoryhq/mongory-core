@@ -129,6 +129,46 @@ if(BUILD_TESTS)
         # Add to CTest
         add_test(NAME ${test_name} COMMAND ${test_name})
     endforeach()
+
+    # mongory-spec conformance tests (opt-in).
+    # Usage: cmake -DMONGORY_SPEC_DIR=/path/to/mongory-spec ..
+    set(MONGORY_SPEC_DIR "" CACHE PATH "Path to a mongory-spec checkout for conformance tests")
+    if(MONGORY_SPEC_DIR)
+        if(NOT EXISTS ${MONGORY_SPEC_DIR}/fixtures)
+            message(FATAL_ERROR "MONGORY_SPEC_DIR does not contain fixtures/: ${MONGORY_SPEC_DIR}")
+        endif()
+
+        if(PkgConfig_FOUND)
+            pkg_check_modules(PCRE2 libpcre2-8)
+        endif()
+        if(NOT PCRE2_FOUND)
+            message(FATAL_ERROR "libpcre2-8 is required for mongory-spec conformance tests")
+        endif()
+
+        add_executable(mongory_spec_conformance tests/conformance/mongory_spec_conformance.c)
+        target_include_directories(mongory_spec_conformance PRIVATE ${CJSON_INCLUDE_DIRS} ${PCRE2_INCLUDE_DIRS})
+        target_link_directories(mongory_spec_conformance PRIVATE ${PCRE2_LIBRARY_DIRS})
+        target_link_libraries(mongory_spec_conformance
+            mongory-core
+            test_helper
+            unity
+            ${CJSON_LINK_ITEMS}
+            ${PCRE2_LIBRARIES}
+        )
+        if(MATH_LIBRARY)
+            target_link_libraries(mongory_spec_conformance ${MATH_LIBRARY})
+        endif()
+
+        file(GLOB_RECURSE MONGORY_SPEC_FIXTURES ${MONGORY_SPEC_DIR}/fixtures/*.json)
+        list(SORT MONGORY_SPEC_FIXTURES)
+        foreach(fixture ${MONGORY_SPEC_FIXTURES})
+            file(RELATIVE_PATH fixture_name ${MONGORY_SPEC_DIR}/fixtures ${fixture})
+            add_test(NAME spec/${fixture_name} COMMAND mongory_spec_conformance ${fixture})
+            set_tests_properties(spec/${fixture_name} PROPERTIES LABELS conformance)
+        endforeach()
+        list(LENGTH MONGORY_SPEC_FIXTURES MONGORY_SPEC_FIXTURE_COUNT)
+        message(STATUS "mongory-spec conformance fixtures: ${MONGORY_SPEC_FIXTURE_COUNT}")
+    endif()
 endif()
 
 # Benchmark options
