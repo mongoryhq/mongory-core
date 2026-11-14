@@ -1,8 +1,10 @@
+#include "../src/foundations/utils.h"
 #include "../src/matchers/composite_matcher.h"
 #include "../src/matchers/literal_matcher.h"
 #include "../src/test_helper/test_helper.h"
 #include "mongory-core.h"
 #include "unity.h"
+#include <limits.h>
 #include <string.h>
 
 void setUp(void) { setup_test_environment(); }
@@ -87,10 +89,120 @@ void test_trace_with_lazy_array_record_matcher_restores_delegate_matcher(void) {
   TEST_ASSERT_TRUE(mongory_matcher_match(matcher, scalar_record));
 }
 
+void test_array_record_matcher_with_integer_index_condition(void) {
+  mongory_memory_pool *pool = get_test_pool();
+
+  // Case 1: {"tags": {"0": "ruby"}} against {"tags": ["ruby", "c"]}
+  mongory_value *cond_index_0 = MG_TABLE_WRAP(pool, 1,
+    "tags", MG_TABLE_WRAP(pool, 1, "0", mongory_value_wrap_s(pool, "ruby"))
+  );
+  mongory_matcher *matcher_0 = mongory_matcher_new(pool, cond_index_0, NULL);
+  TEST_ASSERT_NOT_NULL(matcher_0);
+
+  mongory_value *record_first_ruby = MG_TABLE_WRAP(pool, 1,
+    "tags", MG_ARRAY_WRAP(pool, 2,
+      mongory_value_wrap_s(pool, "ruby"),
+      mongory_value_wrap_s(pool, "c")
+    )
+  );
+  mongory_value *record_second_ruby = MG_TABLE_WRAP(pool, 1,
+    "tags", MG_ARRAY_WRAP(pool, 2,
+      mongory_value_wrap_s(pool, "c"),
+      mongory_value_wrap_s(pool, "ruby")
+    )
+  );
+
+  TEST_ASSERT_TRUE(mongory_matcher_match(matcher_0, record_first_ruby));
+  TEST_ASSERT_FALSE(mongory_matcher_match(matcher_0, record_second_ruby));
+
+  // Case 2: negative index {"tags": {"-1": "ruby"}}
+  mongory_value *cond_index_neg1 = MG_TABLE_WRAP(pool, 1,
+    "tags", MG_TABLE_WRAP(pool, 1, "-1", mongory_value_wrap_s(pool, "ruby"))
+  );
+  mongory_matcher *matcher_neg1 = mongory_matcher_new(pool, cond_index_neg1, NULL);
+  TEST_ASSERT_NOT_NULL(matcher_neg1);
+
+  TEST_ASSERT_TRUE(mongory_matcher_match(matcher_neg1, record_second_ruby));
+  TEST_ASSERT_FALSE(mongory_matcher_match(matcher_neg1, record_first_ruby));
+
+  // Case 3: nested object at array index {"users": {"0": {"name": "Alice"}}}
+  mongory_value *cond_nested = MG_TABLE_WRAP(pool, 1,
+    "users", MG_TABLE_WRAP(pool, 1,
+      "0", MG_TABLE_WRAP(pool, 1, "name", mongory_value_wrap_s(pool, "Alice"))
+    )
+  );
+  mongory_matcher *matcher_nested = mongory_matcher_new(pool, cond_nested, NULL);
+  TEST_ASSERT_NOT_NULL(matcher_nested);
+
+  mongory_value *users_alice_first = MG_TABLE_WRAP(pool, 1,
+    "users", MG_ARRAY_WRAP(pool, 2,
+      MG_TABLE_WRAP(pool, 1, "name", mongory_value_wrap_s(pool, "Alice")),
+      MG_TABLE_WRAP(pool, 1, "name", mongory_value_wrap_s(pool, "Bob"))
+    )
+  );
+  mongory_value *users_bob_first = MG_TABLE_WRAP(pool, 1,
+    "users", MG_ARRAY_WRAP(pool, 2,
+      MG_TABLE_WRAP(pool, 1, "name", mongory_value_wrap_s(pool, "Bob")),
+      MG_TABLE_WRAP(pool, 1, "name", mongory_value_wrap_s(pool, "Alice"))
+    )
+  );
+
+  TEST_ASSERT_TRUE(mongory_matcher_match(matcher_nested, users_alice_first));
+  TEST_ASSERT_FALSE(mongory_matcher_match(matcher_nested, users_bob_first));
+
+  // Case 4: Same condition {"tags": {"0": "ruby"}} against a Table record {"tags": {"0": "ruby"}}
+  mongory_value *table_record = MG_TABLE_WRAP(pool, 1,
+    "tags", MG_TABLE_WRAP(pool, 1, "0", mongory_value_wrap_s(pool, "ruby"))
+  );
+  TEST_ASSERT_TRUE(mongory_matcher_match(matcher_0, table_record));
+
+  // Case 5: Disallow leading '0' ("00", "01", "-0", "-01") and '+' ("+0", "+1") as integer indices
+  int parsed = 999;
+  TEST_ASSERT_TRUE(mongory_try_parse_int("0", &parsed));
+  TEST_ASSERT_EQUAL_INT(0, parsed);
+  TEST_ASSERT_TRUE(mongory_try_parse_int("1", &parsed));
+  TEST_ASSERT_EQUAL_INT(1, parsed);
+  TEST_ASSERT_TRUE(mongory_try_parse_int("-1", &parsed));
+  TEST_ASSERT_EQUAL_INT(-1, parsed);
+  TEST_ASSERT_TRUE(mongory_try_parse_int("2147483647", &parsed));
+  TEST_ASSERT_EQUAL_INT(INT_MAX, parsed);
+  TEST_ASSERT_TRUE(mongory_try_parse_int("-2147483648", &parsed));
+  TEST_ASSERT_EQUAL_INT(INT_MIN, parsed);
+  TEST_ASSERT_TRUE(mongory_try_parse_int("42", NULL));
+  TEST_ASSERT_FALSE(mongory_try_parse_int(NULL, NULL));
+  TEST_ASSERT_FALSE(mongory_try_parse_int("", NULL));
+  TEST_ASSERT_FALSE(mongory_try_parse_int("-", NULL));
+  TEST_ASSERT_FALSE(mongory_try_parse_int("00", NULL));
+  TEST_ASSERT_FALSE(mongory_try_parse_int("01", NULL));
+  TEST_ASSERT_FALSE(mongory_try_parse_int("-0", NULL));
+  TEST_ASSERT_FALSE(mongory_try_parse_int("-01", NULL));
+  TEST_ASSERT_FALSE(mongory_try_parse_int("+0", NULL));
+  TEST_ASSERT_FALSE(mongory_try_parse_int("+1", NULL));
+  TEST_ASSERT_FALSE(mongory_try_parse_int(" 1", NULL));
+  TEST_ASSERT_FALSE(mongory_try_parse_int("12a", NULL));
+  TEST_ASSERT_FALSE(mongory_try_parse_int("2147483648", NULL));
+  TEST_ASSERT_FALSE(mongory_try_parse_int("-2147483649", NULL));
+
+  // "01" is NOT an array index: does not match array index 1, but matches element table key "01"
+  mongory_value *cond_leading_zero = MG_TABLE_WRAP(pool, 1,
+    "tags", MG_TABLE_WRAP(pool, 1, "01", mongory_value_wrap_s(pool, "ruby"))
+  );
+  mongory_matcher *matcher_leading_zero = mongory_matcher_new(pool, cond_leading_zero, NULL);
+  TEST_ASSERT_FALSE(mongory_matcher_match(matcher_leading_zero, record_second_ruby));
+
+  mongory_value *record_elem_with_01 = MG_TABLE_WRAP(pool, 1,
+    "tags", MG_ARRAY_WRAP(pool, 1,
+      MG_TABLE_WRAP(pool, 1, "01", mongory_value_wrap_s(pool, "ruby"))
+    )
+  );
+  TEST_ASSERT_TRUE(mongory_matcher_match(matcher_leading_zero, record_elem_with_01));
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_table_cond_matcher);
   RUN_TEST(test_field_matcher_propagates_extern_ctx_to_lazy_array_matcher);
   RUN_TEST(test_trace_with_lazy_array_record_matcher_restores_delegate_matcher);
+  RUN_TEST(test_array_record_matcher_with_integer_index_condition);
   return UNITY_END();
 }

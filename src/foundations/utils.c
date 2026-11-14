@@ -25,30 +25,40 @@
  *         `false` otherwise. `errno` may be set by `strtol`.
  */
 bool mongory_try_parse_int(const char *key, int *out) {
-  if (key == NULL || *key == '\0') {
+  if (key == NULL) {
     return false; // Invalid input string.
   }
-  if (out == NULL) {
-    return false; // Output pointer must be valid.
+
+  // Strictly match "0" or "-?[1-9][0-9]*" (no leading whitespace, '+', "-0", or leading zeros like "01").
+  if (key[0] == '0') {
+    if (key[1] != '\0') {
+      return false; // Disallow leading zeros like "00" or "01".
+    }
+    if (out != NULL) {
+      *out = 0;
+    }
+    return true;
+  }
+
+  const char *p = (key[0] == '-') ? key + 1 : key;
+  if (*p < '1') {
+    return false; // Disallow "", "-", "-0", "-01", leading whitespace, or '+'.
   }
 
   char *endptr = NULL;
   errno = 0;                           // Clear errno before calling strtol.
   long val = strtol(key, &endptr, 10); // Base 10 conversion.
 
-  // Check for parsing errors reported by strtol.
-  if (endptr == key) {
-    return false; // No digits were found.
-  }
   if (*endptr != '\0') {
     return false; // Additional characters after the number.
   }
-  if (errno == ERANGE || val < INT_MIN || val > INT_MAX) {
-    // Value out of range for int. ERANGE is set by strtol for overflow/underflow.
-    return false;
+  if (val < INT_MIN || val > INT_MAX) {
+    return false; // Value out of range for int.
   }
 
-  *out = (int)val; // Successfully parsed and within int range.
+  if (out != NULL) {
+    *out = (int)val; // Successfully parsed and within int range.
+  }
   return true;
 }
 

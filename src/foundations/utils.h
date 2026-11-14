@@ -13,8 +13,8 @@
  * range (`INT_MIN`, `INT_MAX`).
  *
  * @param key The null-terminated string to parse. Must not be NULL or empty.
- * @param out A pointer to an integer where the parsed value will be stored if
- * successful. Must not be NULL.
+ * @param out Optional pointer to an integer where the parsed value will be
+ * stored if successful. May be NULL if only validation is needed.
  * @return bool True if the string was successfully parsed as an integer and is
  * within `int` range, false otherwise. `errno` might be set by `strtol` on
  * failure (e.g. `ERANGE`).
