@@ -455,9 +455,6 @@ mongory_matcher *mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongo
   if (!mongory_matcher_build_and_sub_matcher(elem_match_condition, &build_ctx))
     return NULL;
 
-  if (sub_matchers->count == 0)
-    return mongory_matcher_always_false_new(pool, elem_match_condition, extern_ctx);
-
   mongory_composite_matcher *composite = mongory_matcher_composite_new(pool, elem_match_condition, extern_ctx);
   if (composite == NULL)
     return NULL;
@@ -516,9 +513,6 @@ mongory_matcher *mongory_matcher_every_new(mongory_memory_pool *pool, mongory_va
   mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, sub_matchers, extern_ctx};
   if (!mongory_matcher_build_and_sub_matcher(every_condition, &build_ctx))
     return NULL;
-
-  if (sub_matchers->count == 0)
-    return mongory_matcher_always_true_new(pool, every_condition, extern_ctx);
 
   mongory_composite_matcher *composite = mongory_matcher_composite_new(pool, every_condition, extern_ctx);
   if (composite == NULL)

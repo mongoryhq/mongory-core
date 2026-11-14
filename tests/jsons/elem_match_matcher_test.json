@@ -251,5 +251,25 @@
         "expected": false
       }
     ]
+  },
+  {
+    "description": "$elemMatch with empty condition object matches non-empty arrays only",
+    "condition": {},
+    "records": [
+      {
+        "data": [
+          {"name": "John", "age": 30}
+        ],
+        "expected": true
+      },
+      {
+        "data": [],
+        "expected": false
+      },
+      {
+        "data": "not an array",
+        "expected": false
+      }
+    ]
   }
 ]

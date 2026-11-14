@@ -265,7 +265,11 @@
       },
       {
         "data": [],
-        "expected": true
+        "expected": false
+      },
+      {
+        "data": "not an array",
+        "expected": false
       }
     ]
   },
