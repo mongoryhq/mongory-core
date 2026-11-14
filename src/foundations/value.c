@@ -301,14 +301,51 @@ mongory_value *mongory_value_wrap_a(mongory_memory_pool *pool, struct mongory_ar
   return value;
 }
 
-/** Compares two MONGORY_TYPE_TABLE values. Currently unsupported (always fails). */
+/** Context for comparing two tables key by key. */
+typedef struct mongory_table_compare_context {
+  struct mongory_table *other_table;
+  bool equal;
+} mongory_table_compare_context;
+
+static inline bool mongory_value_table_compare_foreach(char *key, mongory_value *val_a, void *acc) {
+  mongory_table_compare_context *ctx = (mongory_table_compare_context *)acc;
+  mongory_value *val_b = ctx->other_table->get(ctx->other_table, key);
+  if (val_b == NULL) {
+    ctx->equal = false;
+    return false;
+  }
+  bool a_is_null = (val_a == NULL || val_a->type == MONGORY_TYPE_NULL);
+  bool b_is_null = (val_b->type == MONGORY_TYPE_NULL);
+  if (a_is_null && b_is_null) {
+    return true;
+  }
+  if (a_is_null || b_is_null || !val_a->comp || val_a->comp(val_a, val_b) != 0) {
+    ctx->equal = false;
+    return false;
+  }
+  return true;
+}
+
+/** Compares two MONGORY_TYPE_TABLE values for equality. */
 static inline int mongory_value_table_compare(mongory_value *a, mongory_value *b) {
-  (void)a; // Unused.
-  (void)b; // Unused.
-  // True table comparison is complex because the order of keys is not
-  // significant. It would require iterating over keys of one table and checking
-  // for their presence and value equality in the other. This is not
-  // implemented. Therefore, tables are considered incomparable.
+  if (b->type != MONGORY_TYPE_TABLE || a->data.t == NULL || b->data.t == NULL) {
+    return mongory_value_compare_fail;
+  }
+  struct mongory_table *table_a = a->data.t;
+  struct mongory_table *table_b = b->data.t;
+  if (table_a->count != table_b->count) {
+    return mongory_value_compare_fail;
+  }
+  if (table_b->each && table_a->get) {
+    mongory_table_compare_context ctx = {table_a, true};
+    table_b->each(table_b, &ctx, mongory_value_table_compare_foreach);
+    return ctx.equal ? 0 : mongory_value_compare_fail;
+  }
+  if (table_a->each && table_b->get) {
+    mongory_table_compare_context ctx = {table_b, true};
+    table_a->each(table_a, &ctx, mongory_value_table_compare_foreach);
+    return ctx.equal ? 0 : mongory_value_compare_fail;
+  }
   return mongory_value_compare_fail;
 }
 

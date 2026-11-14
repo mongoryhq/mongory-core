@@ -171,15 +171,25 @@ void test_table_comparison(void) {
   mongory_memory_pool *pool = get_test_pool();
   mongory_table *table1 = mongory_table_new(pool);
   mongory_table *table2 = mongory_table_new(pool);
+  mongory_table *table3 = mongory_table_new(pool);
 
   mongory_value *table_val1 = mongory_value_wrap_t(pool, table1);
   mongory_value *table_val2 = mongory_value_wrap_t(pool, table2);
+  mongory_value *table_val3 = mongory_value_wrap_t(pool, table3);
 
   table1->set(table1, "a", mongory_value_wrap_i(pool, 1));
+  table1->set(table1, "b", mongory_value_wrap_s(pool, "hello"));
+
   table2->set(table2, "a", mongory_value_wrap_i(pool, 2));
+  table2->set(table2, "b", mongory_value_wrap_s(pool, "hello"));
+
+  table3->set(table3, "b", mongory_value_wrap_s(pool, "hello"));
+  table3->set(table3, "a", mongory_value_wrap_i(pool, 1));
 
   TEST_ASSERT_EQUAL(mongory_value_compare_fail, table_val1->comp(table_val1, table_val2));
   TEST_ASSERT_EQUAL(mongory_value_compare_fail, table_val2->comp(table_val2, table_val1));
+  TEST_ASSERT_EQUAL(0, table_val1->comp(table_val1, table_val3));
+  TEST_ASSERT_EQUAL(0, table_val3->comp(table_val3, table_val1));
 }
 
 void test_json_to_value_string(void) {
