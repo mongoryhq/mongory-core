@@ -21,6 +21,24 @@
 #include "mongory-core/foundations/table.h"
 #include "mongory-core/foundations/value.h"
 
+#if defined(_WIN32)
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  include <windows.h>
+static volatile LONG mongory_config_spinlock = 0;
+static inline void mongory_config_lock(void) {
+  while (InterlockedExchange(&mongory_config_spinlock, 1) != 0) {
+  }
+}
+static inline void mongory_config_unlock(void) { InterlockedExchange(&mongory_config_spinlock, 0); }
+#else
+#  include <pthread.h>
+static pthread_mutex_t mongory_config_mutex = PTHREAD_MUTEX_INITIALIZER;
+static inline void mongory_config_lock(void) { pthread_mutex_lock(&mongory_config_mutex); }
+static inline void mongory_config_unlock(void) { pthread_mutex_unlock(&mongory_config_mutex); }
+#endif
+
 static bool mongory_regex_default_func(mongory_memory_pool *pool, mongory_value *pattern, mongory_value *value);
 static char *mongory_regex_default_stringify_func(mongory_memory_pool *pool, mongory_value *pattern);
 
@@ -136,7 +154,7 @@ static inline void mongory_matcher_mapping_init() {
  * @param name The name of the matcher (e.g., "$eq", "$in").
  * @param build_func A function pointer to the matcher's constructor.
  */
-void mongory_matcher_register(char *name, mongory_matcher_build_func build_func) {
+static void mongory_matcher_register_unlocked(char *name, mongory_matcher_build_func build_func) {
   // Ensure mapping is initialized.
   if (mongory_matcher_mapping == NULL) {
     mongory_matcher_mapping_init();
@@ -157,6 +175,12 @@ void mongory_matcher_register(char *name, mongory_matcher_build_func build_func)
   // TODO: Check return value of set?
 }
 
+void mongory_matcher_register(char *name, mongory_matcher_build_func build_func) {
+  mongory_config_lock();
+  mongory_matcher_register_unlocked(name, build_func);
+  mongory_config_unlock();
+}
+
 /**
  * @brief Retrieves a matcher build function by its name from the global
  * mapping.
@@ -165,16 +189,16 @@ void mongory_matcher_register(char *name, mongory_matcher_build_func build_func)
  * constructor, or NULL if not found.
  */
 mongory_matcher_build_func mongory_matcher_build_func_get(char *name) {
-  if (mongory_matcher_mapping == NULL) {
-    return NULL; // Mapping not initialized or init failed.
+  mongory_config_lock();
+  mongory_matcher_build_func result = NULL;
+  if (mongory_matcher_mapping != NULL) {
+    mongory_value *value = mongory_matcher_mapping->get(mongory_matcher_mapping, name);
+    if (value != NULL && value->type == MONGORY_TYPE_POINTER) {
+      result = (mongory_matcher_build_func)value->data.ptr;
+    }
   }
-
-  mongory_value *value = mongory_matcher_mapping->get(mongory_matcher_mapping, name);
-  if (value == NULL || value->type != MONGORY_TYPE_POINTER) {
-    return NULL; // Not found or not a pointer type as expected.
-  }
-
-  return (mongory_matcher_build_func)value->data.ptr;
+  mongory_config_unlock();
+  return result;
 }
 
 /**
@@ -228,6 +252,7 @@ void mongory_matcher_trace_result_colorful_set(bool colorful) {
  * This function MUST be called before using most other library features.
  */
 void mongory_init() {
+  mongory_config_lock();
   // Initialize all global components. Order can be important if one init
   // depends on another (e.g., most depend on the pool).
   mongory_internal_pool_init();
@@ -238,23 +263,24 @@ void mongory_init() {
   // mongory_matcher_mapping being successfully initialized.
   // TODO: Add checks to ensure initializations were successful before
   // proceeding.
-  mongory_matcher_register("$in", mongory_matcher_in_new);
-  mongory_matcher_register("$nin", mongory_matcher_not_in_new);
-  mongory_matcher_register("$eq", mongory_matcher_equal_new);
-  mongory_matcher_register("$ne", mongory_matcher_not_equal_new);
-  mongory_matcher_register("$gt", mongory_matcher_greater_than_new);
-  mongory_matcher_register("$gte", mongory_matcher_greater_than_or_equal_new);
-  mongory_matcher_register("$lt", mongory_matcher_less_than_new);
-  mongory_matcher_register("$lte", mongory_matcher_less_than_or_equal_new);
-  mongory_matcher_register("$exists", mongory_matcher_exists_new);
-  mongory_matcher_register("$present", mongory_matcher_present_new);
-  mongory_matcher_register("$regex", mongory_matcher_regex_new);
-  mongory_matcher_register("$and", mongory_matcher_and_new);
-  mongory_matcher_register("$or", mongory_matcher_or_new);
-  mongory_matcher_register("$elemMatch", mongory_matcher_elem_match_new);
-  mongory_matcher_register("$every", mongory_matcher_every_new);
-  mongory_matcher_register("$not", mongory_matcher_not_new);
-  mongory_matcher_register("$size", mongory_matcher_size_new);
+  mongory_matcher_register_unlocked("$in", mongory_matcher_in_new);
+  mongory_matcher_register_unlocked("$nin", mongory_matcher_not_in_new);
+  mongory_matcher_register_unlocked("$eq", mongory_matcher_equal_new);
+  mongory_matcher_register_unlocked("$ne", mongory_matcher_not_equal_new);
+  mongory_matcher_register_unlocked("$gt", mongory_matcher_greater_than_new);
+  mongory_matcher_register_unlocked("$gte", mongory_matcher_greater_than_or_equal_new);
+  mongory_matcher_register_unlocked("$lt", mongory_matcher_less_than_new);
+  mongory_matcher_register_unlocked("$lte", mongory_matcher_less_than_or_equal_new);
+  mongory_matcher_register_unlocked("$exists", mongory_matcher_exists_new);
+  mongory_matcher_register_unlocked("$present", mongory_matcher_present_new);
+  mongory_matcher_register_unlocked("$regex", mongory_matcher_regex_new);
+  mongory_matcher_register_unlocked("$and", mongory_matcher_and_new);
+  mongory_matcher_register_unlocked("$or", mongory_matcher_or_new);
+  mongory_matcher_register_unlocked("$elemMatch", mongory_matcher_elem_match_new);
+  mongory_matcher_register_unlocked("$every", mongory_matcher_every_new);
+  mongory_matcher_register_unlocked("$not", mongory_matcher_not_new);
+  mongory_matcher_register_unlocked("$size", mongory_matcher_size_new);
+  mongory_config_unlock();
 }
 
 /**
@@ -265,6 +291,7 @@ void mongory_init() {
  * prevent memory leaks.
  */
 void mongory_cleanup() {
+  mongory_config_lock();
   if (mongory_internal_pool != NULL) {
     // Freeing the pool should handle all allocations made from it,
     // including the regex_adapter, matcher_mapping table (and its contents if
@@ -276,4 +303,5 @@ void mongory_cleanup() {
   // Set other global pointers to NULL to indicate they are no longer valid.
   // The memory they pointed to should have been managed by the internal pool.
   mongory_matcher_mapping = NULL; // The table itself and its nodes.
+  mongory_config_unlock();
 }
