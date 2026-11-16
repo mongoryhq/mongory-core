@@ -51,6 +51,8 @@ mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool, mongory_val
   matcher->match = NULL;                           // Specific match function must be set by derived type.
   matcher->explain = mongory_matcher_base_explain; // Specific explain function must be set by derived type.
   matcher->traverse = mongory_matcher_leaf_traverse;
+  matcher->trace_stack = NULL;
+  matcher->trace_level = 0;
   matcher->extern_ctx = extern_ctx;                // Set the external context.
   matcher->priority = 1.0;                         // Set the priority to 1.0.
   return matcher;

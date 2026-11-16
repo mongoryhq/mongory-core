@@ -280,10 +280,11 @@ static inline bool mongory_matcher_build_and_sub_matcher(mongory_value *and_sub_
   // The 'and_sub_condition' is one of the tables in the $and:[{}, {}, ...] array.
   // We need to build all matchers from this table and add them to the list.
   // The list in 'acc' (ctx->matchers) will then be ANDed together.
-  if (!MONGORY_VALIDATE_TABLE(and_sub_condition->pool, and_sub_condition)) {
+  mongory_matcher_table_build_sub_matcher_context *ctx = (mongory_matcher_table_build_sub_matcher_context *)acc;
+  if (!MONGORY_VALIDATE_TABLE(ctx->pool, and_sub_condition)) {
     return false; // Element in $and array is not a table.
   }
-  ((mongory_matcher_table_build_sub_matcher_context *)acc)->table = and_sub_condition->data.t;
+  ctx->table = and_sub_condition->data.t;
   return and_sub_condition->data.t->each(and_sub_condition->data.t, acc, mongory_matcher_table_build_sub_matcher);
 }
 

@@ -105,19 +105,21 @@ static inline bool mongory_matcher_array_record_parse_table_foreach(char *key, m
  * @return A new `mongory_value` (table) containing the parsed and restructured
  * condition. Returns NULL if input is not a table or on allocation failure.
  */
-static inline mongory_value *mongory_matcher_array_record_parse_table(mongory_value *condition) {
-  if (!condition->data.t || !condition->pool) {
-    mongory_error *error = MG_ALLOC_PTR(condition->pool, mongory_error);
+static inline mongory_value *mongory_matcher_array_record_parse_table(mongory_memory_pool *pool, mongory_value *condition) {
+  if (!pool) {
+    return NULL;
+  }
+  if (!condition || !condition->data.t) {
+    mongory_error *error = MG_ALLOC_PTR(pool, mongory_error);
     if (!error) {
-      condition->pool->error = &MONGORY_ALLOC_ERROR;
+      pool->error = &MONGORY_ALLOC_ERROR;
       return NULL;
     }
     error->type = MONGORY_ERROR_INVALID_TYPE;
     error->message = "Expected condition to be a table, got a non-table value";
-    condition->pool->error = error; // TODO: This is a hack, we should use a better error handling mechanism
+    pool->error = error; // TODO: This is a hack, we should use a better error handling mechanism
     return NULL; // Invalid input
   }
-  mongory_memory_pool *pool = condition->pool;
   mongory_table *parsed_table = mongory_table_new(pool);
   mongory_table *elem_match_sub_table = mongory_table_new(pool);
 
@@ -165,7 +167,7 @@ mongory_matcher *mongory_matcher_array_record_new(mongory_memory_pool *pool, mon
   switch (condition->type) {
   case MONGORY_TYPE_TABLE:
     return mongory_matcher_table_cond_new(pool,
-      mongory_matcher_array_record_parse_table(condition),
+      mongory_matcher_array_record_parse_table(pool, condition),
       extern_ctx
     );
   case MONGORY_TYPE_ARRAY:

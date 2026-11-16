@@ -11,8 +11,9 @@
  * - $size checks the number of elements in an array against a condition.
  */
 #include "literal_matcher.h"
-#include "../foundations/config_private.h"  // For mongory_internal_value_converter
-#include "../foundations/utils.h"           // For mongory_try_parse_int, mongory_string_cpy
+#include "../foundations/config_private.h"      // For mongory_internal_value_converter
+#include "../foundations/memory_pool_private.h" // For atomic & lock helpers
+#include "../foundations/utils.h"               // For mongory_try_parse_int, mongory_string_cpy
 #include "../foundations/string_buffer.h"   // For mongory_string_buffer_appendf
 #include "array_record_matcher.h"           // For handling array-specific matching logic
 #include "base_matcher.h"                   // For mongory_matcher_base_new
@@ -49,25 +50,56 @@
  * @param value The `mongory_value` to evaluate against the matcher's condition.
  * @return True if the value matches, false otherwise.
  */
+static inline void mongory_propagate_build_error(mongory_memory_pool *build_pool, mongory_value *value) {
+  if (!build_pool || !build_pool->error) {
+    return;
+  }
+  if (value && value->pool && value->pool != build_pool) {
+    if (build_pool->error == &MONGORY_ALLOC_ERROR) {
+      value->pool->error = &MONGORY_ALLOC_ERROR;
+    } else {
+      mongory_error *copied = MG_ALLOC_PTR(value->pool, mongory_error);
+      if (copied) {
+        copied->type = build_pool->error->type;
+        copied->message = build_pool->error->message
+          ? mongory_string_cpy(value->pool, (char *)build_pool->error->message)
+          : NULL;
+        value->pool->error = copied;
+      } else {
+        value->pool->error = &MONGORY_ALLOC_ERROR;
+      }
+    }
+    build_pool->error = NULL;
+  }
+}
+
 static inline bool mongory_matcher_literal_match(mongory_matcher *matcher, mongory_value *value) {
   mongory_literal_matcher *literal = (mongory_literal_matcher *)matcher;
   if (!literal || !literal->base.pool)
     return false; // Basic safety check
 
   if (value != NULL && value->type == MONGORY_TYPE_ARRAY) {
-    // If the value being matched is an array, there's special handling.
-    // The `right` child of the composite matcher is used for array record matching.
-    // It's created on-demand if not already present.
-    if (literal->array_record_matcher == NULL) {
-      // Lazily create the array_record_matcher if needed.
-      // The condition for array_record_new is the original condition of the literal matcher.
-      literal->array_record_matcher = mongory_matcher_array_record_new(literal->base.pool, literal->base.condition, literal->base.extern_ctx);
-      if (literal->array_record_matcher && literal->base.trace_stack) {
-        mongory_matcher_enable_trace_at(literal->array_record_matcher, literal->base.trace_stack, literal->base.trace_level + 1);
+    // Double-checked locking: lazy build runs only on the first array value seen,
+    // keeping non-array matching and subsequent array matches lock-free.
+    mongory_matcher *arm = mongory_atomic_load_ptr_acquire(&literal->array_record_matcher);
+    if (arm == NULL) {
+      mongory_memory_pool *build_pool = literal->base.pool;
+      mongory_memory_pool_lock(build_pool);
+      arm = mongory_atomic_load_ptr_relaxed(&literal->array_record_matcher);
+      if (arm == NULL) {
+        arm = mongory_matcher_array_record_new(build_pool, literal->base.condition, literal->base.extern_ctx);
+        if (arm && literal->base.trace_stack) {
+          mongory_matcher_enable_trace_at(arm, literal->base.trace_stack, literal->base.trace_level + 1);
+        }
+        if (arm != NULL) {
+          mongory_atomic_store_ptr_release(&literal->array_record_matcher, arm);
+        } else {
+          mongory_propagate_build_error(build_pool, value);
+        }
       }
+      mongory_memory_pool_unlock(build_pool);
     }
-    // If right child exists (or was successfully created), use it.
-    return literal->array_record_matcher ? literal->array_record_matcher->match(literal->array_record_matcher, value) : false;
+    return arm ? arm->match(arm, value) : false;
   } else {
     // For non-array values, or if array-specific path wasn't taken.
     // The `left` child handles the general literal condition.
@@ -176,10 +208,16 @@ static inline bool mongory_matcher_field_match(mongory_matcher *matcher, mongory
   // If the extracted field value is a pointer type that needs conversion
   // (e.g., from a language binding), convert it.
   if (field_value && field_value->type == MONGORY_TYPE_POINTER && mongory_internal_value_converter.shallow_convert) {
-    // The pool for the converted value should ideally be the field_value's pool
-    // or the matcher's pool.
-    mongory_memory_pool *conversion_pool = field_value->pool ? field_value->pool : matcher->pool;
-    field_value = mongory_internal_value_converter.shallow_convert(conversion_pool, field_value->data.ptr);
+    // Prefer the caller/record's thread-local pool over the shared matcher->pool.
+    mongory_memory_pool *conversion_pool =
+        field_value->pool ? field_value->pool : (value->pool ? value->pool : matcher->pool);
+    if (conversion_pool == matcher->pool) {
+      mongory_memory_pool_lock(matcher->pool);
+      field_value = mongory_internal_value_converter.shallow_convert(conversion_pool, field_value->data.ptr);
+      mongory_memory_pool_unlock(matcher->pool);
+    } else {
+      field_value = mongory_internal_value_converter.shallow_convert(conversion_pool, field_value->data.ptr);
+    }
   }
   // Now, use the literal_match logic (which uses composite.left primarily)
   // to match the extracted field_value.

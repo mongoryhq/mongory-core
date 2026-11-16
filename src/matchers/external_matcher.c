@@ -38,15 +38,16 @@ static inline bool mongory_matcher_regex_match(mongory_matcher *matcher, mongory
     return false; // Regex matching applies only to strings.
   }
   char *options = ((mongory_regex_matcher *)matcher)->options;
+  mongory_memory_pool *match_pool = value->pool ? value->pool : matcher->pool;
   if (options) {
-    return mongory_internal_regex_adapter.options_match_func(matcher->pool, matcher->condition, options, value);
+    return mongory_internal_regex_adapter.options_match_func(match_pool, matcher->condition, options, value);
   }
   if (!mongory_internal_regex_adapter.match_func) {
     return false; // Regex adapter or function not configured.
   }
 
   // Delegate to the configured regex function.
-  return mongory_internal_regex_adapter.match_func(matcher->pool, matcher->condition, value);
+  return mongory_internal_regex_adapter.match_func(match_pool, matcher->condition, value);
 }
 
 /**
