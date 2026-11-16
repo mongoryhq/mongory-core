@@ -36,6 +36,10 @@ find_library(MATH_LIBRARY m)
 if(MATH_LIBRARY)
     target_link_libraries(mongory-core ${MATH_LIBRARY})
 endif()
+if(NOT WIN32)
+    find_package(Threads REQUIRED)
+    target_link_libraries(mongory-core Threads::Threads)
+endif()
 
 # Test options
 option(BUILD_TESTS "Build the tests" ON)

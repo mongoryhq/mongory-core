@@ -7,10 +7,40 @@
  * chunk is allocated and added to the list. Freeing the pool deallocates all
  * chunks. It also supports tracing externally allocated memory.
  */
+#if !defined(_WIN32) && (!defined(_POSIX_C_SOURCE) || _POSIX_C_SOURCE < 200809L)
+#  define _POSIX_C_SOURCE 200809L
+#endif
+
+#include "memory_pool_private.h"
 #include <mongory-core/foundations/memory_pool.h>
 #include <stdio.h>  // For NULL, though stdlib.h or stddef.h is more common
 #include <stdlib.h> // For calloc, free, etc.
 #include <string.h> // For memset
+
+#if defined(_WIN32)
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif
+#  include <windows.h>
+typedef CRITICAL_SECTION mongory_mutex_t;
+static inline void mongory_mutex_init(mongory_mutex_t *mtx) { InitializeCriticalSection(mtx); }
+static inline void mongory_mutex_lock(mongory_mutex_t *mtx) { EnterCriticalSection(mtx); }
+static inline void mongory_mutex_unlock(mongory_mutex_t *mtx) { LeaveCriticalSection(mtx); }
+static inline void mongory_mutex_destroy(mongory_mutex_t *mtx) { DeleteCriticalSection(mtx); }
+#else
+#  include <pthread.h>
+typedef pthread_mutex_t mongory_mutex_t;
+static inline void mongory_mutex_init(mongory_mutex_t *mtx) {
+  pthread_mutexattr_t attr;
+  pthread_mutexattr_init(&attr);
+  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+  pthread_mutex_init(mtx, &attr);
+  pthread_mutexattr_destroy(&attr);
+}
+static inline void mongory_mutex_lock(mongory_mutex_t *mtx) { pthread_mutex_lock(mtx); }
+static inline void mongory_mutex_unlock(mongory_mutex_t *mtx) { pthread_mutex_unlock(mtx); }
+static inline void mongory_mutex_destroy(mongory_mutex_t *mtx) { pthread_mutex_destroy(mtx); }
+#endif
 
 /**
  * @def MONGORY_INITIAL_CHUNK_SIZE
@@ -58,6 +88,7 @@ typedef struct mongory_memory_pool_ctx {
   mongory_memory_node *head;    /**< Head of the list of memory chunks. */
   mongory_memory_node *current; /**< Current chunk to allocate from. */
   mongory_memory_node *extra;   /**< Head of list for externally traced memory. */
+  mongory_mutex_t build_lock;   /**< Recursive lock for lazy matcher construction. */
 } mongory_memory_pool_ctx;
 
 /**
@@ -208,6 +239,7 @@ static inline void mongory_memory_pool_destroy(mongory_memory_pool *pool) {
     mongory_memory_pool_node_list_free(ctx->head);
     // Free the list of externally traced memory chunks.
     mongory_memory_pool_node_list_free(ctx->extra);
+    mongory_mutex_destroy(&ctx->build_lock);
 
     memset(ctx, 0,
            sizeof(mongory_memory_pool_ctx)); // Clear the context structure.
@@ -285,6 +317,7 @@ mongory_memory_pool *mongory_memory_pool_new() {
   ctx->head = first_chunk;
   ctx->current = first_chunk;
   ctx->extra = NULL; // No extra traced allocations initially.
+  mongory_mutex_init(&ctx->build_lock);
 
   // Initialize pool fields.
   pool->ctx = ctx;
@@ -295,4 +328,20 @@ mongory_memory_pool *mongory_memory_pool_new() {
   pool->error = NULL; // No error initially.
 
   return pool;
+}
+
+void mongory_memory_pool_lock(mongory_memory_pool *pool) {
+  if (!pool || !pool->ctx || pool->alloc != mongory_memory_pool_alloc) {
+    return;
+  }
+  mongory_memory_pool_ctx *ctx = (mongory_memory_pool_ctx *)pool->ctx;
+  mongory_mutex_lock(&ctx->build_lock);
+}
+
+void mongory_memory_pool_unlock(mongory_memory_pool *pool) {
+  if (!pool || !pool->ctx || pool->alloc != mongory_memory_pool_alloc) {
+    return;
+  }
+  mongory_memory_pool_ctx *ctx = (mongory_memory_pool_ctx *)pool->ctx;
+  mongory_mutex_unlock(&ctx->build_lock);
 }
