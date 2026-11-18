@@ -55,6 +55,7 @@ mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool, mongory_val
   matcher->trace_level = 0;
   matcher->extern_ctx = extern_ctx;                // Set the external context.
   matcher->priority = 1.0;                         // Set the priority to 1.0.
+  matcher->parent = NULL;                          // Attached later when wrapped by a parent.
   return matcher;
 }
 

@@ -302,6 +302,78 @@ void test_dollar_inside_field_name_is_a_field(void) {
   TEST_ASSERT_TRUE(mongory_matcher_match(matcher, MG_TABLE_WRAP(pool, 1, "price$", mongory_value_wrap_i(pool, 1))));
 }
 
+void test_lazy_array_record_matcher_updates_ancestor_priorities(void) {
+  mongory_memory_pool *pool = get_test_pool();
+  mongory_value *condition = MG_TABLE_WRAP(pool, 3,
+    "scores", MG_TABLE_WRAP(pool, 2,
+      "$size", MG_TABLE_WRAP(pool, 2,
+        "$gte", mongory_value_wrap_i(pool, 3),
+        "$lte", mongory_value_wrap_i(pool, 5)
+      ),
+      "$every", MG_TABLE_WRAP(pool, 1, "$gte", mongory_value_wrap_i(pool, 60))
+    ),
+    "tags", mongory_value_wrap_s(pool, "ts"),
+    "reviews", MG_TABLE_WRAP(pool, 2,
+      "approved", mongory_value_wrap_b(pool, true),
+      "rating", MG_TABLE_WRAP(pool, 1, "$gte", mongory_value_wrap_i(pool, 4))
+    )
+  );
+  mongory_matcher *root = mongory_matcher_new(pool, condition, NULL);
+  TEST_ASSERT_NOT_NULL(root);
+
+  mongory_composite_matcher *comp = (mongory_composite_matcher *)root;
+  double root_before = root->priority;
+  mongory_field_matcher *tags_m = NULL;
+  mongory_field_matcher *reviews_m = NULL;
+  mongory_field_matcher *scores_m = NULL;
+  for (size_t i = 0; i < comp->children->count; i++) {
+    mongory_field_matcher *fm = (mongory_field_matcher *)comp->children->get(comp->children, i);
+    if (strcmp(fm->field, "tags") == 0) tags_m = fm;
+    else if (strcmp(fm->field, "reviews") == 0) reviews_m = fm;
+    else if (strcmp(fm->field, "scores") == 0) scores_m = fm;
+  }
+  TEST_ASSERT_NOT_NULL(tags_m);
+  TEST_ASSERT_NOT_NULL(reviews_m);
+  TEST_ASSERT_NOT_NULL(scores_m);
+
+  double tags_before = tags_m->literal.base.priority;
+  double reviews_before = reviews_m->literal.base.priority;
+  double scores_before = scores_m->literal.base.priority;
+
+  mongory_value *record = MG_TABLE_WRAP(pool, 4,
+    "candidate", mongory_value_wrap_s(pool, "Alice"),
+    "tags", MG_ARRAY_WRAP(pool, 3,
+      mongory_value_wrap_s(pool, "go"),
+      mongory_value_wrap_s(pool, "ts"),
+      mongory_value_wrap_s(pool, "rust")
+    ),
+    "scores", MG_ARRAY_WRAP(pool, 3,
+      mongory_value_wrap_i(pool, 82),
+      mongory_value_wrap_i(pool, 91),
+      mongory_value_wrap_i(pool, 77)
+    ),
+    "reviews", MG_ARRAY_WRAP(pool, 3,
+      MG_TABLE_WRAP(pool, 3, "reviewer", mongory_value_wrap_s(pool, "r1"), "approved", mongory_value_wrap_b(pool, false), "rating", mongory_value_wrap_i(pool, 5)),
+      MG_TABLE_WRAP(pool, 3, "reviewer", mongory_value_wrap_s(pool, "r2"), "approved", mongory_value_wrap_b(pool, true), "rating", mongory_value_wrap_i(pool, 5)),
+      MG_TABLE_WRAP(pool, 3, "reviewer", mongory_value_wrap_s(pool, "r3"), "approved", mongory_value_wrap_b(pool, true), "rating", mongory_value_wrap_i(pool, 4))
+    )
+  );
+  TEST_ASSERT_TRUE(mongory_matcher_match(root, record));
+
+  TEST_ASSERT_NOT_NULL(tags_m->literal.array_record_matcher);
+  TEST_ASSERT_NOT_NULL(reviews_m->literal.array_record_matcher);
+  TEST_ASSERT_EQUAL_FLOAT((float)(1.0 + tags_m->literal.array_record_matcher->priority), (float)tags_m->literal.base.priority);
+  TEST_ASSERT_EQUAL_FLOAT((float)(1.0 + reviews_m->literal.array_record_matcher->priority), (float)reviews_m->literal.base.priority);
+  TEST_ASSERT_TRUE(tags_m->literal.base.priority > tags_before);
+  TEST_ASSERT_TRUE(reviews_m->literal.base.priority > reviews_before);
+  TEST_ASSERT_TRUE(root->priority > root_before);
+  TEST_ASSERT_EQUAL_FLOAT(
+    (float)(2.0 + tags_m->literal.base.priority + reviews_m->literal.base.priority + scores_m->literal.base.priority),
+    (float)root->priority
+  );
+  TEST_ASSERT_EQUAL_FLOAT((float)scores_before, (float)scores_m->literal.base.priority);
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_table_cond_matcher);
@@ -311,5 +383,6 @@ int main(void) {
   RUN_TEST(test_array_record_matcher_mongodb_comparison_semantics);
   RUN_TEST(test_unknown_operator_fails_at_any_depth);
   RUN_TEST(test_dollar_inside_field_name_is_a_field);
+  RUN_TEST(test_lazy_array_record_matcher_updates_ancestor_priorities);
   return UNITY_END();
 }

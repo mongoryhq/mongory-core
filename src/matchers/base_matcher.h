@@ -55,6 +55,7 @@ struct mongory_matcher {
   mongory_array *trace_stack;                /**< The trace stack for this matcher. */
   int trace_level;                           /**< The trace level for this matcher. */
   double priority;                           /**< The priority for this matcher. */
+  mongory_matcher *parent;                   /**< Enclosing parent matcher for dynamic priority updates. */
   void *extern_ctx;                          /**< External context for the matcher. */
 };
 

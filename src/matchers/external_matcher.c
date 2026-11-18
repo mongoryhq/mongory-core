@@ -125,6 +125,7 @@ mongory_matcher *mongory_matcher_regex_with_options_new(mongory_memory_pool *poo
   matcher->base.extern_ctx = extern_ctx;
   matcher->base.name = mongory_string_cpy(pool, "Regex");
   matcher->base.priority = 20.0;
+  matcher->base.parent = NULL;
   matcher->options = has_options ? mongory_string_cpy(pool, options->data.s) : NULL;
   return (mongory_matcher *)matcher;
 }
@@ -181,5 +182,6 @@ mongory_matcher *mongory_matcher_custom_new(mongory_memory_pool *pool, char *key
   matcher->base.extern_ctx = extern_ctx;
   matcher->external_matcher = context->external_matcher;
   matcher->base.priority = 20.0;
+  matcher->base.parent = NULL;
   return (mongory_matcher *)matcher;
 }

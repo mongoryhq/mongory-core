@@ -26,6 +26,18 @@
 double mongory_matcher_calculate_priority(mongory_array *sub_matchers);
 mongory_array *mongory_matcher_sort_matchers(mongory_array *sub_matchers);
 
+static inline void mongory_matcher_attach_children_parent(mongory_composite_matcher *parent, mongory_array *children) {
+  if (!parent || !children) {
+    return;
+  }
+  for (size_t i = 0; i < children->count; i++) {
+    mongory_matcher *child = (mongory_matcher *)children->get(children, i);
+    if (child != NULL) {
+      child->parent = (mongory_matcher *)parent;
+    }
+  }
+}
+
 /**
  * @brief Allocates and initializes a `mongory_composite_matcher` structure.
  *
@@ -61,6 +73,7 @@ mongory_composite_matcher *mongory_matcher_composite_new(mongory_memory_pool *po
   composite->base.traverse = mongory_matcher_composite_traverse;
   composite->base.extern_ctx = extern_ctx;
   composite->base.priority = 2.0;
+  composite->base.parent = NULL;
   return composite;
 }
 
@@ -259,6 +272,7 @@ mongory_matcher *mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongo
   if (final_matcher == NULL)
     return NULL;
   final_matcher->children = mongory_matcher_sort_matchers(sub_matchers);
+  mongory_matcher_attach_children_parent(final_matcher, final_matcher->children);
   final_matcher->base.match = mongory_matcher_and_match;
   final_matcher->base.original_match = mongory_matcher_and_match;
   final_matcher->base.sub_count = sub_matchers->count;
@@ -344,6 +358,7 @@ mongory_matcher *mongory_matcher_and_new(mongory_memory_pool *pool, mongory_valu
   if (final_matcher == NULL)
     return NULL;
   final_matcher->children = mongory_matcher_sort_matchers(sub_matchers);
+  mongory_matcher_attach_children_parent(final_matcher, final_matcher->children);
   final_matcher->base.match = mongory_matcher_and_match;
   final_matcher->base.original_match = mongory_matcher_and_match;
   final_matcher->base.sub_count = sub_matchers->count;
@@ -425,6 +440,7 @@ mongory_matcher *mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value
   if (final_matcher == NULL)
     return NULL;
   final_matcher->children = mongory_matcher_sort_matchers(sub_matchers);
+  mongory_matcher_attach_children_parent(final_matcher, final_matcher->children);
   final_matcher->base.match = mongory_matcher_or_match;
   final_matcher->base.original_match = mongory_matcher_or_match;
   final_matcher->base.sub_count = sub_matchers->count;
@@ -487,6 +503,7 @@ mongory_matcher *mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongo
     return NULL;
 
   composite->children = mongory_matcher_sort_matchers(sub_matchers);
+  mongory_matcher_attach_children_parent(composite, composite->children);
   composite->base.match = mongory_matcher_elem_match_match;
   composite->base.original_match = mongory_matcher_elem_match_match;
   composite->base.sub_count = sub_matchers->count;
@@ -546,6 +563,7 @@ mongory_matcher *mongory_matcher_every_new(mongory_memory_pool *pool, mongory_va
     return NULL;
 
   composite->children = mongory_matcher_sort_matchers(sub_matchers);
+  mongory_matcher_attach_children_parent(composite, composite->children);
   composite->base.match = mongory_matcher_every_match;
   composite->base.original_match = mongory_matcher_every_match;
   composite->base.sub_count = sub_matchers->count;

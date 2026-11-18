@@ -92,6 +92,13 @@ static inline bool mongory_matcher_literal_match(mongory_matcher *matcher, mongo
           mongory_matcher_enable_trace_at(arm, literal->base.trace_stack, literal->base.trace_level + 1);
         }
         if (arm != NULL) {
+          arm->parent = &literal->base;
+          double delta = (1.0 + arm->priority) - literal->base.priority;
+          if (delta != 0.0) {
+            for (mongory_matcher *cur = &literal->base; cur != NULL; cur = cur->parent) {
+              cur->priority += delta;
+            }
+          }
           mongory_atomic_store_ptr_release(&literal->array_record_matcher, arm);
         } else {
           mongory_propagate_build_error(build_pool, value);
@@ -260,6 +267,8 @@ mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *fiel
     return NULL;
   }
   field_m->literal.base.priority = 1.0 + field_m->literal.delegate_matcher->priority;
+  field_m->literal.base.parent = NULL;
+  field_m->literal.delegate_matcher->parent = (mongory_matcher *)field_m;
 
   return (mongory_matcher *)field_m;
 }
@@ -300,6 +309,8 @@ mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool, mongory_valu
   literal->base.sub_count = 1;
   literal->base.extern_ctx = extern_ctx;
   literal->base.priority = 1.0 + literal->delegate_matcher->priority;
+  literal->base.parent = NULL;
+  literal->delegate_matcher->parent = (mongory_matcher *)literal;
   return (mongory_matcher *)literal;
 }
 
@@ -351,6 +362,8 @@ mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool, mongory_val
   literal->base.sub_count = 1;
   literal->base.extern_ctx = extern_ctx;
   literal->base.priority = 1.0 + literal->delegate_matcher->priority;
+  literal->base.parent = NULL;
+  literal->delegate_matcher->parent = (mongory_matcher *)literal;
   return (mongory_matcher *)literal;
 }
 
