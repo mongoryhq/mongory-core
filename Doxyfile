@@ -4,7 +4,7 @@
 # Project related configuration options
 #---------------------------------------------------------------------------
 PROJECT_NAME           = "Mongory Core"
-PROJECT_NUMBER         = 0.2.0
+PROJECT_NUMBER         = 0.2.1
 PROJECT_BRIEF          = "A C library for MongoDB-like queries on C data structures."
 OUTPUT_DIRECTORY       = docs
 CREATE_SUBDIRS         = YES
