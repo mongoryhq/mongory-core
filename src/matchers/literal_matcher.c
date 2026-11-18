@@ -19,7 +19,7 @@
 #include "base_matcher.h"                   // For mongory_matcher_base_new
 #include "compare_matcher.h"                // For mongory_matcher_equal_new
 #include "composite_matcher.h"              // For mongory_matcher_composite_new, mongory_matcher_table_cond_new
-#include "existance_matcher.h"              // For mongory_matcher_exists_new (used by null_new)
+#include "existence_matcher.h"              // For mongory_matcher_exists_new (used by null_new)
 #include "matcher_explainable.h"
 #include "matcher_traversable.h"
 #include "mongory-core/foundations/array.h" // For mongory_array access

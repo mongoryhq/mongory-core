@@ -12,7 +12,7 @@
 #include "../matchers/base_matcher.h"      // For mongory_matcher_build_func
 #include "../matchers/compare_matcher.h"   // For specific matcher constructors
 #include "../matchers/composite_matcher.h" // For specific matcher constructors
-#include "../matchers/existance_matcher.h" // For specific matcher constructors
+#include "../matchers/existence_matcher.h" // For specific matcher constructors
 #include "../matchers/inclusion_matcher.h" // For specific matcher constructors
 #include "../matchers/literal_matcher.h"   // For specific matcher constructors
 #include "../matchers/external_matcher.h"     // For specific matcher constructors

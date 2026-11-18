@@ -1,9 +1,9 @@
 /**
- * @file existance_matcher.c
+ * @file existence_matcher.c
  * @brief Implements $exists and $present matchers.
  * This is an internal implementation file for the matcher module.
  */
-#include "existance_matcher.h"
+#include "existence_matcher.h"
 #include "base_matcher.h"                   // For mongory_matcher_base_new
 #include "mongory-core/foundations/array.h" // For value->data.a->count
 #include "mongory-core/foundations/error.h" // For mongory_error types

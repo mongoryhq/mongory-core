@@ -1,8 +1,8 @@
-#ifndef MONGORY_MATCHER_EXISTANCE_H
-#define MONGORY_MATCHER_EXISTANCE_H
+#ifndef MONGORY_MATCHER_EXISTENCE_H
+#define MONGORY_MATCHER_EXISTENCE_H
 
 /**
- * @file existance_matcher.h
+ * @file existence_matcher.h
  * @brief Defines constructors for existence and presence matchers ($exists,
  * $present). This is an internal header for the matcher module.
  */
@@ -45,4 +45,4 @@ mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool, mongory_v
  */
 mongory_matcher *mongory_matcher_present_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
-#endif /* MONGORY_MATCHER_EXISTANCE_H */
+#endif /* MONGORY_MATCHER_EXISTENCE_H */

@@ -3,15 +3,20 @@ name: mongory-spec conformance
 on:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: "0 2 * * *"
   workflow_dispatch:
     inputs:
       spec_ref:
         description: "mongory-spec ref (branch, tag, or SHA) to test against"
         required: false
-        default: "main"
+        default: "v0.2.1"
 
 jobs:
   conformance:
+    if: github.event_name != 'schedule'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -25,7 +30,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: mongoryhq/mongory-spec
-        ref: ${{ github.event.inputs.spec_ref || 'main' }}
+        ref: ${{ github.event.inputs.spec_ref || 'v0.2.1' }}
         path: mongory-spec
 
     - name: Show mongory-spec revision
@@ -104,3 +109,29 @@ jobs:
       working-directory: build
       shell: msys2 {0}
       run: ctest --build-config Release --label-regex conformance --output-on-failure
+
+  conformance-edge:
+    name: Spec Edge Preview (mongory-spec@main)
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Checkout mongory-spec@main
+      uses: actions/checkout@v4
+      with:
+        repository: mongoryhq/mongory-spec
+        ref: main
+        path: mongory-spec
+    - name: Show mongory-spec revision
+      working-directory: mongory-spec
+      run: echo "mongory-spec $(cat VERSION) @ $(git rev-parse --short HEAD)"
+    - name: Install dependencies (Ubuntu)
+      run: sudo apt update && sudo apt install -y libcjson-dev libpcre2-dev
+    - name: Setup Unity test framework
+      run: chmod +x scripts/setup_unity.sh && ./scripts/setup_unity.sh
+    - name: Configure and test
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_BENCHMARKS=OFF -DMONGORY_SPEC_DIR=${{ github.workspace }}/mongory-spec -S .
+        cmake --build build --config Release
+        ctest --test-dir build --label-regex conformance --output-on-failure

@@ -2,7 +2,7 @@
 #include "../src/matchers/base_matcher.h"
 #include "../src/matchers/compare_matcher.h"
 #include "../src/matchers/composite_matcher.h"
-#include "../src/matchers/existance_matcher.h"
+#include "../src/matchers/existence_matcher.h"
 #include "../src/matchers/inclusion_matcher.h"
 #include "../src/matchers/literal_matcher.h"
 #include "../src/matchers/external_matcher.h"
