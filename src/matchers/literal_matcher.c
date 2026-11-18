@@ -97,6 +97,9 @@ static inline bool mongory_matcher_literal_match(mongory_matcher *matcher, mongo
           if (delta != 0.0) {
             for (mongory_matcher *cur = &literal->base; cur != NULL; cur = cur->parent) {
               cur->priority += delta;
+              if (cur->traverse == mongory_matcher_composite_traverse) {
+                mongory_matcher_resort_composite((mongory_composite_matcher *)cur);
+              }
             }
           }
           mongory_atomic_store_ptr_release(&literal->array_record_matcher, arm);

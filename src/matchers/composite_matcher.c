@@ -8,6 +8,7 @@
 #include "external_matcher.h"
 #include "../foundations/config_private.h"  // For mongory_matcher_build_func_get
 #include "../foundations/array_private.h"   // For mongory_array_sort_by
+#include "../foundations/memory_pool_private.h" // For atomic children load/store
 #include "../foundations/string_buffer.h"   // For mongory_string_buffer_new
 #include "base_matcher.h"                   // For mongory_matcher_always_true_new, etc.
 #include "literal_matcher.h"                // For mongory_matcher_field_new
@@ -93,7 +94,7 @@ mongory_composite_matcher *mongory_matcher_composite_new(mongory_memory_pool *po
 // ============================================================================
 static inline bool mongory_matcher_and_match(mongory_matcher *matcher, mongory_value *value) {
   mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
-  mongory_array *children = composite->children;
+  mongory_array *children = mongory_atomic_load_ptr_acquire(&composite->children);
   int total = (int)children->count;
   for (int i = 0; i < total; i++) {
     mongory_matcher *child = (mongory_matcher *)children->get(children, i);
@@ -117,7 +118,7 @@ static inline bool mongory_matcher_and_match(mongory_matcher *matcher, mongory_v
  */
 bool mongory_matcher_or_match(mongory_matcher *matcher, mongory_value *value) {
   mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
-  mongory_array *children = composite->children;
+  mongory_array *children = mongory_atomic_load_ptr_acquire(&composite->children);
   int total = (int)children->count;
   for (int i = 0; i < total; i++) {
     mongory_matcher *child = (mongory_matcher *)children->get(children, i);
@@ -609,4 +610,18 @@ mongory_array *mongory_matcher_sort_matchers(mongory_array *sub_matchers) {
   mongory_array *sorted_matchers = mongory_array_sort_by(sub_matchers, temp_pool, NULL, mongory_matcher_calc_priority);
   temp_pool->free(temp_pool);
   return sorted_matchers;
+}
+
+void mongory_matcher_resort_composite(mongory_composite_matcher *composite) {
+  if (!composite) {
+    return;
+  }
+  mongory_array *cur = mongory_atomic_load_ptr_acquire(&composite->children);
+  if (!cur || cur->count <= 1) {
+    return;
+  }
+  mongory_array *sorted = mongory_matcher_sort_matchers(cur);
+  if (sorted != NULL) {
+    mongory_atomic_store_ptr_release(&composite->children, sorted);
+  }
 }

@@ -374,6 +374,35 @@ void test_lazy_array_record_matcher_updates_ancestor_priorities(void) {
   TEST_ASSERT_EQUAL_FLOAT((float)scores_before, (float)scores_m->literal.base.priority);
 }
 
+void test_lazy_array_record_matcher_resorts_composite_children(void) {
+  mongory_memory_pool *pool = get_test_pool();
+  mongory_value *condition = MG_TABLE_WRAP(pool, 3,
+    "tags", mongory_value_wrap_s(pool, "ts"),
+    "age", MG_TABLE_WRAP(pool, 1, "$gte", mongory_value_wrap_i(pool, 18)),
+    "items", MG_TABLE_WRAP(pool, 1, "$size", MG_TABLE_WRAP(pool, 1, "$gte", mongory_value_wrap_i(pool, 1)))
+  );
+  mongory_matcher *root = mongory_matcher_new(pool, condition, NULL);
+  TEST_ASSERT_NOT_NULL(root);
+
+  mongory_composite_matcher *comp = (mongory_composite_matcher *)root;
+  TEST_ASSERT_EQUAL_INT(3, (int)comp->children->count);
+  TEST_ASSERT_EQUAL_STRING("tags", ((mongory_field_matcher *)comp->children->get(comp->children, 0))->field);
+  TEST_ASSERT_EQUAL_STRING("age", ((mongory_field_matcher *)comp->children->get(comp->children, 1))->field);
+  TEST_ASSERT_EQUAL_STRING("items", ((mongory_field_matcher *)comp->children->get(comp->children, 2))->field);
+
+  mongory_value *record = MG_TABLE_WRAP(pool, 3,
+    "tags", MG_ARRAY_WRAP(pool, 2, mongory_value_wrap_s(pool, "go"), mongory_value_wrap_s(pool, "ts")),
+    "age", mongory_value_wrap_i(pool, 20),
+    "items", MG_ARRAY_WRAP(pool, 1, mongory_value_wrap_i(pool, 1))
+  );
+  TEST_ASSERT_TRUE(mongory_matcher_match(root, record));
+
+  // After matching an array on tags, tags priority rises (2 -> 5) above age (3) and items (4).
+  TEST_ASSERT_EQUAL_STRING("age", ((mongory_field_matcher *)comp->children->get(comp->children, 0))->field);
+  TEST_ASSERT_EQUAL_STRING("items", ((mongory_field_matcher *)comp->children->get(comp->children, 1))->field);
+  TEST_ASSERT_EQUAL_STRING("tags", ((mongory_field_matcher *)comp->children->get(comp->children, 2))->field);
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_table_cond_matcher);
@@ -384,5 +413,6 @@ int main(void) {
   RUN_TEST(test_unknown_operator_fails_at_any_depth);
   RUN_TEST(test_dollar_inside_field_name_is_a_field);
   RUN_TEST(test_lazy_array_record_matcher_updates_ancestor_priorities);
+  RUN_TEST(test_lazy_array_record_matcher_resorts_composite_children);
   return UNITY_END();
 }

@@ -122,4 +122,10 @@ mongory_composite_matcher *mongory_matcher_composite_new(mongory_memory_pool *po
  */
 bool mongory_matcher_or_match(mongory_matcher *matcher, mongory_value *value);
 
+/**
+ * @brief Re-sorts a composite matcher's children by updated priority using
+ * copy-on-write atomic publication safe for concurrent readers.
+ */
+void mongory_matcher_resort_composite(mongory_composite_matcher *composite);
+
 #endif /* MONGORY_MATCHER_COMPOSITE_H */

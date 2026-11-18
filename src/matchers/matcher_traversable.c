@@ -2,6 +2,7 @@
 #define MONGORY_MATCHER_TRAVERSABLE_C
 
 #include "matcher_traversable.h"
+#include "../foundations/memory_pool_private.h"
 #include "base_matcher.h"
 #include "composite_matcher.h"
 #include "literal_matcher.h"
@@ -19,7 +20,7 @@ bool mongory_matcher_composite_traverse(mongory_matcher *matcher, mongory_matche
   if (!mongory_matcher_leaf_traverse(matcher, ctx))
     return false;
   mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
-  mongory_array *children = composite->children;
+  mongory_array *children = mongory_atomic_load_ptr_acquire(&composite->children);
   int total = (int)children->count;
   mongory_matcher_traverse_context child_ctx = {
       .pool = ctx->pool,
