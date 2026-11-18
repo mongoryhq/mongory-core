@@ -194,3 +194,7 @@ The original Makefile is still available but deprecated. For cross-platform comp
 ## 📚 API Documentation
 
 The public API is documented in the header files in the `include/` directory. The comments are compatible with Doxygen. You can generate HTML documentation if you have Doxygen installed.
+
+## ⚡ Performance
+
+See [docs/performance.md](docs/performance.md) and [`scripts/bench.sh`](scripts/bench.sh) for C99 benchmark results.
