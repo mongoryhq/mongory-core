@@ -1,6 +1,8 @@
 # Mongory Core
 
-`mongory-core` is a lightweight, dependency-free C library for querying C data structures using a query syntax inspired by MongoDB. It is designed to be extensible, allowing you to integrate it with your own custom data types and matching logic.
+**Zero-dependency C99 core engine for Mongo-style in-memory query matching and rule evaluation** using arena memory pools — powering native language bindings and cross-checked against [`mongory-spec`](https://github.com/mongoryhq/mongory-spec).
+
+> **[Interactive Playground & Visual Debugger ↗](https://mongoryhq.github.io/mongory-central/)** · [`mongory-rb` (Ruby)](https://github.com/mongoryhq/mongory-rb) · [`mongory-go` (Go)](https://github.com/mongoryhq/mongory-go) · [`mongory-js` (TypeScript/JS)](https://github.com/mongoryhq/mongory-js) · [`mongory-spec`](https://github.com/mongoryhq/mongory-spec)
 
 ## ✨ Features
 
