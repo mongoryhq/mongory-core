@@ -7,9 +7,12 @@
 #define BENCH_RECORDS 10000
 #define BENCH_ROUNDS 200
 
+typedef bool (*plain_pred_fn)(mongory_value *record, void *ctx);
+
 typedef struct {
   const char *name;
   mongory_value *cond;
+  plain_pred_fn plain;
 } bench_case;
 
 static double elapsed_ns(struct timespec start, struct timespec end) {
@@ -21,6 +24,63 @@ static char *pool_strdup(mongory_memory_pool *pool, const char *s) {
   char *copy = (char *)pool->alloc(pool, len);
   memcpy(copy, s, len);
   return copy;
+}
+
+static inline mongory_value *tbl_get(mongory_value *v, const char *k) {
+  if (!v || v->type != MONGORY_TYPE_TABLE) return NULL;
+  return v->data.t->get(v->data.t, (char *)k);
+}
+
+static bool plain_simple(mongory_value *rec, void *ctx) {
+  (void)ctx;
+  mongory_value *age = tbl_get(rec, "age");
+  return age && age->type == MONGORY_TYPE_INT && age->data.i >= 18;
+}
+
+static bool plain_or(mongory_value *rec, void *ctx) {
+  (void)ctx;
+  if (plain_simple(rec, NULL)) return true;
+  mongory_value *status = tbl_get(rec, "status");
+  return status && status->type == MONGORY_TYPE_STRING && strcmp(status->data.s, "active") == 0;
+}
+
+static bool plain_nested_and(mongory_value *rec, void *ctx) {
+  (void)ctx;
+  mongory_value *status = tbl_get(rec, "status");
+  if (!status || status->type != MONGORY_TYPE_STRING || strcmp(status->data.s, "active") != 0) return false;
+  mongory_value *age = tbl_get(rec, "age");
+  if (!age || age->type != MONGORY_TYPE_INT || age->data.i >= 40) return false;
+  mongory_value *profile = tbl_get(rec, "profile");
+  mongory_value *city = tbl_get(profile, "city");
+  return city && city->type == MONGORY_TYPE_STRING && strcmp(city->data.s, "taipei") == 0;
+}
+
+static bool plain_in_array_field(mongory_value *rec, void *ctx) {
+  (void)ctx;
+  mongory_value *tags = tbl_get(rec, "tags");
+  if (!tags || tags->type != MONGORY_TYPE_ARRAY) return false;
+  mongory_array *arr = tags->data.a;
+  for (size_t i = 0; i < arr->count; i++) {
+    mongory_value *el = arr->get(arr, i);
+    if (el && el->type == MONGORY_TYPE_STRING &&
+        (strcmp(el->data.s, "go") == 0 || strcmp(el->data.s, "rust") == 0)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static bool plain_large_in_500(mongory_value *rec, void *ctx) {
+  mongory_array *list = (mongory_array *)ctx;
+  mongory_value *name = tbl_get(rec, "name");
+  if (!name || name->type != MONGORY_TYPE_STRING) return false;
+  for (size_t i = 0; i < list->count; i++) {
+    mongory_value *item = list->get(list, i);
+    if (item && item->type == MONGORY_TYPE_STRING && strcmp(name->data.s, item->data.s) == 0) {
+      return true;
+    }
+  }
+  return false;
 }
 
 int main(void) {
@@ -62,14 +122,16 @@ int main(void) {
   bench_case cases[] = {
     {
       "simple",
-      MG_TABLE_WRAP(pool, 1, "age", MG_TABLE_WRAP(pool, 1, "$gte", mongory_value_wrap_i(pool, 18)))
+      MG_TABLE_WRAP(pool, 1, "age", MG_TABLE_WRAP(pool, 1, "$gte", mongory_value_wrap_i(pool, 18))),
+      plain_simple
     },
     {
       "or",
       MG_TABLE_WRAP(pool, 1, "$or", MG_ARRAY_WRAP(pool, 2,
         MG_TABLE_WRAP(pool, 1, "age", MG_TABLE_WRAP(pool, 1, "$gte", mongory_value_wrap_i(pool, 18))),
         MG_TABLE_WRAP(pool, 1, "status", mongory_value_wrap_s(pool, "active"))
-      ))
+      )),
+      plain_or
     },
     {
       "nested_and",
@@ -77,16 +139,19 @@ int main(void) {
         "profile", MG_TABLE_WRAP(pool, 1, "city", mongory_value_wrap_s(pool, "taipei")),
         "status", mongory_value_wrap_s(pool, "active"),
         "age", MG_TABLE_WRAP(pool, 1, "$lt", mongory_value_wrap_i(pool, 40))
-      )
+      ),
+      plain_nested_and
     },
     {
       "in_array_field",
       MG_TABLE_WRAP(pool, 1, "tags", MG_TABLE_WRAP(pool, 1, "$in",
-        MG_ARRAY_WRAP(pool, 2, mongory_value_wrap_s(pool, "go"), mongory_value_wrap_s(pool, "rust"))))
+        MG_ARRAY_WRAP(pool, 2, mongory_value_wrap_s(pool, "go"), mongory_value_wrap_s(pool, "rust")))),
+      plain_in_array_field
     },
     {
       "large_in_500",
-      MG_TABLE_WRAP(pool, 1, "name", MG_TABLE_WRAP(pool, 1, "$in", large_in_list))
+      MG_TABLE_WRAP(pool, 1, "name", MG_TABLE_WRAP(pool, 1, "$in", large_in_list)),
+      plain_large_in_500
     }
   };
 
@@ -99,13 +164,26 @@ int main(void) {
       return 1;
     }
 
-    int matched = 0;
+    // Warmup
     for (int i = 0; i < BENCH_RECORDS; i++) {
-      if (mongory_matcher_match(matcher, records[i])) matched++;
+      cases[c].plain(records[i], large_in_arr);
+      mongory_matcher_match(matcher, records[i]);
     }
 
-    struct timespec t0, t1;
-    clock_gettime(CLOCK_MONOTONIC, &t0);
+    struct timespec p0, p1, m0, m1;
+    clock_gettime(CLOCK_MONOTONIC, &p0);
+    int plain_matched = 0;
+    for (int r = 0; r < BENCH_ROUNDS; r++) {
+      int round_matched = 0;
+      for (int i = 0; i < BENCH_RECORDS; i++) {
+        if (cases[c].plain(records[i], large_in_arr)) round_matched++;
+      }
+      plain_matched = round_matched;
+    }
+    clock_gettime(CLOCK_MONOTONIC, &p1);
+
+    clock_gettime(CLOCK_MONOTONIC, &m0);
+    int matched = 0;
     for (int r = 0; r < BENCH_ROUNDS; r++) {
       int round_matched = 0;
       for (int i = 0; i < BENCH_RECORDS; i++) {
@@ -113,13 +191,12 @@ int main(void) {
       }
       matched = round_matched;
     }
-    clock_gettime(CLOCK_MONOTONIC, &t1);
+    clock_gettime(CLOCK_MONOTONIC, &m1);
 
-    double total_ns = elapsed_ns(t0, t1);
-    double ns_per_rec = total_ns / ((double)BENCH_ROUNDS * BENCH_RECORDS);
-    double ms_per_10k = (total_ns / 1e6) / BENCH_ROUNDS;
-    printf("%-16s %7.1f ns/rec  %7.3f ms/10k  (matched=%d)\n",
-           cases[c].name, ns_per_rec, ms_per_10k, matched);
+    double plain_ns = elapsed_ns(p0, p1) / ((double)BENCH_ROUNDS * BENCH_RECORDS);
+    double mongory_ns = elapsed_ns(m0, m1) / ((double)BENCH_ROUNDS * BENCH_RECORDS);
+    printf("%-16s plain=%6.1f ns/rec  mongory=%6.1f ns/rec  (ratio=%.2fx, matched=%d/%d)\n",
+           cases[c].name, plain_ns, mongory_ns, mongory_ns / plain_ns, matched, plain_matched);
   }
 
   free(records);

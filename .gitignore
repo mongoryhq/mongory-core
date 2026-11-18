@@ -5,7 +5,8 @@ tests/unity/
 *.o
 *.a
 test_runner/
-docs/
+docs/*
+!docs/performance.md
 build/
 # VS Code
 .vscode/
