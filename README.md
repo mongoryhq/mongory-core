@@ -67,7 +67,7 @@ int main() {
     );
 
     // 5. Create a matcher with the query condition
-    mongory_matcher *matcher = mongory_matcher_new(pool, query);
+    mongory_matcher *matcher = mongory_matcher_new(pool, query, NULL);
 
     // 6. Perform the match
     bool is_match = mongory_matcher_match(matcher, doc);
