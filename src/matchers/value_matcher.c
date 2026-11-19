@@ -200,16 +200,20 @@ static inline bool mongory_matcher_field_match(mongory_matcher *matcher, mongory
   } else if (value->type == MONGORY_TYPE_ARRAY) {
     if (value->data.a) {
       int index;
-      if (!mongory_try_parse_int(field_key, &index))
-        return false; // Field key is not a valid integer index for an array.
-      if (index < 0) { // Handle negative indexing (from end of array)
-        if ((size_t)(-index) > value->data.a->count)
-          return false; // Out of bounds
-        index = value->data.a->count + index;
+      if (mongory_try_parse_int(field_key, &index)) {
+        if (index < 0) { // Handle negative indexing (from end of array)
+          if ((size_t)(-index) <= value->data.a->count) {
+            index = (int)value->data.a->count + index;
+            if ((size_t)index < value->data.a->count) {
+              field_value = value->data.a->get(value->data.a, (size_t)index);
+            }
+          }
+        } else if ((size_t)index < value->data.a->count) {
+          field_value = value->data.a->get(value->data.a, (size_t)index);
+        }
       }
-      if ((size_t)index >= value->data.a->count)
-        return false; // Out of bounds
-      field_value = value->data.a->get(value->data.a, (size_t)index);
+      // Out-of-bounds or non-integer index leaves field_value = NULL (MISSING)
+      // so child matchers like $exists: false or $nin can evaluate MISSING.
     }
   } else {
     return false; // Can only extract fields from tables or arrays.
