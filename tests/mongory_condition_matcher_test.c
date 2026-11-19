@@ -1,6 +1,6 @@
 #include "../src/foundations/utils.h"
 #include "../src/matchers/composite_matcher.h"
-#include "../src/matchers/literal_matcher.h"
+#include "../src/matchers/value_matcher.h"
 #include "../src/test_helper/test_helper.h"
 #include "mongory-core.h"
 #include "unity.h"
@@ -11,8 +11,8 @@ void setUp(void) { setup_test_environment(); }
 
 void tearDown(void) { teardown_test_environment(); }
 
-void test_table_cond_matcher(void) {
-  mongory_test_context context = {mongory_matcher_table_cond_new, false, false, false};
+void test_condition_matcher(void) {
+  mongory_test_context context = {mongory_matcher_condition_new, false, false, false};
   execute_test_case("tests/jsons/table_condition_matcher_test.json", &context);
 }
 
@@ -59,7 +59,7 @@ void test_field_matcher_propagates_extern_ctx_to_lazy_array_matcher(void) {
   TEST_ASSERT_EQUAL_PTR(&dummy_ctx, captured_extern_ctx);
 }
 
-void test_trace_with_lazy_array_record_matcher_restores_delegate_matcher(void) {
+void test_trace_with_lazy_implicit_array_matcher_restores_delegate_matcher(void) {
   mongory_memory_pool *pool = get_test_pool();
   mongory_value *condition = MG_TABLE_WRAP(pool, 1,
     "tags", mongory_value_wrap_s(pool, "ruby")
@@ -75,7 +75,7 @@ void test_trace_with_lazy_array_record_matcher_restores_delegate_matcher(void) {
     )
   );
 
-  // First trace on an array record triggers lazy array_record_matcher creation
+  // First trace on an array record triggers lazy implicit_array_matcher creation
   TEST_ASSERT_TRUE(mongory_matcher_trace(matcher, array_record));
   trace_pool->free(trace_pool);
 
@@ -85,11 +85,11 @@ void test_trace_with_lazy_array_record_matcher_restores_delegate_matcher(void) {
   );
   mongory_field_matcher *field_m = (mongory_field_matcher *)matcher;
   TEST_ASSERT_NULL(field_m->literal.delegate_matcher->trace_stack);
-  TEST_ASSERT_NULL(field_m->literal.array_record_matcher->trace_stack);
+  TEST_ASSERT_NULL(field_m->literal.implicit_array_matcher->trace_stack);
   TEST_ASSERT_TRUE(mongory_matcher_match(matcher, scalar_record));
 }
 
-void test_array_record_matcher_with_integer_index_condition(void) {
+void test_implicit_array_matcher_with_integer_index_condition(void) {
   mongory_memory_pool *pool = get_test_pool();
 
   // Case 1: {"tags": {"0": "ruby"}} against {"tags": ["ruby", "c"]}
@@ -198,7 +198,7 @@ void test_array_record_matcher_with_integer_index_condition(void) {
   TEST_ASSERT_TRUE(mongory_matcher_match(matcher_leading_zero, record_elem_with_01));
 }
 
-void test_array_record_matcher_mongodb_comparison_semantics(void) {
+void test_implicit_array_matcher_mongodb_comparison_semantics(void) {
   mongory_memory_pool *pool = get_test_pool();
 
   mongory_value *record_scores = MG_TABLE_WRAP(pool, 1,
@@ -302,7 +302,7 @@ void test_dollar_inside_field_name_is_a_field(void) {
   TEST_ASSERT_TRUE(mongory_matcher_match(matcher, MG_TABLE_WRAP(pool, 1, "price$", mongory_value_wrap_i(pool, 1))));
 }
 
-void test_lazy_array_record_matcher_updates_ancestor_priorities(void) {
+void test_lazy_implicit_array_matcher_updates_ancestor_priorities(void) {
   mongory_memory_pool *pool = get_test_pool();
   mongory_value *condition = MG_TABLE_WRAP(pool, 3,
     "scores", MG_TABLE_WRAP(pool, 2,
@@ -360,10 +360,10 @@ void test_lazy_array_record_matcher_updates_ancestor_priorities(void) {
   );
   TEST_ASSERT_TRUE(mongory_matcher_match(root, record));
 
-  TEST_ASSERT_NOT_NULL(tags_m->literal.array_record_matcher);
-  TEST_ASSERT_NOT_NULL(reviews_m->literal.array_record_matcher);
-  TEST_ASSERT_EQUAL_FLOAT((float)(1.0 + tags_m->literal.array_record_matcher->priority), (float)tags_m->literal.base.priority);
-  TEST_ASSERT_EQUAL_FLOAT((float)(1.0 + reviews_m->literal.array_record_matcher->priority), (float)reviews_m->literal.base.priority);
+  TEST_ASSERT_NOT_NULL(tags_m->literal.implicit_array_matcher);
+  TEST_ASSERT_NOT_NULL(reviews_m->literal.implicit_array_matcher);
+  TEST_ASSERT_EQUAL_FLOAT((float)(1.0 + tags_m->literal.implicit_array_matcher->priority), (float)tags_m->literal.base.priority);
+  TEST_ASSERT_EQUAL_FLOAT((float)(1.0 + reviews_m->literal.implicit_array_matcher->priority), (float)reviews_m->literal.base.priority);
   TEST_ASSERT_TRUE(tags_m->literal.base.priority > tags_before);
   TEST_ASSERT_TRUE(reviews_m->literal.base.priority > reviews_before);
   TEST_ASSERT_TRUE(root->priority > root_before);
@@ -374,7 +374,7 @@ void test_lazy_array_record_matcher_updates_ancestor_priorities(void) {
   TEST_ASSERT_EQUAL_FLOAT((float)scores_before, (float)scores_m->literal.base.priority);
 }
 
-void test_lazy_array_record_matcher_resorts_composite_children(void) {
+void test_lazy_implicit_array_matcher_resorts_composite_children(void) {
   mongory_memory_pool *pool = get_test_pool();
   mongory_value *condition = MG_TABLE_WRAP(pool, 3,
     "tags", mongory_value_wrap_s(pool, "ts"),
@@ -416,7 +416,7 @@ void test_explain_tree_and_trace_tree_return_structured_values(void) {
   TEST_ASSERT_NOT_NULL(explain);
   TEST_ASSERT_EQUAL_INT(MONGORY_TYPE_TABLE, explain->type);
   mongory_table *exp_tbl = explain->data.t;
-  TEST_ASSERT_EQUAL_STRING("Condition", exp_tbl->get(exp_tbl, "name")->data.s);
+  TEST_ASSERT_EQUAL_STRING("And", exp_tbl->get(exp_tbl, "name")->data.s);
   mongory_value *exp_children = exp_tbl->get(exp_tbl, "children");
   TEST_ASSERT_EQUAL_INT(MONGORY_TYPE_ARRAY, exp_children->type);
   TEST_ASSERT_EQUAL_UINT(2, exp_children->data.a->count);
@@ -456,15 +456,15 @@ void test_explain_tree_and_trace_tree_return_structured_values(void) {
 
 int main(void) {
   UNITY_BEGIN();
-  RUN_TEST(test_table_cond_matcher);
+  RUN_TEST(test_condition_matcher);
   RUN_TEST(test_field_matcher_propagates_extern_ctx_to_lazy_array_matcher);
-  RUN_TEST(test_trace_with_lazy_array_record_matcher_restores_delegate_matcher);
-  RUN_TEST(test_array_record_matcher_with_integer_index_condition);
-  RUN_TEST(test_array_record_matcher_mongodb_comparison_semantics);
+  RUN_TEST(test_trace_with_lazy_implicit_array_matcher_restores_delegate_matcher);
+  RUN_TEST(test_implicit_array_matcher_with_integer_index_condition);
+  RUN_TEST(test_implicit_array_matcher_mongodb_comparison_semantics);
   RUN_TEST(test_unknown_operator_fails_at_any_depth);
   RUN_TEST(test_dollar_inside_field_name_is_a_field);
-  RUN_TEST(test_lazy_array_record_matcher_updates_ancestor_priorities);
-  RUN_TEST(test_lazy_array_record_matcher_resorts_composite_children);
+  RUN_TEST(test_lazy_implicit_array_matcher_updates_ancestor_priorities);
+  RUN_TEST(test_lazy_implicit_array_matcher_resorts_composite_children);
   RUN_TEST(test_explain_tree_and_trace_tree_return_structured_values);
   return UNITY_END();
 }

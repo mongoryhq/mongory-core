@@ -18,6 +18,6 @@ bool mongory_matcher_leaf_traverse(mongory_matcher *matcher, mongory_matcher_tra
 
 bool mongory_matcher_composite_traverse(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx);
 
-bool mongory_matcher_literal_traverse(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx);
+bool mongory_matcher_value_traverse(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx);
 
 #endif /* MONGORY_MATCHER_TRAVERSABLE_H */

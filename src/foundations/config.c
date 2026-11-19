@@ -14,7 +14,7 @@
 #include "../matchers/composite_matcher.h" // For specific matcher constructors
 #include "../matchers/existence_matcher.h" // For specific matcher constructors
 #include "../matchers/inclusion_matcher.h" // For specific matcher constructors
-#include "../matchers/literal_matcher.h"   // For specific matcher constructors
+#include "../matchers/value_matcher.h"   // For specific matcher constructors
 #include "../matchers/external_matcher.h"     // For specific matcher constructors
 #include "config_private.h"                // For mongory_regex_adapter, mongory_value_converter, etc.
 #include "mongory-core/foundations/memory_pool.h"

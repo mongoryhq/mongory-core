@@ -1,5 +1,5 @@
 #include "../src/foundations/utils.h"
-#include "../src/matchers/literal_matcher.h"
+#include "../src/matchers/value_matcher.h"
 #include "../src/test_helper/test_helper.h"
 #include "mongory-core.h"
 #include "unity.h"
@@ -71,7 +71,7 @@ static thread_ret_t THREAD_CALL concurrent_match_worker(void *arg) {
   wait_for_start_gate();
 
   for (int i = 0; i < ITERATIONS_PER_THREAD; i++) {
-    // Hit both array records (triggering lazy array_record_matcher build on iteration 0)
+    // Hit both array records (triggering lazy implicit_array_matcher build on iteration 0)
     // and scalar records across all worker threads using isolated per-thread scratch pools.
     mongory_value *match_array_doc = MG_TABLE_WRAP(scratch_pool, 5,
       "tags", MG_ARRAY_WRAP(scratch_pool, 2,

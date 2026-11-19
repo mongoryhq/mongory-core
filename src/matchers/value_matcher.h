@@ -1,8 +1,8 @@
-#ifndef MONGORY_MATCHER_LITERAL_H
-#define MONGORY_MATCHER_LITERAL_H
+#ifndef MONGORY_MATCHER_VALUE_H
+#define MONGORY_MATCHER_VALUE_H
 
 /**
- * @file literal_matcher.h
+ * @file value_matcher.h
  * @brief Defines constructors for literal-based matchers, field matchers,
  * $not, and $size. This is an internal header for the matcher module.
  *
@@ -18,11 +18,11 @@
 #include "matcher_explainable.h"
 #include "composite_matcher.h"
 
-typedef struct mongory_literal_matcher {
+typedef struct mongory_value_matcher {
   mongory_matcher base;
   mongory_matcher *delegate_matcher;
-  mongory_matcher *array_record_matcher;
-} mongory_literal_matcher;
+  mongory_matcher *implicit_array_matcher;
+} mongory_value_matcher;
 
 /**
  * @struct mongory_field_matcher
@@ -30,7 +30,7 @@ typedef struct mongory_literal_matcher {
  * Stores the field name/index.
  */
 typedef struct mongory_field_matcher {
-  mongory_literal_matcher literal; /**< Base composite matcher structure. */
+  mongory_value_matcher literal; /**< Base composite matcher structure. */
   char *field;                         /**< Name/index of the field to match. Copied string. */
 } mongory_field_matcher;
 /**
@@ -46,7 +46,7 @@ typedef struct mongory_field_matcher {
  * representation of an index (if input is an array). A copy of this string is
  * made.
  * @param condition The `mongory_value` condition to apply to the field's value.
- * This condition is processed by `mongory_matcher_literal_delegate` to determine
+ * This condition is processed by `mongory_matcher_value_delegate` to determine
  * the actual sub-matcher (e.g., equality, regex, nested table condition).
  * @return A new field matcher, or NULL on failure.
  */
@@ -57,7 +57,7 @@ mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *fiel
  *
  * This matcher negates the result of a sub-matcher derived from `condition`.
  * The sub-matcher is typically determined by
- * `mongory_matcher_literal_delegate`.
+ * `mongory_matcher_value_delegate`.
  *
  * @param pool Memory pool for allocation.
  * @param condition The `mongory_value` condition whose result will be negated.
@@ -70,7 +70,7 @@ mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool, mongory_valu
  *
  * This matcher checks if the size (count of elements) of an input array
  * matches the given `condition`. The `condition` itself is processed by
- * `mongory_matcher_literal_delegate` (e.g., it could be a number for exact
+ * `mongory_matcher_value_delegate` (e.g., it could be a number for exact
  * size, or a condition table like {$gt: 5}).
  *
  * @param pool Memory pool for allocation.
@@ -83,7 +83,7 @@ mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool, mongory_val
  * @brief Creates a "literal" matcher (deprecated or internal use).
  *
  * This function seems to be a more generic entry point that delegates to
- * `mongory_matcher_literal_delegate` and potentially `array_record_matcher`.
+ * `mongory_matcher_value_delegate` and potentially `implicit_array_matcher`.
  * Its direct public use might be limited compared to `field_new` or specific
  * operator matchers. It appears to be part of the internal logic for how field
  * values are matched.
@@ -92,6 +92,6 @@ mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool, mongory_val
  * @param condition The literal `mongory_value` or condition table.
  * @return A new literal matcher, or NULL on failure.
  */
-mongory_matcher *mongory_matcher_literal_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
+mongory_matcher *mongory_matcher_value_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
-#endif /* MONGORY_MATCHER_LITERAL_H */
+#endif /* MONGORY_MATCHER_VALUE_H */

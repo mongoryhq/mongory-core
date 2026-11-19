@@ -11,7 +11,7 @@
 #include "../foundations/memory_pool_private.h" // For atomic children load/store
 #include "../foundations/string_buffer.h"   // For mongory_string_buffer_new
 #include "base_matcher.h"                   // For mongory_matcher_always_true_new, etc.
-#include "literal_matcher.h"                // For mongory_matcher_field_new
+#include "value_matcher.h"                // For mongory_matcher_field_new
 #include "mongory-core/foundations/error.h" // For MONGORY_ERROR_INVALID_ARGUMENT
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/table.h" // For mongory_table operations
@@ -242,7 +242,7 @@ static inline mongory_matcher *mongory_matcher_build_sub_matcher(char *key, mong
  * @param condition A `mongory_value` of type `MONGORY_TYPE_TABLE`.
  * @return A `mongory_matcher` representing the combined logic of the table, or NULL on failure.
  */
-mongory_matcher *mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongory_value *table_condition, void *extern_ctx) {
+mongory_matcher *mongory_matcher_condition_new(mongory_memory_pool *pool, mongory_value *table_condition, void *extern_ctx) {
   if (!MONGORY_VALIDATE_TABLE(pool, table_condition)) {
     return NULL;
   }
@@ -277,7 +277,7 @@ mongory_matcher *mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongo
   final_matcher->base.match = mongory_matcher_and_match;
   final_matcher->base.original_match = mongory_matcher_and_match;
   final_matcher->base.sub_count = sub_matchers->count;
-  final_matcher->base.name = mongory_string_cpy(pool, "Condition");
+  final_matcher->base.name = mongory_string_cpy(pool, "And");
   final_matcher->base.priority += mongory_matcher_calculate_priority(sub_matchers);
   return (mongory_matcher *)final_matcher;
 }
@@ -375,7 +375,7 @@ mongory_matcher *mongory_matcher_and_new(mongory_memory_pool *pool, mongory_valu
  * @param condition_table A `mongory_value` (table) from the $or array.
  * @param acc Pointer to `mongory_matcher_table_build_sub_matcher_context`.
  * The `matchers` array in context will store the result of
- * `mongory_matcher_table_cond_new`.
+ * `mongory_matcher_condition_new`.
  * @return True if successful, false otherwise.
  */
 static inline bool mongory_matcher_build_or_sub_matcher(mongory_value *condition_table, void *acc) {
@@ -385,7 +385,7 @@ static inline bool mongory_matcher_build_or_sub_matcher(mongory_value *condition
 
   // Each 'condition_table' is a complete query object for one branch of the OR.
   // So, create a full table_cond_new matcher for it.
-  mongory_matcher *table_level_matcher = mongory_matcher_table_cond_new(pool_for_new_matchers, condition_table, ctx->extern_ctx);
+  mongory_matcher *table_level_matcher = mongory_matcher_condition_new(pool_for_new_matchers, condition_table, ctx->extern_ctx);
   if (table_level_matcher == NULL) {
     return false; // Failed to create a matcher for this OR branch.
   }

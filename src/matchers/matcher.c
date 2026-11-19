@@ -13,8 +13,8 @@
 #include "../foundations/config_private.h" // Potentially for global settings
 #include "../foundations/memory_pool_private.h"
 #include "base_matcher.h"                  // For mongory_matcher_base_new if used directly
-#include "composite_matcher.h"             // For mongory_matcher_table_cond_new
-#include "literal_matcher.h"               // Potentially for other default constructions
+#include "composite_matcher.h"             // For mongory_matcher_condition_new
+#include "value_matcher.h"               // Potentially for other default constructions
 #include "mongory-core/foundations/array.h"
 #include "../foundations/string_buffer.h"
 #include "mongory-core/foundations/memory_pool.h"
@@ -29,7 +29,7 @@
  * uses a factory pattern where this function determines the appropriate
  * specific matcher to create based on the structure of the `condition` value.
  *
- * Currently, it always delegates to `mongory_matcher_table_cond_new`,
+ * Currently, it always delegates to `mongory_matcher_condition_new`,
  * which handles query documents (tables). This is the most common use case,
  * where the condition is a table like `{ "field": { "$op": "value" } }`.
  *
@@ -43,7 +43,7 @@ mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *c
   // The core logic is delegated to a more specific constructor.
   // This design allows for easy extension; for example, a different constructor
   // could be chosen here based on the `condition->type`.
-  mongory_matcher *matcher = mongory_matcher_table_cond_new(pool, condition, extern_ctx);
+  mongory_matcher *matcher = mongory_matcher_condition_new(pool, condition, extern_ctx);
   if (matcher == NULL) {
     return NULL;
   }
@@ -105,9 +105,9 @@ static mongory_value *mongory_matcher_build_explain_node(
       }
       children->push(children, child_node);
     }
-  } else if (matcher->traverse == mongory_matcher_literal_traverse) {
-    mongory_literal_matcher *literal = (mongory_literal_matcher *)matcher;
-    mongory_matcher *next = literal->array_record_matcher ? literal->array_record_matcher : literal->delegate_matcher;
+  } else if (matcher->traverse == mongory_matcher_value_traverse) {
+    mongory_value_matcher *literal = (mongory_value_matcher *)matcher;
+    mongory_matcher *next = literal->implicit_array_matcher ? literal->implicit_array_matcher : literal->delegate_matcher;
     if (next) {
       mongory_value *child_node = mongory_matcher_build_explain_node(next, pool, as_skip);
       if (!child_node || pool->error != NULL) {
@@ -215,9 +215,9 @@ static bool mongory_matcher_enable_trace_cb(mongory_matcher *matcher, mongory_ma
   matcher->trace_stack = (mongory_array *)ctx->acc;
   matcher->trace_level = ctx->level;
   matcher->match = mongory_matcher_traced_match;
-  if (matcher->traverse == mongory_matcher_literal_traverse) {
-    mongory_literal_matcher *literal = (mongory_literal_matcher *)matcher;
-    if (literal->array_record_matcher && literal->delegate_matcher) {
+  if (matcher->traverse == mongory_matcher_value_traverse) {
+    mongory_value_matcher *literal = (mongory_value_matcher *)matcher;
+    if (literal->implicit_array_matcher && literal->delegate_matcher) {
       mongory_matcher_traverse_context delegate_ctx = {
           .pool = ctx->pool,
           .level = ctx->level + 1,
@@ -235,9 +235,9 @@ static bool mongory_matcher_enable_trace_cb(mongory_matcher *matcher, mongory_ma
 static bool mongory_matcher_disable_trace_cb(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx) {
   matcher->match = matcher->original_match;
   matcher->trace_stack = NULL;
-  if (matcher->traverse == mongory_matcher_literal_traverse) {
-    mongory_literal_matcher *literal = (mongory_literal_matcher *)matcher;
-    if (literal->array_record_matcher && literal->delegate_matcher) {
+  if (matcher->traverse == mongory_matcher_value_traverse) {
+    mongory_value_matcher *literal = (mongory_value_matcher *)matcher;
+    if (literal->implicit_array_matcher && literal->delegate_matcher) {
       mongory_matcher_traverse_context delegate_ctx = {
           .level = ctx->level + 1,
           .count = 0,
@@ -306,9 +306,9 @@ static mongory_array *mongory_matcher_build_trace_nodes(
             children->push(children, skip_node);
           }
         }
-      } else if (m->traverse == mongory_matcher_literal_traverse) {
-        mongory_literal_matcher *lit = (mongory_literal_matcher *)m;
-        mongory_matcher *next = lit->array_record_matcher ? lit->array_record_matcher : lit->delegate_matcher;
+      } else if (m->traverse == mongory_matcher_value_traverse) {
+        mongory_value_matcher *lit = (mongory_value_matcher *)m;
+        mongory_matcher *next = lit->implicit_array_matcher ? lit->implicit_array_matcher : lit->delegate_matcher;
         if (next && children->count == 0) {
           mongory_value *skip_node = mongory_matcher_build_explain_node(next, pool, true);
           if (!skip_node || pool->error != NULL) {

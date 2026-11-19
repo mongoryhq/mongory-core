@@ -1,8 +1,8 @@
-#ifndef MONGORY_MATCHER_ARRAY_RECORD_H
-#define MONGORY_MATCHER_ARRAY_RECORD_H
+#ifndef MONGORY_MATCHER_IMPLICIT_ARRAY_H
+#define MONGORY_MATCHER_IMPLICIT_ARRAY_H
 
 /**
- * @file array_record_matcher.h
+ * @file implicit_array_matcher.h
  * @brief Defines the constructor for a matcher that handles complex conditions
  * against arrays. This is an internal header for the matcher module.
  *
@@ -42,6 +42,6 @@
  * array or its elements.
  * @return A new array record matcher, or NULL on failure.
  */
-mongory_matcher *mongory_matcher_array_record_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
+mongory_matcher *mongory_matcher_implicit_array_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
-#endif /* MONGORY_MATCHER_ARRAY_RECORD_H */
+#endif /* MONGORY_MATCHER_IMPLICIT_ARRAY_H */

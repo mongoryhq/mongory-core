@@ -24,6 +24,6 @@ bool mongory_matcher_composite_explain(struct mongory_matcher *matcher, mongory_
 
 bool mongory_matcher_field_explain(struct mongory_matcher *matcher, mongory_matcher_traverse_context *ctx);
 
-bool mongory_matcher_literal_explain(struct mongory_matcher *matcher, mongory_matcher_traverse_context *ctx);
+bool mongory_matcher_value_explain(struct mongory_matcher *matcher, mongory_matcher_traverse_context *ctx);
 
 #endif /* MONGORY_MATCHER_EXPLAINABLE_H */

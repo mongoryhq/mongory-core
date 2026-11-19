@@ -1,5 +1,5 @@
 /**
- * @file literal_matcher.c
+ * @file value_matcher.c
  * @brief Implements literal matchers, field matchers, $not, and $size.
  * This is an internal implementation file for the matcher module.
  *
@@ -10,15 +10,15 @@
  * - $not inverts the result of a condition.
  * - $size checks the number of elements in an array against a condition.
  */
-#include "literal_matcher.h"
+#include "value_matcher.h"
 #include "../foundations/config_private.h"      // For mongory_internal_value_converter
 #include "../foundations/memory_pool_private.h" // For atomic & lock helpers
 #include "../foundations/utils.h"               // For mongory_try_parse_int, mongory_string_cpy
 #include "../foundations/string_buffer.h"   // For mongory_string_buffer_appendf
-#include "array_record_matcher.h"           // For handling array-specific matching logic
+#include "implicit_array_matcher.h"           // For handling array-specific matching logic
 #include "base_matcher.h"                   // For mongory_matcher_base_new
 #include "compare_matcher.h"                // For mongory_matcher_equal_new
-#include "composite_matcher.h"              // For mongory_matcher_composite_new, mongory_matcher_table_cond_new
+#include "composite_matcher.h"              // For mongory_matcher_composite_new, mongory_matcher_condition_new
 #include "existence_matcher.h"              // For mongory_matcher_exists_new (used by null_new)
 #include "matcher_explainable.h"
 #include "matcher_traversable.h"
@@ -34,13 +34,13 @@
  *
  * This function is used by field matchers, $not, and $size.
  * It checks the type of the input `value`.
- * - If `value` is an array, it may delegate to an `array_record_matcher`
+ * - If `value` is an array, it may delegate to an `implicit_array_matcher`
  *   (via `composite->right`, if initialized). This path seems intended for
  *   more complex array matching scenarios where the condition itself might
  *   describe how array elements should be matched.
  * - Otherwise (if `value` is not an array, or if array-specific handling is
  *   not triggered), it uses the `composite->left` matcher. `composite->left`
- *   is typically set up by `mongory_matcher_literal_delegate` to handle the
+ *   is typically set up by `mongory_matcher_value_delegate` to handle the
  *   specific type of the literal condition (e.g., equality for simple values,
  *   regex matcher for regex conditions, table condition matcher for table
  *   conditions).
@@ -73,21 +73,21 @@ static inline void mongory_propagate_build_error(mongory_memory_pool *build_pool
   }
 }
 
-static inline bool mongory_matcher_literal_match(mongory_matcher *matcher, mongory_value *value) {
-  mongory_literal_matcher *literal = (mongory_literal_matcher *)matcher;
+static inline bool mongory_matcher_value_match(mongory_matcher *matcher, mongory_value *value) {
+  mongory_value_matcher *literal = (mongory_value_matcher *)matcher;
   if (!literal || !literal->base.pool)
     return false; // Basic safety check
 
   if (value != NULL && value->type == MONGORY_TYPE_ARRAY) {
     // Double-checked locking: lazy build runs only on the first array value seen,
     // keeping non-array matching and subsequent array matches lock-free.
-    mongory_matcher *arm = mongory_atomic_load_ptr_acquire(&literal->array_record_matcher);
+    mongory_matcher *arm = mongory_atomic_load_ptr_acquire(&literal->implicit_array_matcher);
     if (arm == NULL) {
       mongory_memory_pool *build_pool = literal->base.pool;
       mongory_memory_pool_lock(build_pool);
-      arm = mongory_atomic_load_ptr_relaxed(&literal->array_record_matcher);
+      arm = mongory_atomic_load_ptr_relaxed(&literal->implicit_array_matcher);
       if (arm == NULL) {
-        arm = mongory_matcher_array_record_new(build_pool, literal->base.condition, literal->base.extern_ctx);
+        arm = mongory_matcher_implicit_array_new(build_pool, literal->base.condition, literal->base.extern_ctx);
         if (arm && literal->base.trace_stack) {
           mongory_matcher_enable_trace_at(arm, literal->base.trace_stack, literal->base.trace_level + 1);
         }
@@ -102,7 +102,7 @@ static inline bool mongory_matcher_literal_match(mongory_matcher *matcher, mongo
               }
             }
           }
-          mongory_atomic_store_ptr_release(&literal->array_record_matcher, arm);
+          mongory_atomic_store_ptr_release(&literal->implicit_array_matcher, arm);
         } else {
           mongory_propagate_build_error(build_pool, value);
         }
@@ -142,7 +142,7 @@ static inline mongory_matcher *mongory_matcher_null_new(mongory_memory_pool *poo
  * @brief Delegates creation of a simple literal matcher based on the
  * `condition`'s type.
  *
- * - Table condition: creates a `mongory_matcher_table_cond_new`.
+ * - Table condition: creates a `mongory_matcher_condition_new`.
  * - Regex condition: creates a `mongory_matcher_regex_new`.
  * - Null condition: creates a specialized `mongory_matcher_null_new`.
  * - Other types: creates an equality matcher (`mongory_matcher_equal_new`).
@@ -151,13 +151,13 @@ static inline mongory_matcher *mongory_matcher_null_new(mongory_memory_pool *poo
  * @param condition The literal value or condition table.
  * @return The appropriate simple matcher for the condition, or NULL on failure.
  */
-static inline mongory_matcher *mongory_matcher_literal_delegate(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
+static inline mongory_matcher *mongory_matcher_value_delegate(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
   if (!condition)
     return mongory_matcher_equal_new(pool, NULL, extern_ctx); // Or specific null matcher
 
   switch (condition->type) {
   case MONGORY_TYPE_TABLE:
-    return mongory_matcher_table_cond_new(pool, condition, extern_ctx);
+    return mongory_matcher_condition_new(pool, condition, extern_ctx);
   case MONGORY_TYPE_REGEX:
     return mongory_matcher_regex_new(pool, condition, extern_ctx);
   case MONGORY_TYPE_NULL:
@@ -174,7 +174,7 @@ static inline mongory_matcher *mongory_matcher_literal_delegate(mongory_memory_p
  *
  * Extracts the value of `field_matcher->field` from the input `value`
  * (table or array). Then, applies the literal matching logic
- * (`mongory_matcher_literal_match`) using the sub-matcher stored in
+ * (`mongory_matcher_value_match`) using the sub-matcher stored in
  * `composite.left` (which was set up by `literal_delegate` based on the
  * original condition for this field).
  *
@@ -231,7 +231,7 @@ static inline bool mongory_matcher_field_match(mongory_matcher *matcher, mongory
   }
   // Now, use the literal_match logic (which uses composite.left primarily)
   // to match the extracted field_value.
-  return mongory_matcher_literal_match(matcher, field_value);
+  return mongory_matcher_value_match(matcher, field_value);
 }
 
 mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *field_name,
@@ -257,12 +257,12 @@ mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *fiel
   field_m->literal.base.condition = condition_for_field; // Original condition for the field
   field_m->literal.base.name = mongory_string_cpy(pool, "Field");
   field_m->literal.base.explain = mongory_matcher_field_explain;
-  field_m->literal.base.traverse = mongory_matcher_literal_traverse;
+  field_m->literal.base.traverse = mongory_matcher_value_traverse;
   field_m->literal.base.extern_ctx = extern_ctx;
   // The 'left' child of the composite is the actual matcher for the field's value,
   // determined by the type of 'condition_for_field'.
-  field_m->literal.delegate_matcher = mongory_matcher_literal_delegate(pool, condition_for_field, extern_ctx);
-  field_m->literal.array_record_matcher = NULL; // Not typically used by field_match directly,
+  field_m->literal.delegate_matcher = mongory_matcher_value_delegate(pool, condition_for_field, extern_ctx);
+  field_m->literal.implicit_array_matcher = NULL; // Not typically used by field_match directly,
                                                 // but literal_match might use it for arrays.
 
   if (field_m->literal.delegate_matcher == NULL) {
@@ -278,27 +278,27 @@ mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *fiel
 
 /**
  * @brief Match function for a NOT matcher.
- * Negates the result of `mongory_matcher_literal_match`.
+ * Negates the result of `mongory_matcher_value_match`.
  * @param matcher The $not matcher.
  * @param value The value to evaluate.
  * @return True if the literal match is false, false if it's true.
  */
 static inline bool mongory_matcher_not_match(mongory_matcher *matcher, mongory_value *value) {
   // literal_match uses composite.left (and sometimes .right for arrays)
-  return !mongory_matcher_literal_match(matcher, value);
+  return !mongory_matcher_value_match(matcher, value);
 }
 
 mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool, mongory_value *condition_to_negate, void *extern_ctx) {
-  mongory_literal_matcher *literal = MG_ALLOC_PTR(pool, mongory_literal_matcher);
+  mongory_value_matcher *literal = MG_ALLOC_PTR(pool, mongory_value_matcher);
   if (!literal)
     return NULL;
 
   // The 'left' child is the matcher for the condition being negated.
-  literal->delegate_matcher = mongory_matcher_literal_delegate(pool, condition_to_negate, extern_ctx);
+  literal->delegate_matcher = mongory_matcher_value_delegate(pool, condition_to_negate, extern_ctx);
   if (!literal->delegate_matcher) {
     return NULL; // Failed to create delegate for the condition.
   }
-  literal->array_record_matcher = NULL;
+  literal->implicit_array_matcher = NULL;
   // composite->right remains NULL for $not, as literal_match's array path
   // via composite->right will use condition_to_negate if right is NULL.
 
@@ -307,8 +307,8 @@ mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool, mongory_valu
   literal->base.match = mongory_matcher_not_match;
   literal->base.original_match = mongory_matcher_not_match;
   literal->base.name = mongory_string_cpy(pool, "Not");
-  literal->base.explain = mongory_matcher_literal_explain;
-  literal->base.traverse = mongory_matcher_literal_traverse;
+  literal->base.explain = mongory_matcher_value_explain;
+  literal->base.traverse = mongory_matcher_value_traverse;
   literal->base.sub_count = 1;
   literal->base.extern_ctx = extern_ctx;
   literal->base.priority = 1.0 + literal->delegate_matcher->priority;
@@ -337,22 +337,22 @@ static inline bool mongory_matcher_size_match(mongory_matcher *matcher, mongory_
   // The $size matcher's `composite.left` was set up by literal_delegate
   // based on the condition provided to $size (e.g., if {$size: 5}, left is an
   // equality matcher for 5).
-  return mongory_matcher_literal_match(matcher, mongory_value_wrap_i(value->pool, (int)array->count));
+  return mongory_matcher_value_match(matcher, mongory_value_wrap_i(value->pool, (int)array->count));
 }
 
 mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool, mongory_value *size_condition, void *extern_ctx) {
-  mongory_literal_matcher *literal = MG_ALLOC_PTR(pool, mongory_literal_matcher);
+  mongory_value_matcher *literal = MG_ALLOC_PTR(pool, mongory_value_matcher);
   if (!literal)
     return NULL;
 
   // The 'left' child is the matcher for the size_condition itself.
   // E.g., if {$size: {$gt: 5}}, size_condition is {$gt: 5}, and
   // composite.left becomes a "greater than 5" matcher.
-  literal->delegate_matcher = mongory_matcher_literal_delegate(pool, size_condition, extern_ctx);
+  literal->delegate_matcher = mongory_matcher_value_delegate(pool, size_condition, extern_ctx);
   if (!literal->delegate_matcher) {
     return NULL;
   }
-  literal->array_record_matcher = NULL;
+  literal->implicit_array_matcher = NULL;
   // composite->right typically NULL for $size, array path of literal_match not primary.
 
   literal->base.pool = pool;
@@ -360,8 +360,8 @@ mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool, mongory_val
   literal->base.match = mongory_matcher_size_match;
   literal->base.original_match = mongory_matcher_size_match;
   literal->base.name = mongory_string_cpy(pool, "Size");
-  literal->base.explain = mongory_matcher_literal_explain;
-  literal->base.traverse = mongory_matcher_literal_traverse;
+  literal->base.explain = mongory_matcher_value_explain;
+  literal->base.traverse = mongory_matcher_value_traverse;
   literal->base.sub_count = 1;
   literal->base.extern_ctx = extern_ctx;
   literal->base.priority = 1.0 + literal->delegate_matcher->priority;

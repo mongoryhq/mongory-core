@@ -88,7 +88,7 @@ mongory_matcher *mongory_matcher_every_new(mongory_memory_pool *pool, mongory_va
  * @param condition A `mongory_value` of type `MONGORY_TYPE_TABLE`.
  * @return A new table condition matcher, or NULL on failure/invalid condition.
  */
-mongory_matcher *mongory_matcher_table_cond_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
+mongory_matcher *mongory_matcher_condition_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 /** @} */
 
 /**

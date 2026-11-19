@@ -21,7 +21,7 @@ typedef struct mongory_matcher mongory_matcher;
  *
  * This function typically serves as a high-level entry point for creating
  * matchers. In the current implementation, it delegates to
- * `mongory_matcher_table_cond_new`, implying that conditions are often
+ * `mongory_matcher_condition_new`, implying that conditions are often
  * table-based (similar to query documents).
  *
  * @param pool The memory pool to use for the matcher's allocations.

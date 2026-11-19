@@ -1,5 +1,5 @@
 /**
- * @file array_record_matcher.c
+ * @file implicit_array_matcher.c
  * @brief Implements a versatile matcher for arrays, handling various condition
  * types. This is an internal implementation file for the matcher module.
  *
@@ -11,13 +11,13 @@
  * - Another array: Checks for whole-array equality.
  * It often constructs a composite OR matcher to combine these possibilities.
  */
-#include "array_record_matcher.h"
+#include "implicit_array_matcher.h"
 #include "../foundations/config_private.h"
 #include "../foundations/utils.h"          // For mongory_try_parse_int
 #include "base_matcher.h"                  // For mongory_matcher_base_new
 #include "compare_matcher.h"               // For mongory_matcher_equal_new
 #include "composite_matcher.h"             // For mongory_matcher_composite_new, $elemMatch, table_cond_new, or_match
-#include "literal_matcher.h"               // Potentially used by table_cond_new
+#include "value_matcher.h"               // Potentially used by table_cond_new
 #include "mongory-core/foundations/table.h"
 #include "mongory-core/foundations/value.h"
 #include <mongory-core.h> // General include
@@ -25,7 +25,7 @@
 #include <string.h>       // For strcmp
 
 /**
- * @struct mongory_matcher_array_record_parse_table_context
+ * @struct mongory_matcher_implicit_array_parse_table_context
  * @brief Context used when parsing a table condition for array record matching.
  *
  * Helps separate parts of the condition table:
@@ -34,10 +34,10 @@
  * - `elem_match_table`: For conditions that should apply to individual elements
  *   via an implicit or explicit $elemMatch.
  */
-typedef struct mongory_matcher_array_record_parse_table_context {
+typedef struct mongory_matcher_implicit_array_parse_table_context {
   mongory_table *parsed_table;     /**< Stores operator or indexed conditions. */
   mongory_table *elem_match_table; /**< Stores conditions for element matching. */
-} mongory_matcher_array_record_parse_table_context;
+} mongory_matcher_implicit_array_parse_table_context;
 
 /**
  * @brief Callback to parse a condition table for array matching.
@@ -56,7 +56,7 @@ typedef struct mongory_matcher_array_record_parse_table_context {
  *
  * @param key Current key in the condition table.
  * @param value Current value for the key.
- * @param acc Pointer to `mongory_matcher_array_record_parse_table_context`.
+ * @param acc Pointer to `mongory_matcher_implicit_array_parse_table_context`.
  * @return Always true to continue.
  */
 static inline bool mongory_is_elem_match_operator(char *key, mongory_value *value) {
@@ -71,8 +71,8 @@ static inline bool mongory_is_elem_match_operator(char *key, mongory_value *valu
   return false;
 }
 
-static inline bool mongory_matcher_array_record_parse_table_foreach(char *key, mongory_value *value, void *acc) {
-  mongory_matcher_array_record_parse_table_context *context = (mongory_matcher_array_record_parse_table_context *)acc;
+static inline bool mongory_matcher_implicit_array_parse_table_foreach(char *key, mongory_value *value, void *acc) {
+  mongory_matcher_implicit_array_parse_table_context *context = (mongory_matcher_implicit_array_parse_table_context *)acc;
   mongory_table *parsed_table_for_operators = context->parsed_table;
   mongory_table *table_for_elem_match_conditions = context->elem_match_table;
 
@@ -105,7 +105,7 @@ static inline bool mongory_matcher_array_record_parse_table_foreach(char *key, m
  * @return A new `mongory_value` (table) containing the parsed and restructured
  * condition. Returns NULL if input is not a table or on allocation failure.
  */
-static inline mongory_value *mongory_matcher_array_record_parse_table(mongory_memory_pool *pool, mongory_value *condition) {
+static inline mongory_value *mongory_matcher_implicit_array_parse_table(mongory_memory_pool *pool, mongory_value *condition) {
   if (!pool) {
     return NULL;
   }
@@ -128,11 +128,11 @@ static inline mongory_value *mongory_matcher_array_record_parse_table(mongory_me
     return NULL;
   }
 
-  mongory_matcher_array_record_parse_table_context parse_ctx = {parsed_table, elem_match_sub_table};
+  mongory_matcher_implicit_array_parse_table_context parse_ctx = {parsed_table, elem_match_sub_table};
   mongory_table *original_condition_table = condition->data.t;
 
   original_condition_table->each(original_condition_table, &parse_ctx,
-                                 mongory_matcher_array_record_parse_table_foreach);
+                                 mongory_matcher_implicit_array_parse_table_foreach);
 
   if (elem_match_sub_table->count > 0) {
     // If there were conditions for element matching, add them as an $elemMatch
@@ -145,7 +145,7 @@ static inline mongory_value *mongory_matcher_array_record_parse_table(mongory_me
 }
 
 /**
- * @brief Main constructor for `mongory_matcher_array_record_new`.
+ * @brief Main constructor for `mongory_matcher_implicit_array_new`.
  *
  * Constructs a two-part matcher (often combined with OR):
  * - `left`: Handles element-wise conditions (like $elemMatch from various
@@ -159,15 +159,15 @@ static inline mongory_value *mongory_matcher_array_record_parse_table(mongory_me
  *
  * @param pool Memory pool.
  * @param condition The condition to apply to arrays.
- * @return The constructed array_record_matcher, or NULL on failure.
+ * @return The constructed implicit_array_matcher, or NULL on failure.
  */
-mongory_matcher *mongory_matcher_array_record_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
+mongory_matcher *mongory_matcher_implicit_array_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
   if (!condition)
     return NULL;
   switch (condition->type) {
   case MONGORY_TYPE_TABLE:
-    return mongory_matcher_table_cond_new(pool,
-      mongory_matcher_array_record_parse_table(pool, condition),
+    return mongory_matcher_condition_new(pool,
+      mongory_matcher_implicit_array_parse_table(pool, condition),
       extern_ctx
     );
   case MONGORY_TYPE_ARRAY:

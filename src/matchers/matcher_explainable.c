@@ -5,7 +5,7 @@
 #include "../foundations/string_buffer.h"
 #include "base_matcher.h"
 #include "composite_matcher.h"
-#include "literal_matcher.h"
+#include "value_matcher.h"
 #include "../foundations/utils.h"
 #include <stdio.h>
 
@@ -89,7 +89,7 @@ bool mongory_matcher_composite_explain(mongory_matcher *matcher, mongory_matcher
   return ctx->acc != NULL;
 }
 
-bool mongory_matcher_literal_explain(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx) {
+bool mongory_matcher_value_explain(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx) {
   return mongory_matcher_composite_explain(matcher, ctx);
 }
 
