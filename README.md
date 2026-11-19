@@ -88,6 +88,27 @@ int main() {
 ```
 *(Note: For a runnable version of this example, see `benchmarks/basic_test.c`)*
 
+## 🔍 Explain & Trace
+
+`mongory-core` provides both structured tree APIs (returning `mongory_value *` Table/Array trees allocated in your arena pool) and stdout helpers that print those trees:
+
+```c
+// Structured explain tree:
+// { "name", "condition", "priority", "children", ["field"] }
+mongory_value *explain_node = mongory_matcher_explain_tree(matcher, pool);
+
+// Print explain tree to stdout
+mongory_matcher_explain(matcher, pool);
+
+// Structured trace tree:
+// { "name", "condition", "priority", "result": "pass"|"fail"|"skip", "children", ["field"], ["record"] }
+// Short-circuited branches are recursively expanded with "result": "skip".
+mongory_value *trace_node = mongory_matcher_trace_tree(matcher, doc);
+
+// Print trace tree to stdout and return bool match result
+bool matched = mongory_matcher_trace(matcher, doc);
+```
+
 ## 🛠️ Building and Testing
 
 This project uses `CMake` for cross-platform building and testing, with a convenient build script for easy usage.
