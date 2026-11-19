@@ -120,3 +120,18 @@ jobs:
       working-directory: build
       shell: msys2 {0}
       run: ctest --build-config ${{ matrix.build_type }}
+
+  fuzz:
+    name: Fuzz Smoke (libFuzzer + ASan/UBSan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Clang
+        run: sudo apt-get update && sudo apt-get install -y clang
+      - name: Build and run libFuzzer smoke target
+        run: |
+          clang -std=c99 -O1 -g -Wall -Wextra \
+            -fsanitize=fuzzer,address,undefined \
+            -Iinclude src/foundations/*.c src/matchers/*.c tests/fuzz/fuzz_matcher.c \
+            -o fuzz_matcher -lm
+          ./fuzz_matcher -max_total_time=15 -max_len=256

@@ -173,6 +173,16 @@ if(BUILD_TESTS)
         list(LENGTH MONGORY_SPEC_FIXTURES MONGORY_SPEC_FIXTURE_COUNT)
         message(STATUS "mongory-spec conformance fixtures: ${MONGORY_SPEC_FIXTURE_COUNT}")
     endif()
+
+    if(EXISTS "${CMAKE_SOURCE_DIR}/tests/fuzz/fuzz_matcher.c")
+        add_executable(mongory_fuzz_smoke tests/fuzz/fuzz_matcher.c)
+        target_compile_definitions(mongory_fuzz_smoke PRIVATE MONGORY_FUZZ_STANDALONE)
+        target_link_libraries(mongory_fuzz_smoke mongory-core)
+        if(MATH_LIBRARY)
+            target_link_libraries(mongory_fuzz_smoke ${MATH_LIBRARY})
+        endif()
+        add_test(NAME mongory_fuzz_smoke COMMAND mongory_fuzz_smoke)
+    endif()
 endif()
 
 # Benchmark options
