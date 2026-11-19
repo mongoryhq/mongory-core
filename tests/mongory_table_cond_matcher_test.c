@@ -403,7 +403,7 @@ void test_lazy_array_record_matcher_resorts_composite_children(void) {
   TEST_ASSERT_EQUAL_STRING("tags", ((mongory_field_matcher *)comp->children->get(comp->children, 2))->field);
 }
 
-void test_explain_tree_and_trace_tree_return_formatted_strings(void) {
+void test_explain_tree_and_trace_tree_return_structured_values(void) {
   mongory_memory_pool *pool = get_test_pool();
   mongory_value *condition = MG_TABLE_WRAP(pool, 2,
     "age", MG_TABLE_WRAP(pool, 1, "$gte", mongory_value_wrap_i(pool, 18)),
@@ -411,24 +411,45 @@ void test_explain_tree_and_trace_tree_return_formatted_strings(void) {
   );
   mongory_matcher *matcher = mongory_matcher_new(pool, condition, NULL);
   TEST_ASSERT_NOT_NULL(matcher);
-  TEST_ASSERT_NULL(mongory_matcher_format_trace(matcher));
 
-  char *explain_str = mongory_matcher_explain_tree(matcher, pool);
-  TEST_ASSERT_NOT_NULL(explain_str);
-  TEST_ASSERT_NOT_NULL(strstr(explain_str, "Field: \"status\""));
-  TEST_ASSERT_NOT_NULL(strstr(explain_str, "Field: \"age\""));
+  mongory_value *explain = mongory_matcher_explain_tree(matcher, pool);
+  TEST_ASSERT_NOT_NULL(explain);
+  TEST_ASSERT_EQUAL_INT(MONGORY_TYPE_TABLE, explain->type);
+  mongory_table *exp_tbl = explain->data.t;
+  TEST_ASSERT_EQUAL_STRING("Condition", exp_tbl->get(exp_tbl, "name")->data.s);
+  mongory_value *exp_children = exp_tbl->get(exp_tbl, "children");
+  TEST_ASSERT_EQUAL_INT(MONGORY_TYPE_ARRAY, exp_children->type);
+  TEST_ASSERT_EQUAL_UINT(2, exp_children->data.a->count);
+  mongory_table *first_child = exp_children->data.a->get(exp_children->data.a, 0)->data.t;
+  TEST_ASSERT_EQUAL_STRING("Field", first_child->get(first_child, "name")->data.s);
+  TEST_ASSERT_EQUAL_STRING("status", first_child->get(first_child, "field")->data.s);
 
+  // Short-circuiting trace_tree: status fails, so age subtree must be recursively marked "skip"
   mongory_memory_pool *trace_pool = mongory_memory_pool_new();
   mongory_value *record = MG_TABLE_WRAP(trace_pool, 2,
     "age", mongory_value_wrap_i(trace_pool, 20),
-    "status", mongory_value_wrap_s(trace_pool, "active")
+    "status", mongory_value_wrap_s(trace_pool, "inactive")
   );
-  mongory_matcher_trace_result_colorful_set(false);
-  char *trace_str = mongory_matcher_trace_tree(matcher, record);
-  mongory_matcher_trace_result_colorful_set(true);
-  TEST_ASSERT_NOT_NULL(trace_str);
-  TEST_ASSERT_NOT_NULL(strstr(trace_str, "Matched"));
-  TEST_ASSERT_NOT_NULL(strstr(trace_str, "field: \"status\""));
+  mongory_value *trace = mongory_matcher_trace_tree(matcher, record);
+  TEST_ASSERT_NOT_NULL(trace);
+  TEST_ASSERT_EQUAL_INT(MONGORY_TYPE_TABLE, trace->type);
+  mongory_table *tr_tbl = trace->data.t;
+  TEST_ASSERT_EQUAL_STRING("fail", tr_tbl->get(tr_tbl, "result")->data.s);
+  mongory_array *tr_children = tr_tbl->get(tr_tbl, "children")->data.a;
+  TEST_ASSERT_EQUAL_UINT(2, tr_children->count);
+
+  mongory_table *status_node = tr_children->get(tr_children, 0)->data.t;
+  TEST_ASSERT_EQUAL_STRING("status", status_node->get(status_node, "field")->data.s);
+  TEST_ASSERT_EQUAL_STRING("fail", status_node->get(status_node, "result")->data.s);
+
+  mongory_table *age_node = tr_children->get(tr_children, 1)->data.t;
+  TEST_ASSERT_EQUAL_STRING("age", age_node->get(age_node, "field")->data.s);
+  TEST_ASSERT_EQUAL_STRING("skip", age_node->get(age_node, "result")->data.s);
+  mongory_array *age_children = age_node->get(age_node, "children")->data.a;
+  TEST_ASSERT_TRUE(age_children->count > 0);
+  mongory_table *age_inner = age_children->get(age_children, 0)->data.t;
+  TEST_ASSERT_EQUAL_STRING("skip", age_inner->get(age_inner, "result")->data.s);
+
   TEST_ASSERT_NULL(matcher->trace_stack);
   trace_pool->free(trace_pool);
 }
@@ -444,6 +465,6 @@ int main(void) {
   RUN_TEST(test_dollar_inside_field_name_is_a_field);
   RUN_TEST(test_lazy_array_record_matcher_updates_ancestor_priorities);
   RUN_TEST(test_lazy_array_record_matcher_resorts_composite_children);
-  RUN_TEST(test_explain_tree_and_trace_tree_return_formatted_strings);
+  RUN_TEST(test_explain_tree_and_trace_tree_return_structured_values);
   return UNITY_END();
 }

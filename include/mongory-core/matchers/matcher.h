@@ -41,12 +41,17 @@ mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *c
 bool mongory_matcher_match(mongory_matcher *matcher, mongory_value *value);
 
 /**
- * @brief Builds and returns the explain tree string for a matcher.
+ * @brief Builds and returns the structured explain tree for a matcher.
+ *
+ * Each node is a `mongory_value` wrapping a `mongory_table` with keys:
+ * `"name"`, `"condition"`, `"priority"`, `"children"` (array of child nodes),
+ * and `"field"` (for Field matchers).
+ *
  * @param matcher The matcher to explain.
- * @param temp_pool The temporary pool to allocate the formatted tree string from.
- * @return A NUL-terminated explain tree string allocated in `temp_pool`, or NULL on error.
+ * @param temp_pool The temporary pool to allocate the tree from.
+ * @return A `mongory_value*` table representing the root explain node, or NULL on error.
  */
-char *mongory_matcher_explain_tree(mongory_matcher *matcher, mongory_memory_pool *temp_pool);
+mongory_value *mongory_matcher_explain_tree(mongory_matcher *matcher, mongory_memory_pool *temp_pool);
 
 /**
  * @brief Explains a matcher by printing `mongory_matcher_explain_tree` to stdout.
@@ -56,12 +61,18 @@ char *mongory_matcher_explain_tree(mongory_matcher *matcher, mongory_memory_pool
 void mongory_matcher_explain(mongory_matcher *matcher, mongory_memory_pool *temp_pool);
 
 /**
- * @brief Traces a matcher against `value` and returns the formatted trace tree string.
+ * @brief Traces a matcher against `value` and returns the structured trace tree.
+ *
+ * Each node is a `mongory_value` wrapping a `mongory_table` with keys:
+ * `"name"`, `"condition"`, `"priority"`, `"result"` (`"pass"`, `"fail"`, or `"skip"`),
+ * `"children"` (array of child nodes), optional `"field"` (for Field matchers),
+ * and optional `"record"` (omitted for skipped nodes or missing values).
+ *
  * @param matcher The matcher to trace.
  * @param value The value to trace.
- * @return A NUL-terminated trace tree string allocated in `value->pool` (or `matcher->pool` if `value` is NULL), or NULL on error.
+ * @return A `mongory_value*` table representing the root trace node, or NULL on error.
  */
-char *mongory_matcher_trace_tree(mongory_matcher *matcher, mongory_value *value);
+mongory_value *mongory_matcher_trace_tree(mongory_matcher *matcher, mongory_value *value);
 
 /**
  * @brief Traces a matcher, prints the trace tree to stdout, and returns the match result.
@@ -71,14 +82,7 @@ char *mongory_matcher_trace_tree(mongory_matcher *matcher, mongory_value *value)
 bool mongory_matcher_trace(mongory_matcher *matcher, mongory_value *value);
 
 /**
- * @brief Formats the currently recorded trace stack into a string.
- * @param matcher The matcher whose trace stack should be formatted.
- * @return A NUL-terminated trace string allocated in the trace stack pool, or NULL if no trace stack is active.
- */
-char *mongory_matcher_format_trace(mongory_matcher *matcher);
-
-/**
- * @brief Prints the trace of a matcher by printing `mongory_matcher_format_trace` to stdout.
+ * @brief Prints the trace of a matcher by rendering its recorded trace tree to stdout.
  * @param matcher The matcher to print the trace of.
  */
 void mongory_matcher_print_trace(mongory_matcher *matcher);
