@@ -73,28 +73,37 @@ static bool mongory_matcher_explain_cb(mongory_matcher *matcher, mongory_matcher
   return true;
 }
 
-/**
- * @brief Generates a human-readable explanation of the matcher's criteria.
- *
- * This function is a polymorphic wrapper around the `explain` function pointer,
- * allowing different matcher types to provide their own specific explanations.
- *
- * @param matcher The matcher to explain.
- * @param temp_pool A temporary memory pool for allocating the explanation string(s).
- */
-void mongory_matcher_explain(mongory_matcher *matcher, mongory_memory_pool *temp_pool) {
+char *mongory_matcher_explain_tree(mongory_matcher *matcher, mongory_memory_pool *temp_pool) {
   MONGORY_VALIDATE_PTR(temp_pool, matcher) && MONGORY_VALIDATE_PTR(temp_pool, matcher->traverse);
   if (temp_pool->error != NULL) {
-    return;
+    return NULL;
   }
+  mongory_string_buffer *buf = mongory_string_buffer_new(temp_pool);
+  if (!buf || temp_pool->error != NULL) {
+    return NULL;
+  }
+  mongory_explain_acc root_acc = {
+      .prefix = "",
+      .buf = buf,
+  };
   mongory_matcher_traverse_context ctx = {
       .pool = temp_pool,
       .count = 0,
       .total = 0,
-      .acc = "",
+      .acc = &root_acc,
       .callback = mongory_matcher_explain_cb,
   };
-  matcher->traverse(matcher, &ctx);
+  if (!matcher->traverse(matcher, &ctx) || temp_pool->error != NULL) {
+    return NULL;
+  }
+  return mongory_string_buffer_cstr(buf);
+}
+
+void mongory_matcher_explain(mongory_matcher *matcher, mongory_memory_pool *temp_pool) {
+  char *tree = mongory_matcher_explain_tree(matcher, temp_pool);
+  if (tree != NULL) {
+    printf("%s", tree);
+  }
 }
 
 typedef struct mongory_matcher_traced_match_context {
@@ -259,28 +268,66 @@ void mongory_matcher_disable_trace(mongory_matcher *matcher) {
   matcher->traverse(matcher, &ctx);
 }
 
-void mongory_matcher_print_trace(mongory_matcher *matcher) {
-  if (matcher->trace_stack == NULL)
-    return;
+char *mongory_matcher_format_trace(mongory_matcher *matcher) {
+  if (!matcher || matcher->trace_stack == NULL) {
+    return NULL;
+  }
+  mongory_memory_pool *pool = matcher->trace_stack->pool;
   mongory_array *sorted_trace_stack = mongory_matcher_traces_sort(matcher->trace_stack, 0);
+  if (!sorted_trace_stack || pool->error != NULL) {
+    return NULL;
+  }
+  mongory_string_buffer *buf = mongory_string_buffer_new(pool);
+  if (!buf || pool->error != NULL) {
+    return NULL;
+  }
   int total = (int)sorted_trace_stack->count;
   for (int i = 0; i < total; i++) {
     mongory_value *item = sorted_trace_stack->get(sorted_trace_stack, i);
     mongory_matcher_traced_match_context *trace = (mongory_matcher_traced_match_context *)item->data.ptr;
     int indent_size = trace->level * 2;
-    char *indent = MG_ALLOC(sorted_trace_stack->pool, indent_size + 1);
-    memset(indent, ' ', indent_size);
-    indent[indent_size] = '\0';
-    printf("%s%s", indent, trace->message);
+    for (int j = 0; j < indent_size; j++) {
+      mongory_string_buffer_append(buf, " ");
+    }
+    mongory_string_buffer_append(buf, trace->message);
+    if (pool->error != NULL) {
+      return NULL;
+    }
+  }
+  return mongory_string_buffer_cstr(buf);
+}
+
+void mongory_matcher_print_trace(mongory_matcher *matcher) {
+  char *tree = mongory_matcher_format_trace(matcher);
+  if (tree != NULL) {
+    printf("%s", tree);
   }
 }
 
+char *mongory_matcher_trace_tree(mongory_matcher *matcher, mongory_value *value) {
+  mongory_memory_pool *pool = value ? value->pool : (matcher ? matcher->pool : NULL);
+  MONGORY_VALIDATE_PTR(pool, matcher) && MONGORY_VALIDATE_PTR(pool, matcher->match);
+  if (!pool || pool->error != NULL) {
+    return NULL;
+  }
+  mongory_matcher_enable_trace(matcher, pool);
+  if (pool->error != NULL) {
+    mongory_matcher_disable_trace(matcher);
+    return NULL;
+  }
+  matcher->match(matcher, value);
+  char *tree = mongory_matcher_format_trace(matcher);
+  mongory_matcher_disable_trace(matcher);
+  return tree;
+}
+
 bool mongory_matcher_trace(mongory_matcher *matcher, mongory_value *value) {
-  MONGORY_VALIDATE_PTR(value->pool, matcher) && MONGORY_VALIDATE_PTR(value->pool, matcher->match);
-  if (value->pool->error != NULL) {
+  mongory_memory_pool *pool = value ? value->pool : (matcher ? matcher->pool : NULL);
+  MONGORY_VALIDATE_PTR(pool, matcher) && MONGORY_VALIDATE_PTR(pool, matcher->match);
+  if (!pool || pool->error != NULL) {
     return false;
   }
-  mongory_matcher_enable_trace(matcher, value->pool);
+  mongory_matcher_enable_trace(matcher, pool);
   bool matched = matcher->match(matcher, value);
   mongory_matcher_print_trace(matcher);
   mongory_matcher_disable_trace(matcher);

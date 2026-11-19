@@ -46,20 +46,47 @@ static inline char *mongory_matcher_indent_connection(int count, int total) {
   return "│  ";
 }
 
-bool mongory_matcher_base_explain(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx) {
+static mongory_explain_acc *mongory_explain_acc_child(
+  mongory_memory_pool *pool,
+  mongory_explain_acc *parent_acc,
+  int count,
+  int total
+) {
+  char *indent = mongory_matcher_indent_connection(count, total);
+  mongory_explain_acc *next = MG_ALLOC_PTR(pool, mongory_explain_acc);
+  if (!next) {
+    return NULL;
+  }
+  next->prefix = mongory_string_cpyf(pool, "%s%s", parent_acc->prefix, indent);
+  next->buf = parent_acc->buf;
+  return next;
+}
+
+static bool mongory_matcher_append_explain_line(
+  mongory_matcher_traverse_context *ctx,
+  char *title
+) {
+  mongory_explain_acc *acc = (mongory_explain_acc *)ctx->acc;
   char *connection = mongory_matcher_tail_connection(ctx->count, ctx->total);
+  if (!acc || !acc->buf || !title) {
+    return false;
+  }
+  mongory_string_buffer_appendf(acc->buf, "%s%s%s\n", acc->prefix, connection, title);
+  return ctx->pool->error == NULL;
+}
+
+bool mongory_matcher_base_explain(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx) {
   char *title = mongory_matcher_title(matcher, ctx->pool);
-  char *prefix = (char *)ctx->acc;
-  printf("%s%s%s\n", prefix, connection, title);
-  return true;
+  return mongory_matcher_append_explain_line(ctx, title);
 }
 
 bool mongory_matcher_composite_explain(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx) {
-  mongory_matcher_base_explain(matcher, ctx);
-  char *prefix = (char *)ctx->acc;
-  char *indent = mongory_matcher_indent_connection(ctx->count, ctx->total);
-  ctx->acc = mongory_string_cpyf(ctx->pool, "%s%s", prefix, indent);
-  return true;
+  if (!mongory_matcher_base_explain(matcher, ctx)) {
+    return false;
+  }
+  mongory_explain_acc *acc = (mongory_explain_acc *)ctx->acc;
+  ctx->acc = mongory_explain_acc_child(ctx->pool, acc, ctx->count, ctx->total);
+  return ctx->acc != NULL;
 }
 
 bool mongory_matcher_literal_explain(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx) {
@@ -67,13 +94,13 @@ bool mongory_matcher_literal_explain(mongory_matcher *matcher, mongory_matcher_t
 }
 
 bool mongory_matcher_field_explain(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx) {
-  char *tail_connection = mongory_matcher_tail_connection(ctx->count, ctx->total);
   char *title = mongory_matcher_title_with_field(matcher, ctx->pool);
-  char *prefix = (char *)ctx->acc;
-  printf("%s%s%s\n", prefix, tail_connection, title);
-  char *indent = mongory_matcher_indent_connection(ctx->count, ctx->total);
-  ctx->acc = mongory_string_cpyf(ctx->pool, "%s%s", prefix, indent);
-  return true;
+  if (!mongory_matcher_append_explain_line(ctx, title)) {
+    return false;
+  }
+  mongory_explain_acc *acc = (mongory_explain_acc *)ctx->acc;
+  ctx->acc = mongory_explain_acc_child(ctx->pool, acc, ctx->count, ctx->total);
+  return ctx->acc != NULL;
 }
 
 #endif /* MONGORY_MATCHER_EXPLAINABLE_C */

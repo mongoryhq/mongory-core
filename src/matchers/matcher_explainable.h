@@ -2,8 +2,14 @@
 #define MONGORY_MATCHER_EXPLAINABLE_H
 
 #include "mongory-core/matchers/matcher.h"
+#include "../foundations/string_buffer.h"
 #include "matcher_traversable.h"
 #include <mongory-core.h>
+
+typedef struct mongory_explain_acc {
+  char *prefix;
+  mongory_string_buffer *buf;
+} mongory_explain_acc;
 
 
 /**

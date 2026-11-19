@@ -41,21 +41,44 @@ mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *c
 bool mongory_matcher_match(mongory_matcher *matcher, mongory_value *value);
 
 /**
- * @brief Explains a matcher.
+ * @brief Builds and returns the explain tree string for a matcher.
+ * @param matcher The matcher to explain.
+ * @param temp_pool The temporary pool to allocate the formatted tree string from.
+ * @return A NUL-terminated explain tree string allocated in `temp_pool`, or NULL on error.
+ */
+char *mongory_matcher_explain_tree(mongory_matcher *matcher, mongory_memory_pool *temp_pool);
+
+/**
+ * @brief Explains a matcher by printing `mongory_matcher_explain_tree` to stdout.
  * @param matcher The matcher to explain.
  * @param temp_pool The temporary pool to use for the explanation.
  */
 void mongory_matcher_explain(mongory_matcher *matcher, mongory_memory_pool *temp_pool);
 
 /**
- * @brief Traces a matcher.
+ * @brief Traces a matcher against `value` and returns the formatted trace tree string.
+ * @param matcher The matcher to trace.
+ * @param value The value to trace.
+ * @return A NUL-terminated trace tree string allocated in `value->pool` (or `matcher->pool` if `value` is NULL), or NULL on error.
+ */
+char *mongory_matcher_trace_tree(mongory_matcher *matcher, mongory_value *value);
+
+/**
+ * @brief Traces a matcher, prints the trace tree to stdout, and returns the match result.
  * @param matcher The matcher to trace.
  * @param value The value to trace.
  */
 bool mongory_matcher_trace(mongory_matcher *matcher, mongory_value *value);
 
 /**
- * @brief Prints the trace of a matcher.
+ * @brief Formats the currently recorded trace stack into a string.
+ * @param matcher The matcher whose trace stack should be formatted.
+ * @return A NUL-terminated trace string allocated in the trace stack pool, or NULL if no trace stack is active.
+ */
+char *mongory_matcher_format_trace(mongory_matcher *matcher);
+
+/**
+ * @brief Prints the trace of a matcher by printing `mongory_matcher_format_trace` to stdout.
  * @param matcher The matcher to print the trace of.
  */
 void mongory_matcher_print_trace(mongory_matcher *matcher);

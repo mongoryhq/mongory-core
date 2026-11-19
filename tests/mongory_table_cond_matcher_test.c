@@ -403,6 +403,36 @@ void test_lazy_array_record_matcher_resorts_composite_children(void) {
   TEST_ASSERT_EQUAL_STRING("tags", ((mongory_field_matcher *)comp->children->get(comp->children, 2))->field);
 }
 
+void test_explain_tree_and_trace_tree_return_formatted_strings(void) {
+  mongory_memory_pool *pool = get_test_pool();
+  mongory_value *condition = MG_TABLE_WRAP(pool, 2,
+    "age", MG_TABLE_WRAP(pool, 1, "$gte", mongory_value_wrap_i(pool, 18)),
+    "status", mongory_value_wrap_s(pool, "active")
+  );
+  mongory_matcher *matcher = mongory_matcher_new(pool, condition, NULL);
+  TEST_ASSERT_NOT_NULL(matcher);
+  TEST_ASSERT_NULL(mongory_matcher_format_trace(matcher));
+
+  char *explain_str = mongory_matcher_explain_tree(matcher, pool);
+  TEST_ASSERT_NOT_NULL(explain_str);
+  TEST_ASSERT_NOT_NULL(strstr(explain_str, "Field: \"status\""));
+  TEST_ASSERT_NOT_NULL(strstr(explain_str, "Field: \"age\""));
+
+  mongory_memory_pool *trace_pool = mongory_memory_pool_new();
+  mongory_value *record = MG_TABLE_WRAP(trace_pool, 2,
+    "age", mongory_value_wrap_i(trace_pool, 20),
+    "status", mongory_value_wrap_s(trace_pool, "active")
+  );
+  mongory_matcher_trace_result_colorful_set(false);
+  char *trace_str = mongory_matcher_trace_tree(matcher, record);
+  mongory_matcher_trace_result_colorful_set(true);
+  TEST_ASSERT_NOT_NULL(trace_str);
+  TEST_ASSERT_NOT_NULL(strstr(trace_str, "Matched"));
+  TEST_ASSERT_NOT_NULL(strstr(trace_str, "field: \"status\""));
+  TEST_ASSERT_NULL(matcher->trace_stack);
+  trace_pool->free(trace_pool);
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_table_cond_matcher);
@@ -414,5 +444,6 @@ int main(void) {
   RUN_TEST(test_dollar_inside_field_name_is_a_field);
   RUN_TEST(test_lazy_array_record_matcher_updates_ancestor_priorities);
   RUN_TEST(test_lazy_array_record_matcher_resorts_composite_children);
+  RUN_TEST(test_explain_tree_and_trace_tree_return_formatted_strings);
   return UNITY_END();
 }
