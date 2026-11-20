@@ -127,6 +127,11 @@ mongory_matcher *mongory_matcher_not_equal_new(mongory_memory_pool *pool, mongor
   return matcher;
 }
 
+static inline bool mongory_value_is_orderable(const mongory_value *value) {
+  return value != NULL &&
+         (value->type == MONGORY_TYPE_INT || value->type == MONGORY_TYPE_DOUBLE || value->type == MONGORY_TYPE_STRING);
+}
+
 /**
  * @brief Match function for "greater than" ($gt).
  * @param matcher The $gt matcher instance.
@@ -135,7 +140,7 @@ mongory_matcher *mongory_matcher_not_equal_new(mongory_memory_pool *pool, mongor
  * otherwise or on comparison failure.
  */
 static inline bool mongory_matcher_greater_than_match(mongory_matcher *matcher, mongory_value *value) {
-  if (!value || !value->comp || !matcher->condition)
+  if (!mongory_value_is_orderable(value) || !mongory_value_is_orderable(matcher->condition) || !value->comp)
     return false;
   int result = value->comp(value, matcher->condition);
   if (result == mongory_value_compare_fail) {
@@ -162,7 +167,7 @@ mongory_matcher *mongory_matcher_greater_than_new(mongory_memory_pool *pool, mon
  * on comparison failure.
  */
 static inline bool mongory_matcher_less_than_match(mongory_matcher *matcher, mongory_value *value) {
-  if (!value || !value->comp || !matcher->condition)
+  if (!mongory_value_is_orderable(value) || !mongory_value_is_orderable(matcher->condition) || !value->comp)
     return false;
   int result = value->comp(value, matcher->condition);
   if (result == mongory_value_compare_fail) {
@@ -189,7 +194,7 @@ mongory_matcher *mongory_matcher_less_than_new(mongory_memory_pool *pool, mongor
  * comparison failure.
  */
 static inline bool mongory_matcher_greater_than_or_equal_match(mongory_matcher *matcher, mongory_value *value) {
-  if (!value || !value->comp || !matcher->condition)
+  if (!mongory_value_is_orderable(value) || !mongory_value_is_orderable(matcher->condition) || !value->comp)
     return false;
   int result = value->comp(value, matcher->condition);
   if (result == mongory_value_compare_fail) {
@@ -216,7 +221,7 @@ mongory_matcher *mongory_matcher_greater_than_or_equal_new(mongory_memory_pool *
  * comparison failure.
  */
 static inline bool mongory_matcher_less_than_or_equal_match(mongory_matcher *matcher, mongory_value *value) {
-  if (!value || !value->comp || !matcher->condition)
+  if (!mongory_value_is_orderable(value) || !mongory_value_is_orderable(matcher->condition) || !value->comp)
     return false;
   int result = value->comp(value, matcher->condition);
   if (result == mongory_value_compare_fail) {

@@ -77,26 +77,53 @@ static bool spec_regex_options_match(mongory_memory_pool *pool, mongory_value *p
 
 static mongory_value *normalize_condition(mongory_memory_pool *pool, mongory_value *value);
 
-/** Deep-merges `value` into `table[key]`: tables merge recursively, anything else overwrites. */
-static void deep_merge_set(mongory_table *table, char *key, mongory_value *value);
+/** Deep-merges `value` into `table[key]`: tables merge recursively, leaf collisions preserve both via `$and`. */
+static void deep_merge_set(mongory_memory_pool *pool, mongory_table *table, char *key, mongory_value *value);
 
 typedef struct merge_context {
+  mongory_memory_pool *pool;
   mongory_table *target;
 } merge_context;
 
 static bool deep_merge_each(char *key, mongory_value *value, void *acc) {
-  deep_merge_set(((merge_context *)acc)->target, key, value);
+  merge_context *ctx = (merge_context *)acc;
+  deep_merge_set(ctx->pool, ctx->target, key, value);
   return true;
 }
 
-static void deep_merge_set(mongory_table *table, char *key, mongory_value *value) {
+static void deep_merge_set(mongory_memory_pool *pool, mongory_table *table, char *key, mongory_value *value) {
   mongory_value *existing = table->get(table, key);
-  if (existing && existing->type == MONGORY_TYPE_TABLE && value && value->type == MONGORY_TYPE_TABLE) {
-    merge_context ctx = {existing->data.t};
+  if (!existing) {
+    table->set(table, key, value);
+    return;
+  }
+  if (existing->type == MONGORY_TYPE_TABLE && value && value->type == MONGORY_TYPE_TABLE) {
+    merge_context ctx = {pool, existing->data.t};
     value->data.t->each(value->data.t, &ctx, deep_merge_each);
     return;
   }
-  table->set(table, key, value);
+  // Leaf collision: preserve both conditions in `$and`.
+  table->del(table, key);
+  mongory_table *left_branch = mongory_table_new(pool);
+  left_branch->set(left_branch, key, existing);
+  mongory_table *right_branch = mongory_table_new(pool);
+  right_branch->set(right_branch, key, value);
+
+  mongory_value *and_val = table->get(table, "$and");
+  mongory_array *and_arr = NULL;
+  if (and_val && and_val->type == MONGORY_TYPE_ARRAY) {
+    and_arr = and_val->data.a;
+  } else {
+    and_arr = mongory_array_new(pool);
+    if (and_val) {
+      mongory_table *prev_and = mongory_table_new(pool);
+      prev_and->set(prev_and, "$and", and_val);
+      and_arr->push(and_arr, mongory_value_wrap_t(pool, prev_and));
+    }
+    table->set(table, "$and", mongory_value_wrap_a(pool, and_arr));
+  }
+  and_arr->push(and_arr, mongory_value_wrap_t(pool, left_branch));
+  and_arr->push(and_arr, mongory_value_wrap_t(pool, right_branch));
 }
 
 typedef struct normalize_context {
@@ -156,7 +183,7 @@ static bool normalize_table_pair(char *key, mongory_value *value, void *acc) {
     wrapper->set(wrapper, parts[i], nested);
     nested = mongory_value_wrap_t(ctx->pool, wrapper);
   }
-  deep_merge_set(ctx->result, parts[0], nested);
+  deep_merge_set(ctx->pool, ctx->result, parts[0], nested);
 
   free(parts);
   free(segments);
