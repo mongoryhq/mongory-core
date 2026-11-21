@@ -1,10 +1,11 @@
-#include <cjson/cJSON.h>
+#include <limits.h>
 #include <mongory-core.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <yyjson.h>
 
 #define FUZZ_JSON_MAX_DEPTH 24
 
@@ -21,56 +22,56 @@ static bool fuzz_json_regex_options_match(mongory_memory_pool *pool, mongory_val
   return fuzz_json_regex_match(pool, pattern, value);
 }
 
-static mongory_value *cjson_to_value(mongory_memory_pool *pool, const cJSON *node, int depth) {
+static mongory_value *yyjson_to_value(mongory_memory_pool *pool, yyjson_val *node, int depth) {
   if (!node || depth > FUZZ_JSON_MAX_DEPTH) {
     return mongory_value_wrap_n(pool, NULL);
   }
-  if (cJSON_IsNull(node)) {
+  switch (yyjson_get_type(node)) {
+  case YYJSON_TYPE_NULL:
     return mongory_value_wrap_n(pool, NULL);
-  }
-  if (cJSON_IsBool(node)) {
-    return mongory_value_wrap_b(pool, cJSON_IsTrue(node) ? true : false);
-  }
-  if (cJSON_IsNumber(node)) {
-    double d = node->valuedouble;
-    if (d == (double)node->valueint) {
-      return mongory_value_wrap_i(pool, (int64_t)node->valueint);
+  case YYJSON_TYPE_BOOL:
+    return mongory_value_wrap_b(pool, yyjson_get_bool(node));
+  case YYJSON_TYPE_NUM:
+    if (yyjson_is_sint(node)) {
+      return mongory_value_wrap_i(pool, yyjson_get_sint(node));
     }
-    return mongory_value_wrap_d(pool, d);
-  }
-  if (cJSON_IsString(node)) {
-    return mongory_value_wrap_s(pool, node->valuestring ? node->valuestring : "");
-  }
-  if (cJSON_IsArray(node)) {
+    if (yyjson_is_uint(node)) {
+      uint64_t u = yyjson_get_uint(node);
+      if (u <= (uint64_t)INT64_MAX) {
+        return mongory_value_wrap_i(pool, (int64_t)u);
+      }
+      return mongory_value_wrap_d(pool, (double)u);
+    }
+    return mongory_value_wrap_d(pool, yyjson_get_real(node));
+  case YYJSON_TYPE_STR:
+    return mongory_value_wrap_s(pool, (char *)(yyjson_get_str(node) ? yyjson_get_str(node) : ""));
+  case YYJSON_TYPE_ARR: {
     mongory_array *arr = mongory_array_new(pool);
     if (!arr) return NULL;
-    for (const cJSON *child = node->child; child; child = child->next) {
-      mongory_value *v = cjson_to_value(pool, child, depth + 1);
+    size_t idx, max;
+    yyjson_val *child;
+    yyjson_arr_foreach(node, idx, max, child) {
+      mongory_value *v = yyjson_to_value(pool, child, depth + 1);
       if (v) arr->push(arr, v);
     }
     return mongory_value_wrap_a(pool, arr);
   }
-  if (cJSON_IsObject(node)) {
+  case YYJSON_TYPE_OBJ: {
     mongory_table *tbl = mongory_table_new(pool);
     if (!tbl) return NULL;
-    for (const cJSON *child = node->child; child; child = child->next) {
-      if (!child->string) continue;
-      mongory_value *v = cjson_to_value(pool, child, depth + 1);
-      if (v) tbl->set(tbl, child->string, v);
+    size_t idx, max;
+    yyjson_val *key, *child;
+    yyjson_obj_foreach(node, idx, max, key, child) {
+      const char *k = yyjson_get_str(key);
+      if (!k) continue;
+      mongory_value *v = yyjson_to_value(pool, child, depth + 1);
+      if (v) tbl->set(tbl, (char *)k, v);
     }
     return mongory_value_wrap_t(pool, tbl);
   }
-  return mongory_value_wrap_n(pool, NULL);
-}
-
-static cJSON *parse_json_slice(const uint8_t *data, size_t len) {
-  char *buf = (char *)malloc(len + 1);
-  if (!buf) return NULL;
-  memcpy(buf, data, len);
-  buf[len] = '\0';
-  cJSON *parsed = cJSON_Parse(buf);
-  free(buf);
-  return parsed;
+  default:
+    return mongory_value_wrap_n(pool, NULL);
+  }
 }
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
@@ -87,28 +88,29 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   }
 
   // Split input on first NUL byte into condition JSON and record JSON.
-  // If no NUL byte is present, evaluate the parsed condition against itself and a default record.
+  // If no NUL byte is present, evaluate the parsed condition against itself.
   const uint8_t *sep = (const uint8_t *)memchr(data, '\0', size);
   const uint8_t *cond_bytes = data;
   size_t cond_len = sep ? (size_t)(sep - data) : size;
   const uint8_t *rec_bytes = sep ? (sep + 1) : NULL;
   size_t rec_len = sep ? (size - cond_len - 1) : 0;
 
-  cJSON *cond_json = parse_json_slice(cond_bytes, cond_len);
-  if (!cond_json) {
+  yyjson_doc *cond_doc = yyjson_read((const char *)cond_bytes, cond_len, 0);
+  if (!cond_doc) {
     return 0;
   }
 
-  cJSON *rec_json = (rec_bytes && rec_len > 0) ? parse_json_slice(rec_bytes, rec_len) : NULL;
+  yyjson_doc *rec_doc = (rec_bytes && rec_len > 0) ? yyjson_read((const char *)rec_bytes, rec_len, 0) : NULL;
 
   mongory_memory_pool *cond_pool = mongory_memory_pool_new();
   if (!cond_pool) {
-    cJSON_Delete(cond_json);
-    if (rec_json) cJSON_Delete(rec_json);
+    yyjson_doc_free(cond_doc);
+    if (rec_doc) yyjson_doc_free(rec_doc);
     return 0;
   }
 
-  mongory_value *cond_val = cjson_to_value(cond_pool, cond_json, 0);
+  yyjson_val *cond_root = yyjson_doc_get_root(cond_doc);
+  mongory_value *cond_val = yyjson_to_value(cond_pool, cond_root, 0);
   if (cond_val && cond_pool->error == NULL) {
     mongory_matcher *matcher = mongory_matcher_new(cond_pool, cond_val, NULL);
     if (matcher && cond_pool->error == NULL) {
@@ -118,8 +120,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
         mongory_memory_pool *rec_pool = mongory_memory_pool_new();
         if (rec_pool) {
-          const cJSON *target_json = rec_json ? rec_json : cond_json;
-          mongory_value *rec_val = cjson_to_value(rec_pool, target_json, 0);
+          yyjson_val *target_root = rec_doc ? yyjson_doc_get_root(rec_doc) : cond_root;
+          mongory_value *rec_val = yyjson_to_value(rec_pool, target_root, 0);
           if (rec_val && rec_pool->error == NULL) {
             bool matched = mongory_matcher_match(matcher, rec_val);
             mongory_value *trace = mongory_matcher_trace_tree(matcher, rec_val);
@@ -143,8 +145,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   }
 
   cond_pool->free(cond_pool);
-  cJSON_Delete(cond_json);
-  if (rec_json) cJSON_Delete(rec_json);
+  yyjson_doc_free(cond_doc);
+  if (rec_doc) yyjson_doc_free(rec_doc);
   return 0;
 }
 

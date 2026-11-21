@@ -32,8 +32,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 # Include directories
 include_directories(include)
 
-## Note: cJSON is only needed for tests/benchmarks. Discovery and linkage
-## are handled inside the test/benchmark sections below.
+## Note: vendored yyjson (third_party/yyjson) is only built for tests/benchmarks;
+## mongory-core itself remains zero-dependency.
 
 # Collect source files
 file(GLOB_RECURSE CORE_SOURCES 
@@ -97,46 +97,11 @@ if(BUILD_TESTS)
 
     enable_testing()
 
-    # cJSON discovery (only for tests/benchmarks)
-    find_package(PkgConfig QUIET)
-    if(PkgConfig_FOUND)
-        pkg_check_modules(CJSON libcjson)
-    endif()
-    if(NOT CJSON_FOUND)
-        find_path(CJSON_INCLUDE_DIR 
-            NAMES cjson/cJSON.h cJSON.h
-            PATHS
-                /usr/include
-                /usr/local/include
-                /opt/homebrew/include
-            PATH_SUFFIXES cjson
-        )
-
-        find_library(CJSON_LIBRARY
-            NAMES cjson
-            PATHS
-                /usr/lib
-                /usr/local/lib
-                /opt/homebrew/lib
-        )
-
-        if(CJSON_INCLUDE_DIR AND CJSON_LIBRARY)
-            set(CJSON_INCLUDE_DIRS ${CJSON_INCLUDE_DIR})
-            set(CJSON_LIBRARIES ${CJSON_LIBRARY})
-            set(CJSON_FOUND TRUE)
-            message(STATUS "Found cJSON manually: ${CJSON_LIBRARY}")
-        endif()
-    endif()
-
-    if(NOT CJSON_FOUND)
-        message(FATAL_ERROR "cJSON library not found. Please install libcjson-dev (Ubuntu/Debian) or cjson (Homebrew)")
-    endif()
-
-    # Normalize link items for cJSON (prefer LDFLAGS from pkg-config if present)
-    if(CJSON_LDFLAGS)
-        set(CJSON_LINK_ITEMS ${CJSON_LDFLAGS})
-    else()
-        set(CJSON_LINK_ITEMS ${CJSON_LIBRARIES})
+    # Vendored yyjson (used only by tests/benchmarks, zero system dependency)
+    add_library(yyjson STATIC third_party/yyjson/yyjson.c)
+    target_include_directories(yyjson PUBLIC third_party/yyjson)
+    if(NOT MSVC)
+        target_compile_options(yyjson PRIVATE -Wno-unused-parameter)
     endif()
 
     # Copy test JSON files to the correct location in build directory
@@ -147,8 +112,8 @@ if(BUILD_TESTS)
 
     # Test helper library (for testing)
     add_library(test_helper STATIC src/test_helper/test_helper.c)
-    target_include_directories(test_helper PUBLIC src/test_helper ${CJSON_INCLUDE_DIRS})
-    target_link_libraries(test_helper mongory-core ${CJSON_LINK_ITEMS})
+    target_include_directories(test_helper PUBLIC src/test_helper)
+    target_link_libraries(test_helper mongory-core yyjson)
     
     foreach(test_source ${TEST_SOURCES})
         get_filename_component(test_name ${test_source} NAME_WE)
@@ -157,7 +122,7 @@ if(BUILD_TESTS)
             mongory-core 
             test_helper 
             unity 
-            ${CJSON_LINK_ITEMS}
+            yyjson
         )
         if(MATH_LIBRARY)
             target_link_libraries(${test_name} ${MATH_LIBRARY})
@@ -165,7 +130,6 @@ if(BUILD_TESTS)
         target_include_directories(${test_name} PRIVATE 
             tests
             ${UNITY_DIR}
-            ${CJSON_INCLUDE_DIRS}
         )
         target_compile_definitions(${test_name} PRIVATE 
             UNITY_USE_COLOR 
@@ -183,6 +147,7 @@ if(BUILD_TESTS)
             message(FATAL_ERROR "MONGORY_SPEC_DIR does not contain fixtures/: ${MONGORY_SPEC_DIR}")
         endif()
 
+        find_package(PkgConfig QUIET)
         if(PkgConfig_FOUND)
             pkg_check_modules(PCRE2 libpcre2-8)
         endif()
@@ -191,13 +156,13 @@ if(BUILD_TESTS)
         endif()
 
         add_executable(mongory_spec_conformance tests/conformance/mongory_spec_conformance.c)
-        target_include_directories(mongory_spec_conformance PRIVATE ${CJSON_INCLUDE_DIRS} ${PCRE2_INCLUDE_DIRS})
+        target_include_directories(mongory_spec_conformance PRIVATE ${PCRE2_INCLUDE_DIRS})
         target_link_directories(mongory_spec_conformance PRIVATE ${PCRE2_LIBRARY_DIRS})
         target_link_libraries(mongory_spec_conformance
             mongory-core
             test_helper
             unity
-            ${CJSON_LINK_ITEMS}
+            yyjson
             ${PCRE2_LIBRARIES}
         )
         if(MATH_LIBRARY)
@@ -228,8 +193,7 @@ if(BUILD_TESTS)
     if(EXISTS "${CMAKE_SOURCE_DIR}/tests/fuzz/fuzz_json_condition.c")
         add_executable(mongory_fuzz_json_smoke tests/fuzz/fuzz_json_condition.c)
         target_compile_definitions(mongory_fuzz_json_smoke PRIVATE MONGORY_FUZZ_STANDALONE)
-        target_include_directories(mongory_fuzz_json_smoke PRIVATE ${CJSON_INCLUDE_DIRS})
-        target_link_libraries(mongory_fuzz_json_smoke mongory-core ${CJSON_LINK_ITEMS})
+        target_link_libraries(mongory_fuzz_json_smoke mongory-core yyjson)
         if(MATH_LIBRARY)
             target_link_libraries(mongory_fuzz_json_smoke ${MATH_LIBRARY})
         endif()
@@ -243,46 +207,12 @@ if(BUILD_BENCHMARKS)
     if(NOT TARGET unity)
         message(STATUS "Unity framework not found; skipping benchmarks.")
     else()
-        # cJSON discovery (ensure available when building benchmarks without tests)
-        if(NOT CJSON_FOUND)
-            find_package(PkgConfig QUIET)
-            if(PkgConfig_FOUND)
-                pkg_check_modules(CJSON libcjson)
+        if(NOT TARGET yyjson)
+            add_library(yyjson STATIC third_party/yyjson/yyjson.c)
+            target_include_directories(yyjson PUBLIC third_party/yyjson)
+            if(NOT MSVC)
+                target_compile_options(yyjson PRIVATE -Wno-unused-parameter)
             endif()
-            if(NOT CJSON_FOUND)
-                find_path(CJSON_INCLUDE_DIR 
-                    NAMES cjson/cJSON.h cJSON.h
-                    PATHS
-                        /usr/include
-                        /usr/local/include
-                        /opt/homebrew/include
-                    PATH_SUFFIXES cjson
-                )
-
-                find_library(CJSON_LIBRARY
-                    NAMES cjson
-                    PATHS
-                        /usr/lib
-                        /usr/local/lib
-                        /opt/homebrew/lib
-                )
-
-                if(CJSON_INCLUDE_DIR AND CJSON_LIBRARY)
-                    set(CJSON_INCLUDE_DIRS ${CJSON_INCLUDE_DIR})
-                    set(CJSON_LIBRARIES ${CJSON_LIBRARY})
-                    set(CJSON_FOUND TRUE)
-                    message(STATUS "Found cJSON manually for benchmarks: ${CJSON_LIBRARY}")
-                endif()
-            endif()
-        endif()
-        if(NOT CJSON_FOUND)
-            message(FATAL_ERROR "cJSON library not found for benchmarks. Please install libcjson-dev (Ubuntu/Debian) or cjson (Homebrew)")
-        endif()
-
-        if(CJSON_LDFLAGS)
-            set(CJSON_LINK_ITEMS ${CJSON_LDFLAGS})
-        else()
-            set(CJSON_LINK_ITEMS ${CJSON_LIBRARIES})
         endif()
 
         # Collect benchmark files
@@ -296,7 +226,7 @@ if(BUILD_BENCHMARKS)
                 mongory-core 
                 test_helper 
                 unity 
-                ${CJSON_LINK_ITEMS}
+                yyjson
             )
             if(MATH_LIBRARY)
                 target_link_libraries(${benchmark_target} ${MATH_LIBRARY})
@@ -304,7 +234,6 @@ if(BUILD_BENCHMARKS)
             target_include_directories(${benchmark_target} PRIVATE 
                 tests
                 ${UNITY_DIR}
-                ${CJSON_INCLUDE_DIRS}
             )
             target_compile_definitions(${benchmark_target} PRIVATE 
                 UNITY_USE_COLOR 
@@ -384,11 +313,6 @@ message(STATUS "Shared library (BUILD_SHARED_LIBS): ${BUILD_SHARED_LIBS}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "C compiler: ${CMAKE_C_COMPILER}")
 message(STATUS "C flags: ${CMAKE_C_FLAGS}")
-message(STATUS "cJSON found: ${CJSON_FOUND}")
-if(CJSON_FOUND)
-    message(STATUS "cJSON include dirs: ${CJSON_INCLUDE_DIRS}")
-    message(STATUS "cJSON libraries: ${CJSON_LIBRARIES}")
-endif()
 message(STATUS "Build tests: ${BUILD_TESTS}")
 message(STATUS "Build benchmarks: ${BUILD_BENCHMARKS}")
 message(STATUS "==========================================")

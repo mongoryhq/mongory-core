@@ -115,35 +115,35 @@ This project uses `CMake` for cross-platform building and testing, with a conven
 
 ### Dependencies
 - **Core library (`libmongory-core.a`)**: Zero external runtime dependencies — only a C99 compiler (`gcc`/`clang`) and `CMake` (>= 3.12) (`-DBUILD_TESTS=OFF -DBUILD_BENCHMARKS=OFF`).
-- **Unit tests & benchmarks**: Require `cJSON` (`libcjson-dev` on Ubuntu/Debian, `cjson` on macOS) and the Unity test framework (`./build.sh --setup-unity`).
+- **Unit tests & benchmarks**: Use vendored `yyjson` (`third_party/yyjson`, no external JSON library needed) and the Unity test framework (`./build.sh --setup-unity`).
 - **Cross-language `mongory-spec` conformance tests**: Additionally require `libpcre2-8` (`libpcre2-dev` on Ubuntu/Debian, `pcre2` on macOS) and `-DMONGORY_SPEC_DIR=/path/to/mongory-spec`.
 
 #### Installation by Platform
 
 **macOS (Homebrew):**
 ```bash
-# Library only
+# Library & unit tests
 brew install cmake
 
 # Full tests + mongory-spec conformance
-brew install cmake cjson pcre2
+brew install cmake pcre2
 ```
 
 **Ubuntu/Debian:**
 ```bash
-# Library only
+# Library & unit tests
 sudo apt update && sudo apt install -y cmake build-essential
 
 # Full tests + mongory-spec conformance
-sudo apt update && sudo apt install -y cmake build-essential libcjson-dev libpcre2-dev pkg-config
+sudo apt update && sudo apt install -y cmake build-essential libpcre2-dev pkg-config
 ```
 
 **CentOS/RHEL/Fedora:**
 ```bash
 # CentOS/RHEL
-sudo yum install cmake cjson-devel pcre2-devel gcc
+sudo yum install cmake pcre2-devel gcc
 # Fedora
-sudo dnf install cmake cjson-devel pcre2-devel gcc
+sudo dnf install cmake pcre2-devel gcc
 ```
 
 ### Quick Build (Recommended)

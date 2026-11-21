@@ -43,12 +43,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install dependencies (Ubuntu)
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt update
-        sudo apt install -y libcjson-dev
-
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
       uses: msys2/setup-msys2@v2
@@ -57,7 +51,6 @@ jobs:
         update: true
         install: >-
           mingw-w64-x86_64-cmake
-          mingw-w64-x86_64-cjson
           mingw-w64-x86_64-gcc
           mingw-w64-x86_64-curl
 
@@ -143,7 +136,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang libcjson-dev
+          sudo apt-get install -y clang
       - name: Setup Unity test framework
         run: |
           chmod +x scripts/setup_unity.sh
@@ -171,8 +164,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Clang and cJSON
-        run: sudo apt-get update && sudo apt-get install -y clang libcjson-dev pkg-config
+      - name: Install Clang
+        run: sudo apt-get update && sudo apt-get install -y clang
       - name: Build and run libFuzzer targets
         env:
           ASAN_OPTIONS: "detect_leaks=1:halt_on_error=1"
@@ -186,9 +179,8 @@ jobs:
 
           clang -std=c99 -O1 -g -Wall -Wextra \
             -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all \
-            $(pkg-config --cflags libcjson) \
-            -Iinclude src/foundations/*.c src/matchers/*.c tests/fuzz/fuzz_json_condition.c \
-            -o fuzz_json_condition $(pkg-config --libs libcjson) -lm -lpthread
+            -Iinclude -Ithird_party/yyjson src/foundations/*.c src/matchers/*.c third_party/yyjson/yyjson.c tests/fuzz/fuzz_json_condition.c \
+            -o fuzz_json_condition -lm -lpthread
           ./fuzz_json_condition -max_total_time=15 -max_len=512
 
   packaging:
@@ -265,8 +257,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y libcjson-dev
       - name: Setup Unity test framework
         run: chmod +x scripts/setup_unity.sh && ./scripts/setup_unity.sh
       - name: Build Release benchmark suite

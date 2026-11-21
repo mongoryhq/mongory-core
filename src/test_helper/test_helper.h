@@ -2,14 +2,14 @@
 #define MONGORY_TEST_HELPER_H
 
 #include "../src/foundations/config_private.h"
-#include <cjson/cJSON.h>
 #include <mongory-core.h>
+#include <yyjson.h>
 
 // JSON convert functions
 mongory_value *json_string_to_mongory_value(mongory_memory_pool *pool, const char *json);
 mongory_value *json_to_value_from_file(mongory_memory_pool *pool, const char *filename);
-mongory_value *cjson_to_mongory_value_deep_convert(mongory_memory_pool *pool, cJSON *root);
-mongory_value *cjson_to_mongory_value_shallow_convert(mongory_memory_pool *pool, cJSON *root);
+mongory_value *yyjson_to_mongory_value_deep_convert(mongory_memory_pool *pool, yyjson_val *root);
+mongory_value *yyjson_to_mongory_value_shallow_convert(mongory_memory_pool *pool, yyjson_val *root);
 
 // Test helper functions
 void setup_test_environment(void);

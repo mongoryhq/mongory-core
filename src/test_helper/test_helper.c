@@ -4,7 +4,7 @@
 #include "test_helper.h"
 #include "../../src/matchers/base_matcher.h"
 #include "../../tests/unity/unity.h"
-#include <cjson/cJSON.h>
+#include <limits.h>
 #include <mongory-core.h>
 #include <mongory-core/foundations/memory_pool.h>
 #include <mongory-core/foundations/value.h>
@@ -12,13 +12,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <yyjson.h>
 #include "../foundations/string_buffer.h"
 
 static mongory_memory_pool *test_pool = NULL;
 
 static inline mongory_value *
-cjson_to_mongory_value_convert_recursive(mongory_memory_pool *pool, cJSON *root,
-                                         mongory_value *(*convert_func)(mongory_memory_pool *pool, cJSON *root)) {
+yyjson_to_mongory_value_convert_recursive(mongory_memory_pool *pool, yyjson_val *root,
+                                          mongory_value *(*convert_func)(mongory_memory_pool *pool, yyjson_val *root)) {
   if (!root) {
     return NULL;
   }
@@ -27,58 +28,67 @@ cjson_to_mongory_value_convert_recursive(mongory_memory_pool *pool, cJSON *root,
   mongory_array *array = NULL;
   mongory_table *table = NULL;
 
-  switch (root->type) {
-  case cJSON_Array:
+  switch (yyjson_get_type(root)) {
+  case YYJSON_TYPE_ARR: {
     array = mongory_array_new(pool);
     value = mongory_value_wrap_a(pool, array);
-    for (cJSON *item = root->child; item; item = item->next) {
+    size_t idx, max;
+    yyjson_val *item;
+    yyjson_arr_foreach(root, idx, max, item) {
       array->push(array, convert_func(pool, item));
     }
     break;
-  case cJSON_Object:
+  }
+  case YYJSON_TYPE_OBJ: {
     table = mongory_table_new(pool);
     value = mongory_value_wrap_t(pool, table);
-    for (cJSON *item = root->child; item; item = item->next) {
-      table->set(table, item->string, convert_func(pool, item));
+    size_t idx, max;
+    yyjson_val *key, *val;
+    yyjson_obj_foreach(root, idx, max, key, val) {
+      table->set(table, (char *)yyjson_get_str(key), convert_func(pool, val));
     }
-    break;
-  case cJSON_String: {
-    value = mongory_value_wrap_s(pool, root->valuestring);
     break;
   }
-  case cJSON_Number:
-    if (root->valuedouble == (double)root->valueint) {
-      value = mongory_value_wrap_i(pool, root->valueint);
+  case YYJSON_TYPE_STR:
+    value = mongory_value_wrap_s(pool, (char *)yyjson_get_str(root));
+    break;
+  case YYJSON_TYPE_NUM:
+    if (yyjson_is_sint(root)) {
+      value = mongory_value_wrap_i(pool, yyjson_get_sint(root));
+    } else if (yyjson_is_uint(root)) {
+      uint64_t u = yyjson_get_uint(root);
+      if (u <= (uint64_t)INT64_MAX) {
+        value = mongory_value_wrap_i(pool, (int64_t)u);
+      } else {
+        value = mongory_value_wrap_d(pool, (double)u);
+      }
     } else {
-      value = mongory_value_wrap_d(pool, root->valuedouble);
+      value = mongory_value_wrap_d(pool, yyjson_get_real(root));
     }
     break;
-  case cJSON_True:
-    value = mongory_value_wrap_b(pool, true);
+  case YYJSON_TYPE_BOOL:
+    value = mongory_value_wrap_b(pool, yyjson_get_bool(root));
     break;
-  case cJSON_False:
-    value = mongory_value_wrap_b(pool, false);
-    break;
-  case cJSON_NULL:
+  case YYJSON_TYPE_NULL:
     value = mongory_value_wrap_n(pool, NULL);
     break;
   default:
-    fprintf(stderr, "Unsupported JSON type: %d\n", root->type);
+    fprintf(stderr, "Unsupported JSON type: %u\n", (unsigned)yyjson_get_type(root));
     break;
   }
   return value;
 }
 
-mongory_value *cjson_to_mongory_value_deep_convert(mongory_memory_pool *pool, cJSON *root) {
-  return cjson_to_mongory_value_convert_recursive(pool, root, cjson_to_mongory_value_deep_convert);
+mongory_value *yyjson_to_mongory_value_deep_convert(mongory_memory_pool *pool, yyjson_val *root) {
+  return yyjson_to_mongory_value_convert_recursive(pool, root, yyjson_to_mongory_value_deep_convert);
 }
 
-static inline mongory_value *cjson_to_mongory_value_ptr(mongory_memory_pool *pool, cJSON *root) {
+static inline mongory_value *yyjson_to_mongory_value_ptr(mongory_memory_pool *pool, yyjson_val *root) {
   return mongory_value_wrap_ptr(pool, root);
 }
 
-mongory_value *cjson_to_mongory_value_shallow_convert(mongory_memory_pool *pool, cJSON *root) {
-  return cjson_to_mongory_value_convert_recursive(pool, root, cjson_to_mongory_value_ptr);
+mongory_value *yyjson_to_mongory_value_shallow_convert(mongory_memory_pool *pool, yyjson_val *root) {
+  return yyjson_to_mongory_value_convert_recursive(pool, root, yyjson_to_mongory_value_ptr);
 }
 
 mongory_value *json_string_to_mongory_value(mongory_memory_pool *pool, const char *json) {
@@ -86,43 +96,28 @@ mongory_value *json_string_to_mongory_value(mongory_memory_pool *pool, const cha
     return NULL;
   }
 
-  cJSON *root = cJSON_Parse(json);
-  if (!root) {
-    const char *error_ptr = cJSON_GetErrorPtr();
-    if (error_ptr) {
-      fprintf(stderr, "JSON Parse Error: %s\n", error_ptr);
-    }
+  yyjson_read_err err;
+  yyjson_doc *doc = yyjson_read_opts((char *)json, strlen(json), 0, NULL, &err);
+  if (!doc) {
+    fprintf(stderr, "JSON Parse Error: %s (pos %zu)\n", err.msg ? err.msg : "unknown", err.pos);
     return NULL;
   }
 
-  mongory_value *value = cjson_to_mongory_value_deep_convert(pool, root);
-  cJSON_Delete(root);
+  mongory_value *value = yyjson_to_mongory_value_deep_convert(pool, yyjson_doc_get_root(doc));
+  yyjson_doc_free(doc);
   return value;
 }
 
 mongory_value *json_to_mongory_value_from_file(mongory_memory_pool *pool, const char *filename) {
-  FILE *file = fopen(filename, "r");
-  if (!file) {
-    fprintf(stderr, "Failed to open file: %s\n", filename);
+  yyjson_read_err err;
+  yyjson_doc *doc = yyjson_read_file(filename, 0, NULL, &err);
+  if (!doc) {
+    fprintf(stderr, "Failed to parse JSON file %s: %s (pos %zu)\n", filename, err.msg ? err.msg : "unknown", err.pos);
     return NULL;
   }
 
-  fseek(file, 0, SEEK_END);
-  long file_size = ftell(file);
-  fseek(file, 0, SEEK_SET);
-
-  char *json = calloc(1, file_size + 1);
-  if (!json) {
-    fclose(file);
-    return NULL;
-  }
-
-  size_t read_size = fread(json, 1, file_size, file);
-  json[read_size] = '\0';
-  fclose(file);
-
-  mongory_value *value = json_string_to_mongory_value(pool, json);
-  free(json);
+  mongory_value *value = yyjson_to_mongory_value_deep_convert(pool, yyjson_doc_get_root(doc));
+  yyjson_doc_free(doc);
   return value;
 }
 

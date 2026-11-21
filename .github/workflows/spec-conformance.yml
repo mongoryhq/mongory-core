@@ -40,7 +40,7 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt update
-        sudo apt install -y libcjson-dev libpcre2-dev
+        sudo apt install -y libpcre2-dev
 
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
@@ -50,7 +50,6 @@ jobs:
         update: true
         install: >-
           mingw-w64-x86_64-cmake
-          mingw-w64-x86_64-cjson
           mingw-w64-x86_64-pcre2
           mingw-w64-x86_64-gcc
           mingw-w64-x86_64-curl
@@ -137,7 +136,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang libcjson-dev libpcre2-dev
+          sudo apt-get install -y clang libpcre2-dev
 
       - name: Setup Unity test framework
         run: |
