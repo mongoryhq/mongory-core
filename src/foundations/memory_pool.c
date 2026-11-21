@@ -89,59 +89,30 @@ typedef struct mongory_memory_pool_ctx {
   size_t max_chunk_size;        /**< Upper cap for geometric chunk doubling. */
   size_t max_total_bytes;       /**< Max cumulative chunk bytes (0 = unlimited). */
   size_t total_bytes;           /**< Total bytes allocated across arena chunks. */
-  mongory_allocator allocator;  /**< Underlying heap allocator hooks. */
   mongory_memory_node *head;    /**< Head of the list of memory chunks. */
   mongory_memory_node *current; /**< Current chunk to allocate from. */
   mongory_memory_node *extra;   /**< Head of list for externally traced memory. */
   mongory_mutex_t build_lock;   /**< Recursive lock for lazy matcher construction. */
 } mongory_memory_pool_ctx;
 
-static void *mongory_default_alloc(size_t size, void *user_data) {
-  (void)user_data;
-  return calloc(1, size);
-}
-
-static void mongory_default_free(void *ptr, void *user_data) {
-  (void)user_data;
-  free(ptr);
-}
-
-static inline void *mongory_allocator_zalloc(const mongory_allocator *alloc, size_t size) {
-  if (!alloc || !alloc->alloc) {
-    return NULL;
-  }
-  void *ptr = alloc->alloc(size, alloc->user_data);
-  if (ptr && alloc->alloc != mongory_default_alloc) {
-    memset(ptr, 0, size);
-  }
-  return ptr;
-}
-
-static inline void mongory_allocator_free(const mongory_allocator *alloc, void *ptr) {
-  if (ptr && alloc && alloc->free) {
-    alloc->free(ptr, alloc->user_data);
-  }
-}
-
 /**
  * @brief Allocates a new memory chunk (node and its associated memory block).
  *
- * Uses zero-initialized allocation from `allocator`.
+ * Uses `calloc` to ensure memory is zero-initialized.
  *
- * @param allocator Allocator hooks to use.
  * @param chunk_size The size of the memory block to allocate for this chunk.
  * @return mongory_memory_node* Pointer to the new memory node, or NULL on
  * failure.
  */
-static inline mongory_memory_node *mongory_memory_chunk_new(const mongory_allocator *allocator, size_t chunk_size) {
-  mongory_memory_node *node = (mongory_memory_node *)mongory_allocator_zalloc(allocator, sizeof(mongory_memory_node));
+static inline mongory_memory_node *mongory_memory_chunk_new(size_t chunk_size) {
+  mongory_memory_node *node = (mongory_memory_node *)calloc(1, sizeof(mongory_memory_node));
   if (!node) {
     return NULL; // Failed to allocate node structure.
   }
 
-  void *mem = mongory_allocator_zalloc(allocator, chunk_size);
+  void *mem = calloc(1, chunk_size);
   if (!mem) {
-    mongory_allocator_free(allocator, node); // Clean up allocated node structure.
+    free(node); // Clean up allocated node structure.
     return NULL; // Failed to allocate memory block for the chunk.
   }
 
@@ -195,7 +166,7 @@ static inline bool mongory_memory_pool_grow(mongory_memory_pool_ctx *ctx, size_t
     }
   }
 
-  mongory_memory_node *new_chunk = mongory_memory_chunk_new(&ctx->allocator, alloc_size);
+  mongory_memory_node *new_chunk = mongory_memory_chunk_new(alloc_size);
   if (!new_chunk) {
     return false; // Failed to create a new chunk.
   }
@@ -270,26 +241,18 @@ static inline void mongory_memory_pool_reset(mongory_memory_pool *pool) {
  * freeing for security/safety.
  *
  * @param head Pointer to the head of the memory node list to free.
- * @param node_alloc Allocator for the node structs themselves.
- * @param data_alloc Allocator for `node->ptr` (may differ for traced external pointers).
  */
-static inline void mongory_memory_pool_node_list_free(mongory_memory_node *head,
-                                                      const mongory_allocator *node_alloc,
-                                                      const mongory_allocator *data_alloc) {
+static inline void mongory_memory_pool_node_list_free(mongory_memory_node *head) {
   mongory_memory_node *node = head;
   while (node) {
     mongory_memory_node *next = node->next;
     if (node->ptr) {
       memset(node->ptr, 0, node->size); // Clear memory for safety.
-      if (data_alloc) {
-        mongory_allocator_free(data_alloc, node->ptr);
-      } else {
-        free(node->ptr);
-      }
+      free(node->ptr);                  // Free the actual memory block.
     }
     memset(node, 0,
            sizeof(mongory_memory_node)); // Clear the node structure itself.
-    mongory_allocator_free(node_alloc, node); // Free the node structure.
+    free(node);                          // Free the node structure.
     node = next;
   }
 }
@@ -308,27 +271,21 @@ static inline void mongory_memory_pool_destroy(mongory_memory_pool *pool) {
   if (!pool)
     return;
   mongory_memory_pool_ctx *ctx = (mongory_memory_pool_ctx *)pool->ctx;
-  mongory_allocator alloc = {
-    .alloc = mongory_default_alloc,
-    .free = mongory_default_free,
-    .user_data = NULL,
-  };
 
   if (ctx) {
-    alloc = ctx->allocator;
     // Free the main list of memory chunks.
-    mongory_memory_pool_node_list_free(ctx->head, &alloc, &alloc);
-    // Free the list of externally traced memory chunks (external pointers freed with stdlib free).
-    mongory_memory_pool_node_list_free(ctx->extra, &alloc, NULL);
+    mongory_memory_pool_node_list_free(ctx->head);
+    // Free the list of externally traced memory chunks.
+    mongory_memory_pool_node_list_free(ctx->extra);
     mongory_mutex_destroy(&ctx->build_lock);
 
     memset(ctx, 0,
            sizeof(mongory_memory_pool_ctx)); // Clear the context structure.
-    mongory_allocator_free(&alloc, ctx);     // Free the context structure.
+    free(ctx);                               // Free the context structure.
   }
 
   memset(pool, 0, sizeof(mongory_memory_pool)); // Clear the pool structure.
-  mongory_allocator_free(&alloc, pool);         // Free the pool structure.
+  free(pool);                                   // Free the pool structure.
 }
 
 /**
@@ -351,8 +308,7 @@ static inline void mongory_memory_pool_trace(mongory_memory_pool *pool, void *pt
   mongory_memory_pool_ctx *pool_ctx = (mongory_memory_pool_ctx *)pool->ctx;
 
   // Create a new node to trace this external allocation.
-  mongory_memory_node *extra_alloc_tracer =
-      (mongory_memory_node *)mongory_allocator_zalloc(&pool_ctx->allocator, sizeof(mongory_memory_node));
+  mongory_memory_node *extra_alloc_tracer = (mongory_memory_node *)calloc(1, sizeof(mongory_memory_node));
   if (!extra_alloc_tracer) {
     pool->error = &MONGORY_ALLOC_ERROR;
     return;
@@ -364,38 +320,34 @@ static inline void mongory_memory_pool_trace(mongory_memory_pool *pool, void *pt
   pool_ctx->extra = extra_alloc_tracer;
 }
 
-mongory_memory_pool *mongory_memory_pool_new_with_allocator(const mongory_allocator *allocator) {
-  mongory_allocator active_alloc = {
-    .alloc = mongory_default_alloc,
-    .free = mongory_default_free,
-    .user_data = NULL,
-  };
-  if (allocator != NULL) {
-    if (!allocator->alloc || !allocator->free) {
-      return NULL;
-    }
-    active_alloc = *allocator;
-  }
-
+/**
+ * @brief Creates and initializes a new memory pool.
+ *
+ * Allocates the `mongory_memory_pool` structure, its internal
+ * `mongory_memory_pool_ctx`, and the first memory chunk. Sets up the function
+ * pointers for `alloc`, `free`, and `trace`.
+ *
+ * @return mongory_memory_pool* Pointer to the new pool, or NULL on failure.
+ */
+mongory_memory_pool *mongory_memory_pool_new() {
   // Allocate the main pool structure.
-  mongory_memory_pool *pool = (mongory_memory_pool *)mongory_allocator_zalloc(&active_alloc, sizeof(mongory_memory_pool));
+  mongory_memory_pool *pool = (mongory_memory_pool *)calloc(1, sizeof(mongory_memory_pool));
   if (!pool) {
     return NULL;
   }
 
   // Allocate the internal context for the pool.
-  mongory_memory_pool_ctx *ctx =
-      (mongory_memory_pool_ctx *)mongory_allocator_zalloc(&active_alloc, sizeof(mongory_memory_pool_ctx));
+  mongory_memory_pool_ctx *ctx = (mongory_memory_pool_ctx *)calloc(1, sizeof(mongory_memory_pool_ctx));
   if (!ctx) {
-    mongory_allocator_free(&active_alloc, pool); // Clean up partially allocated pool.
+    free(pool); // Clean up partially allocated pool.
     return NULL;
   }
 
   // Allocate the first memory chunk.
-  mongory_memory_node *first_chunk = mongory_memory_chunk_new(&active_alloc, MONGORY_INITIAL_CHUNK_SIZE);
+  mongory_memory_node *first_chunk = mongory_memory_chunk_new(MONGORY_INITIAL_CHUNK_SIZE);
   if (!first_chunk) {
-    mongory_allocator_free(&active_alloc, ctx);  // Clean up context.
-    mongory_allocator_free(&active_alloc, pool); // Clean up pool structure.
+    free(ctx);  // Clean up context.
+    free(pool); // Clean up pool structure.
     return NULL;
   }
 
@@ -404,7 +356,6 @@ mongory_memory_pool *mongory_memory_pool_new_with_allocator(const mongory_alloca
   ctx->max_chunk_size = MONGORY_DEFAULT_MAX_CHUNK_SIZE;
   ctx->max_total_bytes = 0;
   ctx->total_bytes = MONGORY_INITIAL_CHUNK_SIZE;
-  ctx->allocator = active_alloc;
   ctx->head = first_chunk;
   ctx->current = first_chunk;
   ctx->extra = NULL; // No extra traced allocations initially.
@@ -419,19 +370,6 @@ mongory_memory_pool *mongory_memory_pool_new_with_allocator(const mongory_alloca
   pool->error = NULL; // No error initially.
 
   return pool;
-}
-
-/**
- * @brief Creates and initializes a new memory pool.
- *
- * Allocates the `mongory_memory_pool` structure, its internal
- * `mongory_memory_pool_ctx`, and the first memory chunk. Sets up the function
- * pointers for `alloc`, `free`, and `trace`.
- *
- * @return mongory_memory_pool* Pointer to the new pool, or NULL on failure.
- */
-mongory_memory_pool *mongory_memory_pool_new() {
-  return mongory_memory_pool_new_with_allocator(NULL);
 }
 
 void mongory_memory_pool_set_limits(mongory_memory_pool *pool, size_t max_chunk_size, size_t max_total_bytes) {

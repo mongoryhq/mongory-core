@@ -4,27 +4,56 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct tracking_allocator_state {
+typedef struct failing_pool_ctx {
+  mongory_memory_pool *inner;
   size_t alloc_calls;
-  size_t free_calls;
-  size_t fail_on_call; // 0 = never fail, k > 0 = fail on the k-th allocation attempt
-} tracking_allocator_state;
+  size_t fail_on_call; // 0 = never fail, k > 0 = fail on the k-th alloc call
+} failing_pool_ctx;
 
-static void *tracking_alloc(size_t size, void *user_data) {
-  tracking_allocator_state *state = (tracking_allocator_state *)user_data;
-  if (state->fail_on_call > 0 && state->alloc_calls + 1 >= state->fail_on_call) {
+static void *failing_pool_alloc(mongory_memory_pool *pool, size_t size) {
+  failing_pool_ctx *ctx = (failing_pool_ctx *)pool->ctx;
+  ctx->alloc_calls++;
+  if (ctx->fail_on_call > 0 && ctx->alloc_calls >= ctx->fail_on_call) {
     return NULL;
   }
-  state->alloc_calls++;
-  return calloc(1, size);
+  return ctx->inner->alloc(ctx->inner, size);
 }
 
-static void tracking_free(void *ptr, void *user_data) {
-  tracking_allocator_state *state = (tracking_allocator_state *)user_data;
-  if (ptr) {
-    state->free_calls++;
-    free(ptr);
+static void failing_pool_trace(mongory_memory_pool *pool, void *ptr, size_t size) {
+  failing_pool_ctx *ctx = (failing_pool_ctx *)pool->ctx;
+  ctx->inner->trace(ctx->inner, ptr, size);
+}
+
+static void failing_pool_reset(mongory_memory_pool *pool) {
+  failing_pool_ctx *ctx = (failing_pool_ctx *)pool->ctx;
+  ctx->alloc_calls = 0;
+  ctx->inner->reset(ctx->inner);
+}
+
+static void failing_pool_free(mongory_memory_pool *pool) {
+  failing_pool_ctx *ctx = (failing_pool_ctx *)pool->ctx;
+  if (ctx) {
+    if (ctx->inner) {
+      ctx->inner->free(ctx->inner);
+    }
+    free(ctx);
   }
+  free(pool);
+}
+
+static mongory_memory_pool *failing_pool_new(size_t fail_on_call) {
+  mongory_memory_pool *inner = mongory_memory_pool_new();
+  if (!inner) return NULL;
+  mongory_memory_pool *pool = (mongory_memory_pool *)calloc(1, sizeof(mongory_memory_pool));
+  failing_pool_ctx *ctx = (failing_pool_ctx *)calloc(1, sizeof(failing_pool_ctx));
+  ctx->inner = inner;
+  ctx->fail_on_call = fail_on_call;
+  pool->ctx = ctx;
+  pool->alloc = failing_pool_alloc;
+  pool->trace = failing_pool_trace;
+  pool->reset = failing_pool_reset;
+  pool->free = failing_pool_free;
+  return pool;
 }
 
 void setUp(void) {
@@ -37,39 +66,29 @@ void tearDown(void) {
   mongory_max_nodes_set(MONGORY_DEFAULT_MAX_NODES);
 }
 
-void test_custom_allocator_tracks_alloc_and_free(void) {
-  tracking_allocator_state state = {0, 0, 0};
-  mongory_allocator alloc = {
-    .alloc = tracking_alloc,
-    .free = tracking_free,
-    .user_data = &state,
-  };
-  mongory_memory_pool *pool = mongory_memory_pool_new_with_allocator(&alloc);
-  TEST_ASSERT_NOT_NULL(pool);
-  TEST_ASSERT_GREATER_THAN(0, (int)state.alloc_calls);
+void test_custom_pool_oom_injection_on_matcher_compile(void) {
+  mongory_memory_pool *src_pool = mongory_memory_pool_new();
+  TEST_ASSERT_NOT_NULL(src_pool);
 
-  void *p1 = MG_ALLOC(pool, 64);
-  void *p2 = MG_ALLOC(pool, 4096);
-  TEST_ASSERT_NOT_NULL(p1);
-  TEST_ASSERT_NOT_NULL(p2);
+  mongory_value *cond = MG_TABLE_WRAP(src_pool, 3,
+    "age", MG_TABLE_WRAP(src_pool, 2, "$gte", mongory_value_wrap_i(src_pool, 18), "$lt", mongory_value_wrap_i(src_pool, 65)),
+    "active", MG_TABLE_WRAP(src_pool, 1, "$exists", mongory_value_wrap_b(src_pool, true)),
+    "$not", MG_TABLE_WRAP(src_pool, 1, "banned", mongory_value_wrap_b(src_pool, true))
+  );
 
-  pool->free(pool);
-  TEST_ASSERT_EQUAL_UINT(state.alloc_calls, state.free_calls);
-}
-
-void test_custom_allocator_failure_on_init(void) {
-  for (size_t fail_at = 1; fail_at <= 4; fail_at++) {
-    tracking_allocator_state state = {0, 0, fail_at};
-    mongory_allocator alloc = {
-      .alloc = tracking_alloc,
-      .free = tracking_free,
-      .user_data = &state,
-    };
-    mongory_memory_pool *pool = mongory_memory_pool_new_with_allocator(&alloc);
-    TEST_ASSERT_NULL(pool);
-    // All partially allocated blocks must be freed with zero leaks.
-    TEST_ASSERT_EQUAL_UINT(state.alloc_calls, state.free_calls);
+  // Inject OOM at every single allocation call 1..40 via a custom mongory_memory_pool vtable.
+  for (size_t fail_at = 1; fail_at <= 40; fail_at++) {
+    mongory_memory_pool *pool = failing_pool_new(fail_at);
+    TEST_ASSERT_NOT_NULL(pool);
+    mongory_matcher *m = mongory_matcher_new(pool, cond, NULL);
+    if (m == NULL) {
+      TEST_ASSERT_NOT_NULL(pool->error);
+      TEST_ASSERT_EQUAL(MONGORY_ERROR_MEMORY, pool->error->type);
+    }
+    pool->free(pool);
   }
+
+  src_pool->free(src_pool);
 }
 
 void test_pool_chunk_cap_and_total_byte_limit(void) {
@@ -253,8 +272,7 @@ void test_max_nodes_limit_and_large_in_counts_as_one(void) {
 int main(void) {
   UNITY_BEGIN();
   mongory_init();
-  RUN_TEST(test_custom_allocator_tracks_alloc_and_free);
-  RUN_TEST(test_custom_allocator_failure_on_init);
+  RUN_TEST(test_custom_pool_oom_injection_on_matcher_compile);
   RUN_TEST(test_pool_chunk_cap_and_total_byte_limit);
   RUN_TEST(test_pool_reset_then_larger_allocation_safe);
   RUN_TEST(test_string_buffer_oom_safety);

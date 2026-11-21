@@ -222,9 +222,9 @@ See [docs/performance.md](docs/performance.md) and [`scripts/bench.sh`](scripts/
 
 ## 🛡️ Safety, Limits & ReDoS Protection
 
-- **Memory Pool Limits & Custom Allocator**:
+- **Memory Pool Limits**:
   - Geometric chunk growth is capped at `MONGORY_DEFAULT_MAX_CHUNK_SIZE` (4 MiB).
-  - Use `mongory_memory_pool_set_limits(pool, max_chunk_size, max_total_bytes)` to enforce a per-pool memory budget, and `mongory_memory_pool_new_with_allocator(&alloc)` to plug in custom heap allocators.
+  - Use `mongory_memory_pool_set_limits(pool, max_chunk_size, max_total_bytes)` to enforce a per-pool memory budget, or provide a custom `mongory_memory_pool` vtable (`alloc`/`trace`/`reset`/`free`) for host-runtime integration.
   - Allocation failures report `MONGORY_ERROR_MEMORY` via the static `&MONGORY_ALLOC_ERROR` without dereferencing `NULL`.
 - **Compile Limits (`MaxDepth` / `MaxNodes`)**:
   - Defaults: `MONGORY_DEFAULT_MAX_DEPTH = 64`, `MONGORY_DEFAULT_MAX_NODES = 4096`.
