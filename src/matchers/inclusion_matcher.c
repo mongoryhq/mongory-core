@@ -74,11 +74,7 @@ static inline bool mongory_matcher_in_match(mongory_matcher *matcher, mongory_va
 
 mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
   if (!mongory_matcher_validate_array_condition(condition)) {
-    pool->error = MG_ALLOC_PTR(pool, mongory_error);
-    if (pool->error) {
-      pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
-      pool->error->message = "$in condition must be a valid array.";
-    }
+    mongory_error_set(pool, MONGORY_ERROR_INVALID_ARGUMENT, "$in condition must be a valid array.");
     return NULL;
   }
   mongory_matcher *matcher = mongory_matcher_base_new(pool, condition, extern_ctx);
@@ -88,6 +84,9 @@ mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool, mongory_value
   matcher->match = mongory_matcher_in_match;
   matcher->original_match = mongory_matcher_in_match;
   matcher->name = mongory_string_cpy(pool, "In");
+  if (!matcher->name) {
+    return NULL;
+  }
   matcher->priority = 1.0 + mongory_log((double)condition->data.a->count + 1.0, 1.5);
   return matcher;
 }
@@ -107,11 +106,7 @@ static inline bool mongory_matcher_not_in_match(mongory_matcher *matcher, mongor
 
 mongory_matcher *mongory_matcher_not_in_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
   if (!mongory_matcher_validate_array_condition(condition)) {
-    pool->error = MG_ALLOC_PTR(pool, mongory_error);
-    if (pool->error) {
-      pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
-      pool->error->message = "$nin condition must be a valid array.";
-    }
+    mongory_error_set(pool, MONGORY_ERROR_INVALID_ARGUMENT, "$nin condition must be a valid array.");
     return NULL;
   }
   mongory_matcher *matcher = mongory_matcher_base_new(pool, condition, extern_ctx);
@@ -121,6 +116,9 @@ mongory_matcher *mongory_matcher_not_in_new(mongory_memory_pool *pool, mongory_v
   matcher->match = mongory_matcher_not_in_match;
   matcher->original_match = mongory_matcher_not_in_match;
   matcher->name = mongory_string_cpy(pool, "Nin");
+  if (!matcher->name) {
+    return NULL;
+  }
   matcher->priority = 1.0 + mongory_log((double)condition->data.a->count + 1.0, 1.5);
   return matcher;
 }

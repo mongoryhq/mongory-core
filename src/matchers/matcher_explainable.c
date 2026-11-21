@@ -11,18 +11,26 @@
 
 char *mongory_matcher_title(mongory_matcher *matcher, mongory_memory_pool *pool) {
   mongory_value *condition = matcher->condition;
+  char *cond_str = (condition && condition->to_str) ? condition->to_str(condition, pool) : NULL;
+  if (!cond_str) {
+    return NULL;
+  }
   return mongory_string_cpyf(pool, "%s: %s",
-    matcher->name,
-    condition->to_str(condition, pool)
+    matcher->name ? matcher->name : "",
+    cond_str
   );
 }
 
 char *mongory_matcher_title_with_field(mongory_matcher *matcher, mongory_memory_pool *pool) {
   mongory_field_matcher *field_matcher = (mongory_field_matcher *)matcher;
   mongory_value *condition = matcher->condition;
+  char *cond_str = (condition && condition->to_str) ? condition->to_str(condition, pool) : NULL;
+  if (!cond_str) {
+    return NULL;
+  }
   return mongory_string_cpyf(pool, "Field: \"%s\", to match: %s",
-    field_matcher->field,
-    condition->to_str(condition, pool)
+    field_matcher->field ? field_matcher->field : "",
+    cond_str
   );
 }
 
@@ -58,6 +66,9 @@ static mongory_explain_acc *mongory_explain_acc_child(
     return NULL;
   }
   next->prefix = mongory_string_cpyf(pool, "%s%s", parent_acc->prefix, indent);
+  if (!next->prefix) {
+    return NULL;
+  }
   next->buf = parent_acc->buf;
   return next;
 }

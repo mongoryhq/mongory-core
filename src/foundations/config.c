@@ -66,6 +66,8 @@ mongory_matcher_custom_adapter mongory_custom_matcher_adapter = {
 };
 
 bool mongory_matcher_trace_result_colorful = true;
+static size_t mongory_compile_max_depth = MONGORY_DEFAULT_MAX_DEPTH;
+static size_t mongory_compile_max_nodes = MONGORY_DEFAULT_MAX_NODES;
 
 /**
  * @brief Initializes the internal memory pool if it hasn't been already.
@@ -243,6 +245,32 @@ void mongory_custom_matcher_lookup_func_set(bool (*lookup)(char *key)) {
 
 void mongory_matcher_trace_result_colorful_set(bool colorful) {
   mongory_matcher_trace_result_colorful = colorful;
+}
+
+void mongory_max_depth_set(size_t max_depth) {
+  mongory_config_lock();
+  mongory_compile_max_depth = max_depth;
+  mongory_config_unlock();
+}
+
+size_t mongory_max_depth_get(void) {
+  mongory_config_lock();
+  size_t val = mongory_compile_max_depth;
+  mongory_config_unlock();
+  return val;
+}
+
+void mongory_max_nodes_set(size_t max_nodes) {
+  mongory_config_lock();
+  mongory_compile_max_nodes = max_nodes;
+  mongory_config_unlock();
+}
+
+size_t mongory_max_nodes_get(void) {
+  mongory_config_lock();
+  size_t val = mongory_compile_max_nodes;
+  mongory_config_unlock();
+  return val;
 }
 
 /**

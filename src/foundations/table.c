@@ -15,6 +15,7 @@
 #include <mongory-core/foundations/value.h>
 #include "utils.h"
 #include <stdarg.h>
+#include <stdint.h>
 #include <string.h> // For strcmp, strlen
 
 /**
@@ -172,6 +173,10 @@ static inline bool mongory_table_rehash(mongory_table *self) {
 
   mongory_value **original_items_ptr = old_array_private_view->items;
   size_t original_capacity = internal->capacity;
+  if (original_capacity > SIZE_MAX / 2) {
+    self->pool->error = &MONGORY_ALLOC_ERROR;
+    return false;
+  }
   size_t new_capacity = next_prime(original_capacity * 2);
 
   // Reset the count of the existing array before resizing, as resize
@@ -467,10 +472,10 @@ mongory_table *mongory_table_nested_wrap(mongory_memory_pool *pool, int argc, ..
   va_start(args, argc);
   for (int i = 0; i < argc; i++) {
     char *key = va_arg(args, char *);
-    MONGORY_VALIDATE_PTR(pool, key);
     mongory_value *value = va_arg(args, mongory_value *);
-    MONGORY_VALIDATE_PTR(pool, value);
-    mongory_table_set(table, key, value);
+    if (pool->error == NULL && MONGORY_VALIDATE_PTR(pool, key) && MONGORY_VALIDATE_PTR(pool, value)) {
+      mongory_table_set(table, key, value);
+    }
   }
   va_end(args);
   if (pool->error != NULL) {

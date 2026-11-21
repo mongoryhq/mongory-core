@@ -100,4 +100,18 @@ mongory_matcher *mongory_matcher_always_false_new(mongory_memory_pool *pool, mon
 
 void mongory_matcher_enable_trace_at(mongory_matcher *matcher, mongory_array *trace_stack, int level);
 
+typedef struct mongory_compile_budget {
+  bool active;
+  size_t depth;
+  size_t nodes;
+  size_t max_depth;
+  size_t max_nodes;
+} mongory_compile_budget;
+
+mongory_compile_budget mongory_compile_budget_begin(void);
+void mongory_compile_budget_end(mongory_compile_budget saved);
+bool mongory_compile_budget_enter_depth(mongory_memory_pool *pool);
+void mongory_compile_budget_leave_depth(void);
+bool mongory_compile_budget_count_node(mongory_memory_pool *pool);
+
 #endif /* MONGORY_MATCHER_BASE_H */

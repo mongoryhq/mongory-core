@@ -15,6 +15,65 @@
 #include "matcher_traversable.h"
 #include "../foundations/utils.h"
 
+#if defined(_MSC_VER)
+#  define MONGORY_THREAD_LOCAL __declspec(thread)
+#else
+#  define MONGORY_THREAD_LOCAL __thread
+#endif
+
+static MONGORY_THREAD_LOCAL mongory_compile_budget mongory_tls_compile_budget = {0};
+
+mongory_compile_budget mongory_compile_budget_begin(void) {
+  mongory_compile_budget saved = mongory_tls_compile_budget;
+  mongory_tls_compile_budget.active = true;
+  mongory_tls_compile_budget.depth = 0;
+  mongory_tls_compile_budget.nodes = 0;
+  mongory_tls_compile_budget.max_depth = mongory_max_depth_get();
+  mongory_tls_compile_budget.max_nodes = mongory_max_nodes_get();
+  return saved;
+}
+
+void mongory_compile_budget_end(mongory_compile_budget saved) {
+  mongory_tls_compile_budget = saved;
+}
+
+bool mongory_compile_budget_enter_depth(mongory_memory_pool *pool) {
+  if (!mongory_tls_compile_budget.active) {
+    return true;
+  }
+  mongory_tls_compile_budget.depth++;
+  if (mongory_tls_compile_budget.max_depth > 0 &&
+      mongory_tls_compile_budget.depth > mongory_tls_compile_budget.max_depth) {
+    mongory_tls_compile_budget.depth--;
+    if (pool && pool->error == NULL) {
+      pool->error = &MONGORY_DEPTH_LIMIT_ERROR;
+    }
+    return false;
+  }
+  return true;
+}
+
+void mongory_compile_budget_leave_depth(void) {
+  if (mongory_tls_compile_budget.active && mongory_tls_compile_budget.depth > 0) {
+    mongory_tls_compile_budget.depth--;
+  }
+}
+
+bool mongory_compile_budget_count_node(mongory_memory_pool *pool) {
+  if (!mongory_tls_compile_budget.active) {
+    return true;
+  }
+  mongory_tls_compile_budget.nodes++;
+  if (mongory_tls_compile_budget.max_nodes > 0 &&
+      mongory_tls_compile_budget.nodes > mongory_tls_compile_budget.max_nodes) {
+    if (pool && pool->error == NULL) {
+      pool->error = &MONGORY_NODE_LIMIT_ERROR;
+    }
+    return false;
+  }
+  return true;
+}
+
 /**
  * @brief Allocates and initializes common fields of a `mongory_matcher`.
  *
@@ -34,6 +93,9 @@
 mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
   if (!pool || !pool->alloc) {
     return NULL; // Invalid memory pool.
+  }
+  if (!mongory_compile_budget_count_node(pool)) {
+    return NULL;
   }
   mongory_matcher *matcher = MG_ALLOC_PTR(pool, mongory_matcher);
   if (matcher == NULL) {
@@ -86,6 +148,9 @@ mongory_matcher *mongory_matcher_always_true_new(mongory_memory_pool *pool, mong
   matcher->match = mongory_matcher_always_true_match;
   matcher->original_match = mongory_matcher_always_true_match;
   matcher->name = mongory_string_cpy(pool, "Always True");
+  if (!matcher->name) {
+    return NULL;
+  }
   matcher->explain = mongory_matcher_base_explain;
   // Optionally set original_match as well if it's a strict policy
   // matcher->context.original_match = mongory_matcher_always_true_match;
@@ -119,6 +184,9 @@ mongory_matcher *mongory_matcher_always_false_new(mongory_memory_pool *pool, mon
   matcher->match = mongory_matcher_always_false_match;
   matcher->original_match = mongory_matcher_always_false_match;
   matcher->name = mongory_string_cpy(pool, "Always False");
+  if (!matcher->name) {
+    return NULL;
+  }
   matcher->explain = mongory_matcher_base_explain;
   // matcher->context.original_match = mongory_matcher_always_false_match;
   return matcher;

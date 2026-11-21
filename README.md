@@ -219,3 +219,15 @@ The public API is documented in the header files in the `include/` directory. Th
 ## ⚡ Performance
 
 See [docs/performance.md](docs/performance.md) and [`scripts/bench.sh`](scripts/bench.sh) for C99 benchmark results.
+
+## 🛡️ Safety, Limits & ReDoS Protection
+
+- **Memory Pool Limits & Custom Allocator**:
+  - Geometric chunk growth is capped at `MONGORY_DEFAULT_MAX_CHUNK_SIZE` (4 MiB).
+  - Use `mongory_memory_pool_set_limits(pool, max_chunk_size, max_total_bytes)` to enforce a per-pool memory budget, and `mongory_memory_pool_new_with_allocator(&alloc)` to plug in custom heap allocators.
+  - Allocation failures report `MONGORY_ERROR_MEMORY` via the static `&MONGORY_ALLOC_ERROR` without dereferencing `NULL`.
+- **Compile Limits (`MaxDepth` / `MaxNodes`)**:
+  - Defaults: `MONGORY_DEFAULT_MAX_DEPTH = 64`, `MONGORY_DEFAULT_MAX_NODES = 4096`.
+  - Configurable via `mongory_max_depth_set` / `mongory_max_nodes_set` (`0` = unlimited). Exceeding either limit fails cleanly with `MONGORY_ERROR_LIMIT_EXCEEDED` (`&MONGORY_DEPTH_LIMIT_ERROR` / `&MONGORY_NODE_LIMIT_ERROR`).
+- **External Regex Adapter ReDoS Guidance**:
+  - `mongory-core` is regex-engine agnostic. When evaluating untrusted patterns or inputs with a backtracking engine, always configure match/backtrack limits — e.g. for PCRE2 call `pcre2_set_match_limit` and `pcre2_set_depth_limit` on a `pcre2_match_context` (see [`tests/conformance/mongory_spec_conformance.c`](tests/conformance/mongory_spec_conformance.c)), for Oniguruma call `onig_set_retry_limit_in_match`, or prefer a linear-time engine such as RE2.

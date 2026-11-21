@@ -135,6 +135,9 @@ static inline mongory_matcher *mongory_matcher_null_new(mongory_memory_pool *poo
     MG_TABLE_WRAP(pool, 1, "$eq", mongory_value_wrap_n(pool, NULL)),
     MG_TABLE_WRAP(pool, 1, "$exists", mongory_value_wrap_b(pool, false))
   );
+  if (!new_or_condition || pool->error != NULL) {
+    return NULL;
+  }
   return mongory_matcher_or_new(pool, new_or_condition, extern_ctx);
 }
 
@@ -240,6 +243,12 @@ static inline bool mongory_matcher_field_match(mongory_matcher *matcher, mongory
 
 mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *field_name,
                                            mongory_value *condition_for_field, void *extern_ctx) {
+  if (!pool || !pool->alloc) {
+    return NULL;
+  }
+  if (!mongory_compile_budget_count_node(pool)) {
+    return NULL;
+  }
   mongory_field_matcher *field_m = MG_ALLOC_PTR(pool, mongory_field_matcher);
   if (field_m == NULL) {
     pool->error = &MONGORY_ALLOC_ERROR;
@@ -247,27 +256,26 @@ mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *fiel
   }
   field_m->field = mongory_string_cpy(pool, field_name);
   if (field_m->field == NULL) {
-    // pool->free(field_m) is not standard; pool manages its own memory.
-    // This indicates an error in string copy, likely pool allocation.
     return NULL;
   }
 
   // Initialize the base composite matcher part
   field_m->literal.base.pool = pool;
-  field_m->literal.base.name = NULL; // Can be set if needed, e.g. to field_name
+  field_m->literal.base.name = mongory_string_cpy(pool, "Field");
+  if (field_m->literal.base.name == NULL) {
+    return NULL;
+  }
   field_m->literal.base.match = mongory_matcher_field_match;
   field_m->literal.base.original_match = mongory_matcher_field_match;
   field_m->literal.base.sub_count = 1;
   field_m->literal.base.condition = condition_for_field; // Original condition for the field
-  field_m->literal.base.name = mongory_string_cpy(pool, "Field");
   field_m->literal.base.explain = mongory_matcher_field_explain;
   field_m->literal.base.traverse = mongory_matcher_value_traverse;
   field_m->literal.base.extern_ctx = extern_ctx;
   // The 'left' child of the composite is the actual matcher for the field's value,
   // determined by the type of 'condition_for_field'.
   field_m->literal.delegate_matcher = mongory_matcher_value_delegate(pool, condition_for_field, extern_ctx);
-  field_m->literal.implicit_array_matcher = NULL; // Not typically used by field_match directly,
-                                                // but literal_match might use it for arrays.
+  field_m->literal.implicit_array_matcher = NULL;
 
   if (field_m->literal.delegate_matcher == NULL) {
     // Failed to create the delegate matcher for the condition.
@@ -293,24 +301,40 @@ static inline bool mongory_matcher_not_match(mongory_matcher *matcher, mongory_v
 }
 
 mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool, mongory_value *condition_to_negate, void *extern_ctx) {
-  mongory_value_matcher *literal = MG_ALLOC_PTR(pool, mongory_value_matcher);
-  if (!literal)
+  if (!pool || !pool->alloc) {
     return NULL;
+  }
+  if (!mongory_compile_budget_enter_depth(pool)) {
+    return NULL;
+  }
+  if (!mongory_compile_budget_count_node(pool)) {
+    mongory_compile_budget_leave_depth();
+    return NULL;
+  }
+  mongory_value_matcher *literal = MG_ALLOC_PTR(pool, mongory_value_matcher);
+  if (!literal) {
+    pool->error = &MONGORY_ALLOC_ERROR;
+    mongory_compile_budget_leave_depth();
+    return NULL;
+  }
 
   // The 'left' child is the matcher for the condition being negated.
   literal->delegate_matcher = mongory_matcher_value_delegate(pool, condition_to_negate, extern_ctx);
   if (!literal->delegate_matcher) {
+    mongory_compile_budget_leave_depth();
     return NULL; // Failed to create delegate for the condition.
   }
   literal->implicit_array_matcher = NULL;
-  // composite->right remains NULL for $not, as literal_match's array path
-  // via composite->right will use condition_to_negate if right is NULL.
 
   literal->base.pool = pool;
   literal->base.condition = condition_to_negate;
   literal->base.match = mongory_matcher_not_match;
   literal->base.original_match = mongory_matcher_not_match;
   literal->base.name = mongory_string_cpy(pool, "Not");
+  if (!literal->base.name) {
+    mongory_compile_budget_leave_depth();
+    return NULL;
+  }
   literal->base.explain = mongory_matcher_value_explain;
   literal->base.traverse = mongory_matcher_value_traverse;
   literal->base.sub_count = 1;
@@ -318,6 +342,7 @@ mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool, mongory_valu
   literal->base.priority = 1.0 + literal->delegate_matcher->priority;
   literal->base.parent = NULL;
   literal->delegate_matcher->parent = (mongory_matcher *)literal;
+  mongory_compile_budget_leave_depth();
   return (mongory_matcher *)literal;
 }
 
@@ -334,36 +359,50 @@ static inline bool mongory_matcher_size_match(mongory_matcher *matcher, mongory_
     return false; // $size only applies to valid arrays.
   }
   mongory_array *array = value->data.a;
-  // Wrap the array's count as a mongory_value (integer) to be matched.
-  // The pool for this temporary size value should be from the input value or matcher.
-
-  // Use literal_match with the matcher's original condition against the size_value.
-  // The $size matcher's `composite.left` was set up by literal_delegate
-  // based on the condition provided to $size (e.g., if {$size: 5}, left is an
-  // equality matcher for 5).
-  return mongory_matcher_value_match(matcher, mongory_value_wrap_i(value->pool, (int)array->count));
+  mongory_value *size_val = mongory_value_wrap_i(value->pool, (int64_t)array->count);
+  if (!size_val) {
+    return false;
+  }
+  return mongory_matcher_value_match(matcher, size_val);
 }
 
 mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool, mongory_value *size_condition, void *extern_ctx) {
-  mongory_value_matcher *literal = MG_ALLOC_PTR(pool, mongory_value_matcher);
-  if (!literal)
+  if (!pool || !pool->alloc) {
     return NULL;
+  }
+  if (!mongory_compile_budget_enter_depth(pool)) {
+    return NULL;
+  }
+  if (!mongory_compile_budget_count_node(pool)) {
+    mongory_compile_budget_leave_depth();
+    return NULL;
+  }
+  mongory_value_matcher *literal = MG_ALLOC_PTR(pool, mongory_value_matcher);
+  if (!literal) {
+    pool->error = &MONGORY_ALLOC_ERROR;
+    mongory_compile_budget_leave_depth();
+    return NULL;
+  }
 
   // The 'left' child is the matcher for the size_condition itself.
   // E.g., if {$size: {$gt: 5}}, size_condition is {$gt: 5}, and
   // composite.left becomes a "greater than 5" matcher.
   literal->delegate_matcher = mongory_matcher_value_delegate(pool, size_condition, extern_ctx);
   if (!literal->delegate_matcher) {
+    mongory_compile_budget_leave_depth();
     return NULL;
   }
   literal->implicit_array_matcher = NULL;
-  // composite->right typically NULL for $size, array path of literal_match not primary.
 
   literal->base.pool = pool;
   literal->base.condition = size_condition;
   literal->base.match = mongory_matcher_size_match;
   literal->base.original_match = mongory_matcher_size_match;
   literal->base.name = mongory_string_cpy(pool, "Size");
+  if (!literal->base.name) {
+    mongory_compile_budget_leave_depth();
+    return NULL;
+  }
   literal->base.explain = mongory_matcher_value_explain;
   literal->base.traverse = mongory_matcher_value_traverse;
   literal->base.sub_count = 1;
@@ -371,6 +410,7 @@ mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool, mongory_val
   literal->base.priority = 1.0 + literal->delegate_matcher->priority;
   literal->base.parent = NULL;
   literal->delegate_matcher->parent = (mongory_matcher *)literal;
+  mongory_compile_budget_leave_depth();
   return (mongory_matcher *)literal;
 }
 

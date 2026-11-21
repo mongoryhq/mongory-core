@@ -240,6 +240,9 @@ mongory_value *mongory_value_wrap_s(mongory_memory_pool *pool, char *s_val) {
   // when `s_val` was not NULL, but this requires a more complex error handling
   // strategy with the memory pool.
   value->data.s = mongory_string_cpy(pool, s_val);
+  if (s_val != NULL && value->data.s == NULL) {
+    return NULL;
+  }
   value->comp = mongory_value_string_compare;
   value->to_str = mongory_value_string_to_str;
   return value;

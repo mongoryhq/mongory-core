@@ -35,6 +35,7 @@
   _(MONGORY_ERROR_INVALID_ARGUMENT, 15, "Invalid Argument Error")                                                      \
   _(MONGORY_ERROR_IO, 16, "I/O Error")                                                                                 \
   _(MONGORY_ERROR_PARSE, 17, "Parse Error")                                                                            \
+  _(MONGORY_ERROR_LIMIT_EXCEEDED, 18, "Limit Exceeded Error")                                                          \
   _(MONGORY_ERROR_UNKNOWN, 99, "Unknown Error")
 
 /**
@@ -75,5 +76,7 @@ typedef struct mongory_error {
 } mongory_error;
 
 extern mongory_error MONGORY_ALLOC_ERROR;
+extern mongory_error MONGORY_DEPTH_LIMIT_ERROR;
+extern mongory_error MONGORY_NODE_LIMIT_ERROR;
 
 #endif /* MONGORY_ERROR */

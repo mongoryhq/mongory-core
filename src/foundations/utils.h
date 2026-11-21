@@ -52,6 +52,13 @@ char *mongory_string_cpyf(mongory_memory_pool *pool, char *format, ...);
 
 double mongory_log(double x, double base);
 
+/**
+ * @brief Sets `pool->error` safely without dereferencing NULL on OOM.
+ * If allocating `mongory_error` from `pool` fails, falls back to the static
+ * `&MONGORY_ALLOC_ERROR`. Does not overwrite an already-set `pool->error`.
+ */
+void mongory_error_set(mongory_memory_pool *pool, mongory_error_type type, const char *message);
+
 bool mongory_validate_ptr(mongory_memory_pool *pool, char *name, void *ptr, char *file, int line);
 #define MONGORY_VALIDATE_PTR(pool, ptr) mongory_validate_ptr(pool, #ptr, ptr, __FILE__, __LINE__)
 

@@ -8,6 +8,7 @@
  * `mongory_array` with capacity information and the actual item storage.
  */
 
+#include <stdint.h>
 #include <string.h>
 #include "array_private.h"
 #include <mongory-core/foundations/array.h>
@@ -36,6 +37,10 @@
  */
 bool mongory_array_resize(mongory_array *self, size_t size) {
   mongory_array_private *internal = (mongory_array_private *)self;
+  if (size > SIZE_MAX / sizeof(mongory_value *)) {
+    self->pool->error = &MONGORY_ALLOC_ERROR;
+    return false;
+  }
 
   // Allocate a new, larger block of memory for the items.
   mongory_value **new_items = MG_ALLOC_ARY(self->pool, mongory_value*, size);
@@ -73,10 +78,18 @@ static inline bool mongory_array_grow_if_needed(mongory_array *self, size_t size
   if (size < internal->capacity) {
     return true;
   }
+  if (size == SIZE_MAX) {
+    self->pool->error = &MONGORY_ALLOC_ERROR;
+    return false;
+  }
 
   // Calculate new capacity, typically doubling, until it's sufficient.
-  size_t new_capacity = internal->capacity * 2;
+  size_t new_capacity = internal->capacity > 0 ? internal->capacity : MONGORY_ARRAY_INIT_SIZE;
   while (new_capacity <= size) {
+    if (new_capacity > SIZE_MAX / 2) {
+      new_capacity = size + 1;
+      break;
+    }
     new_capacity *= 2;
   }
 
@@ -232,18 +245,31 @@ mongory_array *mongory_array_nested_wrap(mongory_memory_pool *pool, int argc, ..
   }
   va_list args;
   va_start(args, argc);
+  bool ok = true;
   for (int i = 0; i < argc; i++) {
     mongory_value *value = va_arg(args, mongory_value *);
-    array->push(array, value);
+    if (ok && (!value || !array->push(array, value))) {
+      ok = false;
+    }
   }
   va_end(args);
+  if (!ok || pool->error != NULL) {
+    return NULL;
+  }
   return array;
 }
 
 typedef size_t(*mongory_array_sort_cb)(mongory_value *value, void *ctx);
 
 static mongory_value** mongory_array_merge_sort_finalize(mongory_memory_pool *pool, mongory_value **left, mongory_value **right, size_t count, void *ctx, mongory_array_sort_cb callback) {
+  if (!left || !right) {
+    return NULL;
+  }
   mongory_value **result = MG_ALLOC_ARY(pool, mongory_value*, count);
+  if (!result) {
+    pool->error = &MONGORY_ALLOC_ERROR;
+    return NULL;
+  }
   size_t i = 0, j = 0, k = 0;
   while (i < count / 2 && j < count - count / 2) {
     if (callback(left[i], ctx) < callback(right[j], ctx)) {
@@ -267,19 +293,35 @@ static mongory_value** mongory_array_merge_sort(mongory_memory_pool *pool, mongo
   }
   size_t mid = count / 2;
   mongory_value **left = mongory_array_merge_sort(pool, origin_items, mid, ctx, callback);
+  if (!left) {
+    return NULL;
+  }
   mongory_value **right = mongory_array_merge_sort(pool, origin_items + mid, count - mid, ctx, callback);
+  if (!right) {
+    return NULL;
+  }
   return mongory_array_merge_sort_finalize(pool, left, right, count, ctx, callback);
 }
 
 mongory_array *mongory_array_sort_by(mongory_array *self, mongory_memory_pool *temp_pool, void *ctx, mongory_array_sort_cb callback) {
+  if (!self || !temp_pool) {
+    return NULL;
+  }
   mongory_array_private *internal = (mongory_array_private *)self;
 
   mongory_value **new_items = mongory_array_merge_sort(temp_pool, internal->items, self->count, ctx, callback);
-  mongory_array_private *new_array = (mongory_array_private *)mongory_array_new(self->pool);
-  new_array->capacity = internal->capacity;
+  if (!new_items) {
+    self->pool->error = &MONGORY_ALLOC_ERROR;
+    return NULL;
+  }
+  mongory_array_private *new_array = (mongory_array_private *)mongory_array_new_with_capacity(self->pool, internal->capacity);
+  if (!new_array) {
+    return NULL;
+  }
   new_array->base.count = self->count;
-  new_array->items = MG_ALLOC_ARY(self->pool, mongory_value*, new_array->capacity);
-  memcpy(new_array->items, new_items, sizeof(mongory_value *) * self->count);
+  if (self->count > 0) {
+    memcpy(new_array->items, new_items, sizeof(mongory_value *) * self->count);
+  }
   return &new_array->base;
 }
 

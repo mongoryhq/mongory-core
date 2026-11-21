@@ -110,21 +110,13 @@ static inline mongory_value *mongory_matcher_implicit_array_parse_table(mongory_
     return NULL;
   }
   if (!condition || !condition->data.t) {
-    mongory_error *error = MG_ALLOC_PTR(pool, mongory_error);
-    if (!error) {
-      pool->error = &MONGORY_ALLOC_ERROR;
-      return NULL;
-    }
-    error->type = MONGORY_ERROR_INVALID_TYPE;
-    error->message = "Expected condition to be a table, got a non-table value";
-    pool->error = error; // TODO: This is a hack, we should use a better error handling mechanism
+    mongory_error_set(pool, MONGORY_ERROR_INVALID_TYPE, "Expected condition to be a table, got a non-table value");
     return NULL; // Invalid input
   }
   mongory_table *parsed_table = mongory_table_new(pool);
   mongory_table *elem_match_sub_table = mongory_table_new(pool);
 
   if (!parsed_table || !elem_match_sub_table) {
-    // Cleanup if one allocation succeeded but other failed? Pool should handle.
     return NULL;
   }
 
@@ -133,11 +125,17 @@ static inline mongory_value *mongory_matcher_implicit_array_parse_table(mongory_
 
   original_condition_table->each(original_condition_table, &parse_ctx,
                                  mongory_matcher_implicit_array_parse_table_foreach);
+  if (pool->error != NULL) {
+    return NULL;
+  }
 
   if (elem_match_sub_table->count > 0) {
     // If there were conditions for element matching, add them as an $elemMatch
     // clause to the main parsed_table.
-    parsed_table->set(parsed_table, "$elemMatch", mongory_value_wrap_t(pool, elem_match_sub_table));
+    mongory_value *wrapped_elem = mongory_value_wrap_t(pool, elem_match_sub_table);
+    if (!wrapped_elem || !parsed_table->set(parsed_table, "$elemMatch", wrapped_elem)) {
+      return NULL;
+    }
   }
   // If elem_match_sub_table is empty, it's not added. The original parsed_table
   // (which might contain $size etc.) is returned.
@@ -162,24 +160,45 @@ static inline mongory_value *mongory_matcher_implicit_array_parse_table(mongory_
  * @return The constructed implicit_array_matcher, or NULL on failure.
  */
 mongory_matcher *mongory_matcher_implicit_array_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
-  if (!condition)
+  if (!condition || !pool)
     return NULL;
+  mongory_compile_budget saved = mongory_compile_budget_begin();
+  mongory_matcher *result = NULL;
   switch (condition->type) {
-  case MONGORY_TYPE_TABLE:
-    return mongory_matcher_condition_new(pool,
-      mongory_matcher_implicit_array_parse_table(pool, condition),
-      extern_ctx
-    );
-  case MONGORY_TYPE_ARRAY:
-    return mongory_matcher_or_new(pool, MG_ARRAY_WRAP(pool, 2,
+  case MONGORY_TYPE_TABLE: {
+    mongory_value *parsed = mongory_matcher_implicit_array_parse_table(pool, condition);
+    if (parsed && pool->error == NULL) {
+      result = mongory_matcher_condition_new(pool, parsed, extern_ctx);
+    }
+    break;
+  }
+  case MONGORY_TYPE_ARRAY: {
+    mongory_value *or_cond = MG_ARRAY_WRAP(pool, 2,
       MG_TABLE_WRAP(pool, 1, "$eq", condition),
       MG_TABLE_WRAP(pool, 1, "$elemMatch",
         MG_TABLE_WRAP(pool, 1, "$eq", condition)
       )
-    ), extern_ctx);
-  case MONGORY_TYPE_REGEX:
-    return mongory_matcher_elem_match_new(pool, MG_TABLE_WRAP(pool, 1, "$regex", condition), extern_ctx);
-  default: // Literals (string, int, bool, etc.)
-    return mongory_matcher_elem_match_new(pool, MG_TABLE_WRAP(pool, 1, "$eq", condition), extern_ctx);
+    );
+    if (or_cond && pool->error == NULL) {
+      result = mongory_matcher_or_new(pool, or_cond, extern_ctx);
+    }
+    break;
   }
+  case MONGORY_TYPE_REGEX: {
+    mongory_value *re_cond = MG_TABLE_WRAP(pool, 1, "$regex", condition);
+    if (re_cond && pool->error == NULL) {
+      result = mongory_matcher_elem_match_new(pool, re_cond, extern_ctx);
+    }
+    break;
+  }
+  default: { // Literals (string, int, bool, etc.)
+    mongory_value *eq_cond = MG_TABLE_WRAP(pool, 1, "$eq", condition);
+    if (eq_cond && pool->error == NULL) {
+      result = mongory_matcher_elem_match_new(pool, eq_cond, extern_ctx);
+    }
+    break;
+  }
+  }
+  mongory_compile_budget_end(saved);
+  return result;
 }

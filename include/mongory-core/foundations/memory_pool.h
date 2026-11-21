@@ -80,6 +80,21 @@ struct mongory_memory_pool {
                            is a static error object. */
 };
 
+#define MONGORY_DEFAULT_MAX_CHUNK_SIZE (4u * 1024u * 1024u)
+
+/**
+ * @struct mongory_allocator
+ * @brief Custom heap allocator hooks for a `mongory_memory_pool`.
+ *
+ * When provided to `mongory_memory_pool_new_with_allocator`, the pool uses
+ * `alloc` and `free` for all pool structures and arena chunks.
+ */
+typedef struct mongory_allocator {
+  void *(*alloc)(size_t size, void *user_data);
+  void (*free)(void *ptr, void *user_data);
+  void *user_data;
+} mongory_allocator;
+
 /**
  * @brief Creates a new mongory_memory_pool instance.
  *
@@ -91,5 +106,34 @@ struct mongory_memory_pool {
  * context failed).
  */
 mongory_memory_pool *mongory_memory_pool_new();
+
+/**
+ * @brief Creates a new mongory_memory_pool backed by a custom allocator.
+ *
+ * If `allocator` is NULL, defaults to the standard C library allocator.
+ *
+ * @param allocator Optional custom allocator hooks (both `alloc` and `free`
+ *                  must be non-NULL when `allocator` is non-NULL).
+ * @return mongory_memory_pool* Pointer to the new pool, or NULL on failure.
+ */
+mongory_memory_pool *mongory_memory_pool_new_with_allocator(const mongory_allocator *allocator);
+
+/**
+ * @brief Configures chunk growth cap and total byte budget for a core memory pool.
+ *
+ * Passing `0` for `max_chunk_size` restores `MONGORY_DEFAULT_MAX_CHUNK_SIZE`.
+ * Passing `0` for `max_total_bytes` disables the total byte limit (unlimited).
+ * Safe no-op if `pool` is NULL or uses a non-core custom pool implementation.
+ *
+ * @param pool The target memory pool.
+ * @param max_chunk_size Maximum size for geometric chunk doubling (in bytes).
+ * @param max_total_bytes Maximum cumulative chunk bytes allowed (0 = unlimited).
+ */
+void mongory_memory_pool_set_limits(mongory_memory_pool *pool, size_t max_chunk_size, size_t max_total_bytes);
+
+/**
+ * @brief Returns total chunk bytes currently allocated by a core memory pool.
+ */
+size_t mongory_memory_pool_total_bytes(const mongory_memory_pool *pool);
 
 #endif /* MONGORY_MEMORY_POOL */

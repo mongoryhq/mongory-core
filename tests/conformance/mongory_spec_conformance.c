@@ -47,7 +47,16 @@ static bool spec_regex_match_with_flags(mongory_value *pattern, uint32_t flags, 
     return false;
   }
   pcre2_match_data *match_data = pcre2_match_data_create_from_pattern(re, NULL);
-  int rc = pcre2_match(re, (PCRE2_SPTR)value->data.s, strlen(value->data.s), 0, 0, match_data, NULL);
+  pcre2_match_context *mctx = pcre2_match_context_create(NULL);
+  if (mctx) {
+    // Guard against catastrophic backtracking (ReDoS) on untrusted patterns/inputs.
+    pcre2_set_match_limit(mctx, 100000);
+    pcre2_set_depth_limit(mctx, 1000);
+  }
+  int rc = pcre2_match(re, (PCRE2_SPTR)value->data.s, strlen(value->data.s), 0, 0, match_data, mctx);
+  if (mctx) {
+    pcre2_match_context_free(mctx);
+  }
   pcre2_match_data_free(match_data);
   pcre2_code_free(re);
   return rc >= 0;

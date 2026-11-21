@@ -21,6 +21,12 @@
  *
  * This function is called when a regex match is required.
  *
+ * @note Security / ReDoS guidance: `mongory-core` is regex-engine agnostic.
+ * When accepting untrusted patterns or inputs, adapters backed by backtracking
+ * engines MUST enforce match/backtrack limits (e.g. PCRE2
+ * `pcre2_set_match_limit` & `pcre2_set_depth_limit`, Oniguruma
+ * `onig_set_retry_limit_in_match`) or use a linear-time engine such as RE2.
+ *
  * @param pool The memory pool to use for any allocations during the match.
  * @param pattern The regex pattern (as a mongory_value, typically a string or
  * regex type).
@@ -182,5 +188,30 @@ void mongory_custom_matcher_build_func_set(mongory_matcher_custom_context *(*bui
 void mongory_custom_matcher_lookup_func_set(bool (*lookup)(char *key));
 
 void mongory_matcher_trace_result_colorful_set(bool colorful);
+
+#define MONGORY_DEFAULT_MAX_DEPTH 64
+#define MONGORY_DEFAULT_MAX_NODES 4096
+
+/**
+ * @brief Sets the maximum condition nesting depth allowed during matcher compilation.
+ * Pass 0 to disable the depth limit. Defaults to MONGORY_DEFAULT_MAX_DEPTH (64).
+ */
+void mongory_max_depth_set(size_t max_depth);
+
+/**
+ * @brief Returns the configured maximum condition nesting depth (0 = unlimited).
+ */
+size_t mongory_max_depth_get(void);
+
+/**
+ * @brief Sets the maximum number of matcher nodes allowed per compiled matcher.
+ * Pass 0 to disable the node limit. Defaults to MONGORY_DEFAULT_MAX_NODES (4096).
+ */
+void mongory_max_nodes_set(size_t max_nodes);
+
+/**
+ * @brief Returns the configured maximum matcher node count (0 = unlimited).
+ */
+size_t mongory_max_nodes_get(void);
 
 #endif /* MONGORY_FOUNDATIONS_CONFIG_H */

@@ -52,11 +52,7 @@ static inline bool mongory_matcher_exists_match(mongory_matcher *matcher, mongor
 
 mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
   if (!mongory_matcher_validate_bool_condition(condition)) {
-    pool->error = MG_ALLOC_PTR(pool, mongory_error);
-    if (pool->error) {
-      pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
-      pool->error->message = "$exists condition must be a boolean value.";
-    }
+    mongory_error_set(pool, MONGORY_ERROR_INVALID_ARGUMENT, "$exists condition must be a boolean value.");
     return NULL;
   }
   mongory_matcher *matcher = mongory_matcher_base_new(pool, condition, extern_ctx);
@@ -66,6 +62,9 @@ mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool, mongory_v
   matcher->match = mongory_matcher_exists_match;
   matcher->original_match = mongory_matcher_exists_match;
   matcher->name = mongory_string_cpy(pool, "Exists");
+  if (!matcher->name) {
+    return NULL;
+  }
   matcher->priority = 2.0;
   return matcher;
 }
@@ -141,11 +140,7 @@ static inline bool mongory_matcher_present_match(mongory_matcher *matcher, mongo
 
 mongory_matcher *mongory_matcher_present_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
   if (!mongory_matcher_validate_bool_condition(condition)) {
-    pool->error = MG_ALLOC_PTR(pool, mongory_error);
-    if (pool->error) {
-      pool->error->type = MONGORY_ERROR_INVALID_ARGUMENT;
-      pool->error->message = "$present condition must be a boolean value.";
-    }
+    mongory_error_set(pool, MONGORY_ERROR_INVALID_ARGUMENT, "$present condition must be a boolean value.");
     return NULL;
   }
   mongory_matcher *matcher = mongory_matcher_base_new(pool, condition, extern_ctx);
@@ -155,6 +150,9 @@ mongory_matcher *mongory_matcher_present_new(mongory_memory_pool *pool, mongory_
   matcher->match = mongory_matcher_present_match;
   matcher->original_match = mongory_matcher_present_match;
   matcher->name = mongory_string_cpy(pool, "Present");
+  if (!matcher->name) {
+    return NULL;
+  }
   matcher->priority = 2.0;
   return matcher;
 }

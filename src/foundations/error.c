@@ -35,4 +35,14 @@ mongory_error MONGORY_ALLOC_ERROR = {
   .type = MONGORY_ERROR_MEMORY,
   .message = "Memory Allocation Failed",
 };
+
+mongory_error MONGORY_DEPTH_LIMIT_ERROR = {
+  .type = MONGORY_ERROR_LIMIT_EXCEEDED,
+  .message = "Maximum condition nesting depth exceeded",
+};
+
+mongory_error MONGORY_NODE_LIMIT_ERROR = {
+  .type = MONGORY_ERROR_LIMIT_EXCEEDED,
+  .message = "Maximum matcher node count exceeded",
+};
 #endif

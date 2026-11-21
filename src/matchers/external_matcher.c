@@ -62,11 +62,7 @@ static inline bool mongory_matcher_regex_condition_validate(mongory_value *condi
 }
 
 static inline void mongory_matcher_regex_error_set(mongory_memory_pool *pool, mongory_error_type type, const char *message) {
-  pool->error = MG_ALLOC_PTR(pool, mongory_error);
-  if (pool->error) {
-    pool->error->type = type;
-    pool->error->message = message;
-  }
+  mongory_error_set(pool, type, message);
 }
 
 /**
@@ -110,6 +106,10 @@ mongory_matcher *mongory_matcher_regex_with_options_new(mongory_memory_pool *poo
     return NULL;
   }
 
+  if (!mongory_compile_budget_count_node(pool)) {
+    return NULL;
+  }
+
   mongory_regex_matcher *matcher = MG_ALLOC_PTR(pool, mongory_regex_matcher);
   if (!matcher) {
     pool->error = &MONGORY_ALLOC_ERROR;
@@ -124,9 +124,15 @@ mongory_matcher *mongory_matcher_regex_with_options_new(mongory_memory_pool *poo
   matcher->base.traverse = mongory_matcher_leaf_traverse;
   matcher->base.extern_ctx = extern_ctx;
   matcher->base.name = mongory_string_cpy(pool, "Regex");
+  if (!matcher->base.name) {
+    return NULL;
+  }
   matcher->base.priority = 20.0;
   matcher->base.parent = NULL;
   matcher->options = has_options ? mongory_string_cpy(pool, options->data.s) : NULL;
+  if (has_options && !matcher->options) {
+    return NULL;
+  }
   return (mongory_matcher *)matcher;
 }
 
@@ -166,9 +172,15 @@ bool mongory_matcher_custom_match(mongory_matcher *matcher, mongory_value *value
 mongory_matcher *mongory_matcher_custom_new(mongory_memory_pool *pool, char *key, mongory_value *condition, void *extern_ctx) {
   if (mongory_custom_matcher_adapter.build == NULL)
     return NULL; // Custom matcher adapter not initialized.
-  mongory_custom_matcher *matcher = MG_ALLOC_PTR(pool, mongory_custom_matcher);
-  if (matcher == NULL)
+  if (!mongory_compile_budget_count_node(pool))
     return NULL;
+  mongory_custom_matcher *matcher = MG_ALLOC_PTR(pool, mongory_custom_matcher);
+  if (matcher == NULL) {
+    if (pool) {
+      pool->error = &MONGORY_ALLOC_ERROR;
+    }
+    return NULL;
+  }
   mongory_matcher_custom_context *context = mongory_custom_matcher_adapter.build(key, condition, extern_ctx);
   if (context == NULL)
     return NULL;

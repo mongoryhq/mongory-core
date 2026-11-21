@@ -43,7 +43,9 @@ mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *c
   // The core logic is delegated to a more specific constructor.
   // This design allows for easy extension; for example, a different constructor
   // could be chosen here based on the `condition->type`.
+  mongory_compile_budget saved = mongory_compile_budget_begin();
   mongory_matcher *matcher = mongory_matcher_condition_new(pool, condition, extern_ctx);
+  mongory_compile_budget_end(saved);
   if (matcher == NULL) {
     return NULL;
   }
@@ -161,6 +163,9 @@ static void mongory_explain_tree_print_node(
     mongory_array *children = children_val->data.a;
     int child_total = (int)children->count;
     char *next_prefix = mongory_string_cpyf(pool, "%s%s", prefix, indent);
+    if (!next_prefix) {
+      return;
+    }
     for (int i = 0; i < child_total; i++) {
       mongory_explain_tree_print_node(children->get(children, i), pool, next_prefix, i, child_total);
     }
@@ -273,6 +278,9 @@ static mongory_array *mongory_matcher_build_trace_nodes(
   }
   mongory_array *nodes = mongory_array_new(pool);
   mongory_array *group = mongory_array_new(pool);
+  if (!nodes || !group || pool->error != NULL) {
+    return NULL;
+  }
   int total = (int)traces->count;
   for (int i = 0; i < total; i++) {
     mongory_value *item = traces->get(traces, i);
@@ -283,9 +291,15 @@ static mongory_array *mongory_matcher_build_trace_nodes(
     mongory_matcher_traced_match_context *entry = (mongory_matcher_traced_match_context *)item->data.ptr;
     if (entry->level == level) {
       if (executed_matchers_out) {
-        executed_matchers_out->push(executed_matchers_out, mongory_value_wrap_ptr(pool, (void *)entry->matcher));
+        mongory_value *ptr_val = mongory_value_wrap_ptr(pool, (void *)entry->matcher);
+        if (!ptr_val || !executed_matchers_out->push(executed_matchers_out, ptr_val)) {
+          return NULL;
+        }
       }
       mongory_array *executed_children = mongory_array_new(pool);
+      if (!executed_children || pool->error != NULL) {
+        return NULL;
+      }
       mongory_array *children = mongory_matcher_build_trace_nodes(group, level + 1, pool, executed_children);
       if (!children || pool->error != NULL) {
         return NULL;
@@ -338,10 +352,18 @@ static mongory_array *mongory_matcher_build_trace_nodes(
       node->set(node, "result", mongory_value_wrap_s(pool, entry->matched ? "pass" : "fail"));
       node->set(node, "children", mongory_value_wrap_a(pool, children));
 
-      nodes->push(nodes, mongory_value_wrap_t(pool, node));
+      mongory_value *wrapped_node = mongory_value_wrap_t(pool, node);
+      if (!wrapped_node || !nodes->push(nodes, wrapped_node) || pool->error != NULL) {
+        return NULL;
+      }
       group = mongory_array_new(pool);
+      if (!group) {
+        return NULL;
+      }
     } else {
-      group->push(group, item);
+      if (!group->push(group, item)) {
+        return NULL;
+      }
     }
   }
   return nodes;
@@ -372,6 +394,9 @@ void mongory_matcher_enable_trace(mongory_matcher *matcher, mongory_memory_pool 
     return;
   }
   mongory_array *trace_stack = mongory_array_new(temp_pool);
+  if (!trace_stack) {
+    return;
+  }
   mongory_matcher_enable_trace_at(matcher, trace_stack, 0);
 }
 
