@@ -47,10 +47,21 @@ void test_string_allocation(void) {
   TEST_ASSERT_EQUAL_STRING("abcd", string);
 }
 
+#if defined(__SANITIZE_ADDRESS__) || defined(__SANITIZE_THREAD__)
+#define MONGORY_UNDER_SANITIZER 1
+#elif defined(__has_feature)
+#if __has_feature(address_sanitizer) || __has_feature(thread_sanitizer)
+#define MONGORY_UNDER_SANITIZER 1
+#endif
+#endif
+
 void test_double_free_prevention(void) {
-#ifdef _WIN32
+#if defined(_WIN32)
   // Skip this test on Windows due to signal handling differences
   TEST_PASS_MESSAGE("Double free test skipped on Windows");
+#elif defined(MONGORY_UNDER_SANITIZER)
+  // Deliberately triggering UB (double free + longjmp from SIGABRT) conflicts with ASan/TSan allocators
+  TEST_PASS_MESSAGE("Double free signal test skipped under sanitizer");
 #else
   signal(SIGABRT, signal_handler);
 

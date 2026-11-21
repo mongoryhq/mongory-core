@@ -76,7 +76,7 @@ static const char *fs_key(fuzz_stream_t *s, bool allow_ops) {
     "$eq", "$ne", "$gt", "$gte", "$lt", "$lte",
     "$in", "$nin", "$and", "$or", "$not",
     "$elemMatch", "$every", "$size", "$exists", "$present",
-    "$unknown"
+    "$regex", "$options", "$unknown"
   };
   uint8_t sel = fs_u8(s);
   if (allow_ops && (sel & 1) == 0) {
@@ -135,10 +135,25 @@ static mongory_value *fs_root_table(fuzz_stream_t *s, mongory_memory_pool *pool,
   return mongory_value_wrap_t(pool, tbl);
 }
 
+static bool fuzz_regex_match(mongory_memory_pool *pool, mongory_value *pattern, mongory_value *value) {
+  (void)pool;
+  if (!pattern || pattern->type != MONGORY_TYPE_STRING || !pattern->data.s) return false;
+  if (!value || value->type != MONGORY_TYPE_STRING || !value->data.s) return false;
+  return strstr(value->data.s, pattern->data.s) != NULL;
+}
+
+static bool fuzz_regex_options_match(mongory_memory_pool *pool, mongory_value *pattern, const char *options,
+                                     mongory_value *value) {
+  (void)options;
+  return fuzz_regex_match(pool, pattern, value);
+}
+
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   static bool initialized = false;
   if (!initialized) {
     mongory_init();
+    mongory_regex_func_set(fuzz_regex_match);
+    mongory_regex_options_func_set(fuzz_regex_options_match);
     initialized = true;
   }
 
@@ -220,4 +235,32 @@ int main(void) {
   printf("mongory-core fuzz smoke passed (%d iterations)\n", iters);
   return 0;
 }
+#elif defined(MONGORY_FUZZ_AFL)
+#ifdef __AFL_FUZZ_TESTCASE_LEN
+__AFL_FUZZ_INIT();
+int main(void) {
+#ifdef __AFL_HAVE_MANUAL_CONTROL
+  __AFL_INIT();
+#endif
+  unsigned char *buf = __AFL_FUZZ_TESTCASE_BUF;
+  while (__AFL_LOOP(10000)) {
+    int len = __AFL_FUZZ_TESTCASE_LEN;
+    if (len > 0) {
+      LLVMFuzzerTestOneInput((const uint8_t *)buf, (size_t)len);
+    }
+  }
+  mongory_cleanup();
+  return 0;
+}
+#else
+int main(void) {
+  uint8_t buf[4096];
+  size_t len = fread(buf, 1, sizeof(buf), stdin);
+  if (len > 0) {
+    LLVMFuzzerTestOneInput(buf, len);
+  }
+  mongory_cleanup();
+  return 0;
+}
+#endif
 #endif

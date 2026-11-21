@@ -106,3 +106,61 @@ jobs:
       working-directory: build
       shell: msys2 {0}
       run: ctest --build-config Release --label-regex conformance --output-on-failure
+
+  conformance-sanitizers:
+    name: Conformance (${{ matrix.label }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Debug + ASan/UBSan
+            sanitizers: address,undefined
+            asan_options: "detect_leaks=1:halt_on_error=1"
+            ubsan_options: "print_stacktrace=1:halt_on_error=1"
+            tsan_options: ""
+          - label: Debug + TSan
+            sanitizers: thread
+            asan_options: ""
+            ubsan_options: ""
+            tsan_options: "halt_on_error=1:second_deadlock_stack=1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout mongory-spec
+        uses: actions/checkout@v4
+        with:
+          repository: mongoryhq/mongory-spec
+          ref: ${{ github.event.inputs.spec_ref || 'v0.2.1' }}
+          path: mongory-spec
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libcjson-dev libpcre2-dev
+
+      - name: Setup Unity test framework
+        run: |
+          chmod +x scripts/setup_unity.sh
+          ./scripts/setup_unity.sh
+
+      - name: Configure CMake (Debug + ${{ matrix.sanitizers }})
+        run: >
+          cmake -B build
+          -DCMAKE_C_COMPILER=clang
+          -DCMAKE_BUILD_TYPE=Debug
+          -DBUILD_BENCHMARKS=OFF
+          -DMONGORY_SANITIZERS=${{ matrix.sanitizers }}
+          -DMONGORY_SPEC_DIR=${{ github.workspace }}/mongory-spec
+          -S .
+
+      - name: Build
+        run: cmake --build build --config Debug -j
+
+      - name: Run conformance tests
+        working-directory: build
+        env:
+          ASAN_OPTIONS: ${{ matrix.asan_options }}
+          UBSAN_OPTIONS: ${{ matrix.ubsan_options }}
+          TSAN_OPTIONS: ${{ matrix.tsan_options }}
+        run: ctest --build-config Debug --label-regex conformance --output-on-failure

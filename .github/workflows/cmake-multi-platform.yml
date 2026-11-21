@@ -121,17 +121,72 @@ jobs:
       shell: msys2 {0}
       run: ctest --build-config ${{ matrix.build_type }}
 
+  sanitizers:
+    name: Sanitizers (${{ matrix.label }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Debug + ASan/UBSan
+            sanitizers: address,undefined
+            asan_options: "detect_leaks=1:halt_on_error=1"
+            ubsan_options: "print_stacktrace=1:halt_on_error=1"
+            tsan_options: ""
+          - label: Debug + TSan
+            sanitizers: thread
+            asan_options: ""
+            ubsan_options: ""
+            tsan_options: "halt_on_error=1:second_deadlock_stack=1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libcjson-dev
+      - name: Setup Unity test framework
+        run: |
+          chmod +x scripts/setup_unity.sh
+          ./scripts/setup_unity.sh
+      - name: Configure CMake (Debug + ${{ matrix.sanitizers }})
+        run: >
+          cmake -B build
+          -DCMAKE_C_COMPILER=clang
+          -DCMAKE_BUILD_TYPE=Debug
+          -DBUILD_BENCHMARKS=OFF
+          -DMONGORY_SANITIZERS=${{ matrix.sanitizers }}
+          -S .
+      - name: Build
+        run: cmake --build build --config Debug -j
+      - name: Test
+        working-directory: build
+        env:
+          ASAN_OPTIONS: ${{ matrix.asan_options }}
+          UBSAN_OPTIONS: ${{ matrix.ubsan_options }}
+          TSAN_OPTIONS: ${{ matrix.tsan_options }}
+        run: ctest --build-config Debug --output-on-failure
+
   fuzz:
     name: Fuzz Smoke (libFuzzer + ASan/UBSan)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Clang
-        run: sudo apt-get update && sudo apt-get install -y clang
-      - name: Build and run libFuzzer smoke target
+      - name: Install Clang and cJSON
+        run: sudo apt-get update && sudo apt-get install -y clang libcjson-dev pkg-config
+      - name: Build and run libFuzzer targets
+        env:
+          ASAN_OPTIONS: "detect_leaks=1:halt_on_error=1"
+          UBSAN_OPTIONS: "print_stacktrace=1:halt_on_error=1"
         run: |
           clang -std=c99 -O1 -g -Wall -Wextra \
-            -fsanitize=fuzzer,address,undefined \
+            -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all \
             -Iinclude src/foundations/*.c src/matchers/*.c tests/fuzz/fuzz_matcher.c \
-            -o fuzz_matcher -lm
+            -o fuzz_matcher -lm -lpthread
           ./fuzz_matcher -max_total_time=15 -max_len=256
+
+          clang -std=c99 -O1 -g -Wall -Wextra \
+            -fsanitize=fuzzer,address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all \
+            $(pkg-config --cflags libcjson) \
+            -Iinclude src/foundations/*.c src/matchers/*.c tests/fuzz/fuzz_json_condition.c \
+            -o fuzz_json_condition $(pkg-config --libs libcjson) -lm -lpthread
+          ./fuzz_json_condition -max_total_time=15 -max_len=512
