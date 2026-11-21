@@ -202,7 +202,13 @@ cmake -DBUILD_TESTS=OFF -DBUILD_BENCHMARKS=OFF ..
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DBUILD_TESTS=OFF -DBUILD_BENCHMARKS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local -S .
 cmake --build build
 sudo cmake --install build
+
+# Optional: build raw JSON shallow-wrapper adapter (mongory-core-json, backed by yyjson)
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DMONGORY_WITH_JSON=ON -S .
+cmake --build build
 ```
+
+With `-DMONGORY_WITH_JSON=ON`, include `<mongory-core/adapters/json.h>` and link `mongory-core::json` to match raw JSON strings directly without full `mongory_table` materialization (`mongory_matcher_new_from_json`, `mongory_matcher_match_json`, `mongory_matcher_match_json_with_ctx`).
 
 Downstream projects can consume `mongory-core` via CMake or `pkg-config`:
 

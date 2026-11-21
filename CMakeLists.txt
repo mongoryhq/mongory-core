@@ -82,6 +82,46 @@ if(NOT WIN32)
 endif()
 string(STRIP "${MONGORY_PC_LIBS_PRIVATE}" MONGORY_PC_LIBS_PRIVATE)
 
+# Optional raw JSON adapter (opt-in; mongory-core itself stays zero-dependency)
+option(MONGORY_WITH_JSON "Build optional yyjson raw JSON adapter (mongory-core-json)" OFF)
+if(MONGORY_WITH_JSON)
+    find_package(yyjson QUIET)
+    if(TARGET yyjson::yyjson)
+        set(MONGORY_YYJSON_TARGET yyjson::yyjson)
+    elseif(EXISTS "${CMAKE_SOURCE_DIR}/third_party/yyjson/yyjson.c")
+        add_library(yyjson STATIC third_party/yyjson/yyjson.c)
+        target_include_directories(yyjson PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/third_party/yyjson>
+        )
+        set_target_properties(yyjson PROPERTIES POSITION_INDEPENDENT_CODE ON)
+        if(NOT MSVC)
+            target_compile_options(yyjson PRIVATE -Wno-unused-parameter)
+        endif()
+        set(MONGORY_YYJSON_TARGET yyjson)
+    else()
+        include(FetchContent)
+        FetchContent_Declare(
+            yyjson
+            GIT_REPOSITORY https://github.com/ibireme/yyjson.git
+            GIT_TAG 0.13.0
+        )
+        set(YYJSON_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+        FetchContent_MakeAvailable(yyjson)
+        set_target_properties(yyjson PROPERTIES POSITION_INDEPENDENT_CODE ON)
+        set(MONGORY_YYJSON_TARGET yyjson)
+    endif()
+
+    add_library(mongory-core-json STATIC src/adapters/json_adapter.c)
+    add_library(mongory-core::json ALIAS mongory-core-json)
+    set_target_properties(mongory-core-json PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    target_include_directories(mongory-core-json
+        PUBLIC
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    )
+    target_link_libraries(mongory-core-json PUBLIC mongory-core PRIVATE ${MONGORY_YYJSON_TARGET})
+endif()
+
 # Test options
 option(BUILD_TESTS "Build the tests" ON)
 if(BUILD_TESTS)
@@ -98,15 +138,17 @@ if(BUILD_TESTS)
     enable_testing()
 
     # yyjson (downloaded via scripts/setup_yyjson.sh; used only by tests/benchmarks)
-    set(YYJSON_DIR ${CMAKE_SOURCE_DIR}/third_party/yyjson)
-    if(EXISTS ${YYJSON_DIR}/yyjson.c)
-        add_library(yyjson STATIC ${YYJSON_DIR}/yyjson.c)
-        target_include_directories(yyjson PUBLIC ${YYJSON_DIR})
-        if(NOT MSVC)
-            target_compile_options(yyjson PRIVATE -Wno-unused-parameter)
+    if(NOT TARGET yyjson)
+        set(YYJSON_DIR ${CMAKE_SOURCE_DIR}/third_party/yyjson)
+        if(EXISTS ${YYJSON_DIR}/yyjson.c)
+            add_library(yyjson STATIC ${YYJSON_DIR}/yyjson.c)
+            target_include_directories(yyjson PUBLIC ${YYJSON_DIR})
+            if(NOT MSVC)
+                target_compile_options(yyjson PRIVATE -Wno-unused-parameter)
+            endif()
+        else()
+            message(FATAL_ERROR "yyjson not found. Run scripts/setup_yyjson.sh first, or disable tests with -DBUILD_TESTS=OFF.")
         endif()
-    else()
-        message(FATAL_ERROR "yyjson not found. Run scripts/setup_yyjson.sh first, or disable tests with -DBUILD_TESTS=OFF.")
     endif()
 
     # Copy test JSON files to the correct location in build directory
@@ -114,6 +156,9 @@ if(BUILD_TESTS)
 
     # Collect test files
     file(GLOB TEST_SOURCES "tests/mongory_*_test.c")
+    if(NOT MONGORY_WITH_JSON)
+        list(FILTER TEST_SOURCES EXCLUDE REGEX "mongory_json_adapter_test\\.c$")
+    endif()
 
     # Test helper library (for testing)
     add_library(test_helper STATIC src/test_helper/test_helper.c)
@@ -129,6 +174,9 @@ if(BUILD_TESTS)
             unity 
             yyjson
         )
+        if(MONGORY_WITH_JSON AND test_name STREQUAL "mongory_json_adapter_test")
+            target_link_libraries(${test_name} mongory-core-json)
+        endif()
         if(MATH_LIBRARY)
             target_link_libraries(${test_name} ${MATH_LIBRARY})
         endif()
@@ -227,6 +275,9 @@ if(BUILD_BENCHMARKS)
 
         # Collect benchmark files
         file(GLOB BENCHMARK_SOURCES "benchmarks/*.c")
+        if(NOT MONGORY_WITH_JSON)
+            list(FILTER BENCHMARK_SOURCES EXCLUDE REGEX "json_filter\\.c$")
+        endif()
         
         foreach(benchmark_source ${BENCHMARK_SOURCES})
             get_filename_component(benchmark_name ${benchmark_source} NAME_WE)
@@ -238,6 +289,9 @@ if(BUILD_BENCHMARKS)
                 unity 
                 yyjson
             )
+            if(MONGORY_WITH_JSON AND benchmark_name STREQUAL "json_filter")
+                target_link_libraries(${benchmark_target} mongory-core-json)
+            endif()
             if(MATH_LIBRARY)
                 target_link_libraries(${benchmark_target} ${MATH_LIBRARY})
             endif()
@@ -279,7 +333,18 @@ install(TARGETS mongory-core
 install(DIRECTORY include/
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     FILES_MATCHING PATTERN "*.h"
+    PATTERN "adapters" EXCLUDE
 )
+
+if(MONGORY_WITH_JSON)
+    install(FILES include/mongory-core/adapters/json.h
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/mongory-core/adapters
+    )
+    install(TARGETS mongory-core-json
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    )
+endif()
 
 install(EXPORT mongory-coreTargets
     FILE mongory-coreTargets.cmake
