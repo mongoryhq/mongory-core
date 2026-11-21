@@ -197,6 +197,22 @@ cmake -DCMAKE_BUILD_TYPE=Debug ..
 
 # Disable tests or benchmarks
 cmake -DBUILD_TESTS=OFF -DBUILD_BENCHMARKS=OFF ..
+
+# Build shared library with SOVERSION and install CMake config + pkg-config
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DBUILD_TESTS=OFF -DBUILD_BENCHMARKS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local -S .
+cmake --build build
+sudo cmake --install build
+```
+
+Downstream projects can consume `mongory-core` via CMake or `pkg-config`:
+
+```cmake
+find_package(mongory-core 0.2 REQUIRED)
+target_link_libraries(my_app PRIVATE mongory-core::mongory-core)
+```
+
+```bash
+cc main.c $(pkg-config --cflags --libs mongory-core)
 ```
 
 ### Code Formatting

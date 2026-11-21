@@ -1,0 +1,12 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: mongory-core
+Description: Zero-dependency C99 MongoDB-style in-memory query engine
+URL: https://github.com/mongoryhq/mongory-core
+Version: @PROJECT_VERSION@
+Libs: -L${libdir} -lmongory-core
+Libs.private: @MONGORY_PC_LIBS_PRIVATE@
+Cflags: -I${includedir}

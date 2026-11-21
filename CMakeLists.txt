@@ -44,18 +44,43 @@ file(GLOB_RECURSE CORE_SOURCES
 # Exclude test_helper
 list(FILTER CORE_SOURCES EXCLUDE REGEX "src/test_helper/.*")
 
-# Create core static library
-add_library(mongory-core STATIC ${CORE_SOURCES})
+# Create core library (static by default; -DBUILD_SHARED_LIBS=ON builds shared with SOVERSION)
+option(BUILD_SHARED_LIBS "Build mongory-core as a shared library" OFF)
+if(WIN32 AND BUILD_SHARED_LIBS)
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
+
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+add_library(mongory-core ${CORE_SOURCES})
+add_library(mongory-core::mongory-core ALIAS mongory-core)
+
+set_target_properties(mongory-core PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+    POSITION_INDEPENDENT_CODE ON
+)
+
+target_include_directories(mongory-core
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
 
 # Link math library for platforms that require -lm (e.g., Linux)
+set(MONGORY_PC_LIBS_PRIVATE "")
 find_library(MATH_LIBRARY m)
 if(MATH_LIBRARY)
-    target_link_libraries(mongory-core ${MATH_LIBRARY})
+    target_link_libraries(mongory-core PRIVATE ${MATH_LIBRARY})
+    set(MONGORY_PC_LIBS_PRIVATE "${MONGORY_PC_LIBS_PRIVATE} -lm")
 endif()
 if(NOT WIN32)
     find_package(Threads REQUIRED)
-    target_link_libraries(mongory-core Threads::Threads)
+    target_link_libraries(mongory-core PRIVATE Threads::Threads)
+    set(MONGORY_PC_LIBS_PRIVATE "${MONGORY_PC_LIBS_PRIVATE} -lpthread")
 endif()
+string(STRIP "${MONGORY_PC_LIBS_PRIVATE}" MONGORY_PC_LIBS_PRIVATE)
 
 # Test options
 option(BUILD_TESTS "Build the tests" ON)
@@ -304,18 +329,58 @@ add_custom_target(format
     COMMENT "Formatting code with clang-format"
 )
 
-# Install rules
+# Install rules, CMake package config, and pkg-config
 install(TARGETS mongory-core
-    ARCHIVE DESTINATION lib
+    EXPORT mongory-coreTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
 install(DIRECTORY include/
-    DESTINATION include
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     FILES_MATCHING PATTERN "*.h"
+)
+
+install(EXPORT mongory-coreTargets
+    FILE mongory-coreTargets.cmake
+    NAMESPACE mongory-core::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/mongory-core
+)
+
+configure_package_config_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/mongory-coreConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/mongory-coreConfig.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/mongory-core
+)
+
+write_basic_package_version_file(
+    ${CMAKE_CURRENT_BINARY_DIR}/mongory-coreConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/mongory-coreConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/mongory-coreConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/mongory-core
+)
+
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/mongory-core.pc.in
+    ${CMAKE_CURRENT_BINARY_DIR}/mongory-core.pc
+    @ONLY
+)
+
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/mongory-core.pc
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
 )
 
 # Display configuration information
 message(STATUS "=== MongoDB Core Library Configuration ===")
+message(STATUS "Version: ${PROJECT_VERSION} (SOVERSION ${PROJECT_VERSION_MAJOR})")
+message(STATUS "Shared library (BUILD_SHARED_LIBS): ${BUILD_SHARED_LIBS}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "C compiler: ${CMAKE_C_COMPILER}")
 message(STATUS "C flags: ${CMAKE_C_FLAGS}")

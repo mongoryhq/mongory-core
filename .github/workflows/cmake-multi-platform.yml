@@ -190,3 +190,88 @@ jobs:
             -Iinclude src/foundations/*.c src/matchers/*.c tests/fuzz/fuzz_json_condition.c \
             -o fuzz_json_condition $(pkg-config --libs libcjson) -lm -lpthread
           ./fuzz_json_condition -max_total_time=15 -max_len=512
+
+  packaging:
+    name: Packaging & ABI (CMake Config + pkg-config + Shared SOVERSION)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pkg-config
+        run: sudo apt-get update && sudo apt-get install -y pkg-config
+      - name: Build & install static and shared libraries
+        run: |
+          cmake -B build-static -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF -DBUILD_BENCHMARKS=OFF -DBUILD_SHARED_LIBS=OFF -DCMAKE_INSTALL_PREFIX=/tmp/mongory-static -S .
+          cmake --build build-static -j
+          cmake --install build-static
+
+          cmake -B build-shared -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF -DBUILD_BENCHMARKS=OFF -DBUILD_SHARED_LIBS=ON -DCMAKE_INSTALL_PREFIX=/tmp/mongory-shared -S .
+          cmake --build build-shared -j
+          cmake --install build-shared
+
+          # Verify shared library SOVERSION symlinks exist
+          ls -la /tmp/mongory-shared/lib/libmongory-core.so*
+          test -L /tmp/mongory-shared/lib/libmongory-core.so
+          test -L /tmp/mongory-shared/lib/libmongory-core.so.0
+      - name: Verify CMake find_package(mongory-core) and pkg-config consumers
+        run: |
+          mkdir -p /tmp/consumer
+          cat > /tmp/consumer/main.c <<'EOF'
+          #include <assert.h>
+          #include <mongory-core.h>
+          int main(void) {
+            mongory_init();
+            mongory_memory_pool *pool = mongory_memory_pool_new();
+            mongory_value *cond = MG_TABLE_WRAP(pool, 1, "age", MG_TABLE_WRAP(pool, 1, "$gte", mongory_value_wrap_i(pool, 18)));
+            mongory_value *rec = MG_TABLE_WRAP(pool, 1, "age", mongory_value_wrap_i(pool, 21));
+            mongory_matcher *m = mongory_matcher_new(pool, cond, NULL);
+            assert(m != NULL && mongory_matcher_match(m, rec));
+            pool->free(pool);
+            mongory_cleanup();
+            return 0;
+          }
+          EOF
+          cat > /tmp/consumer/CMakeLists.txt <<'EOF'
+          cmake_minimum_required(VERSION 3.12)
+          project(consumer C)
+          find_package(mongory-core 0.2 REQUIRED)
+          add_executable(consumer main.c)
+          target_link_libraries(consumer PRIVATE mongory-core::mongory-core)
+          EOF
+
+          # 1. CMake find_package against static install
+          cmake -B /tmp/consumer/build-static -DCMAKE_PREFIX_PATH=/tmp/mongory-static -S /tmp/consumer
+          cmake --build /tmp/consumer/build-static
+          /tmp/consumer/build-static/consumer
+
+          # 2. CMake find_package against shared install
+          cmake -B /tmp/consumer/build-shared -DCMAKE_PREFIX_PATH=/tmp/mongory-shared -S /tmp/consumer
+          cmake --build /tmp/consumer/build-shared
+          /tmp/consumer/build-shared/consumer
+
+          # 3. pkg-config against static install
+          PKG_CONFIG_PATH=/tmp/mongory-static/lib/pkgconfig \
+            cc /tmp/consumer/main.c -o /tmp/consumer/pkg_static \
+            $(PKG_CONFIG_PATH=/tmp/mongory-static/lib/pkgconfig pkg-config --cflags --libs --static mongory-core)
+          /tmp/consumer/pkg_static
+
+          # 4. pkg-config against shared install
+          PKG_CONFIG_PATH=/tmp/mongory-shared/lib/pkgconfig \
+            cc /tmp/consumer/main.c -Wl,-rpath,/tmp/mongory-shared/lib -o /tmp/consumer/pkg_shared \
+            $(PKG_CONFIG_PATH=/tmp/mongory-shared/lib/pkgconfig pkg-config --cflags --libs mongory-core)
+          /tmp/consumer/pkg_shared
+
+  benchmark-gate:
+    name: Benchmark Regression Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libcjson-dev
+      - name: Setup Unity test framework
+        run: chmod +x scripts/setup_unity.sh && ./scripts/setup_unity.sh
+      - name: Build Release benchmark suite
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_BENCHMARKS=ON -S .
+          cmake --build build --target benchmark_bench_suite -j
+      - name: Run benchmark regression gate
+        run: bash scripts/bench_gate.sh ./build/bin/benchmark_bench_suite
