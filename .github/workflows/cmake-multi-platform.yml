@@ -90,6 +90,7 @@ jobs:
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
         -DMONGORY_WITH_JSON=ON
+        ${{ runner.os == 'macOS' && '"-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"' || '' }}
         -S ${{ github.workspace }}
 
     - name: Configure CMake (Windows)
@@ -106,6 +107,10 @@ jobs:
     - name: Build (Unix)
       if: runner.os != 'Windows'
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+
+    - name: Verify macOS Universal Binary (arm64 + x86_64)
+      if: runner.os == 'macOS'
+      run: lipo -info ${{ steps.strings.outputs.build-output-dir }}/lib/libmongory-core.a
 
     - name: Build (Windows)
       if: runner.os == 'Windows'
