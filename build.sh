@@ -62,11 +62,12 @@ done
 
 echo -e "${BLUE}=== MongoDB Core Library Build Script ===${NC}"
 
-# Setup Unity (if needed)
+# Setup Unity and yyjson test dependencies (if needed)
 if [ "$SETUP_UNITY" = true ]; then
-    echo -e "${BLUE}Setting up Unity test framework...${NC}"
-    chmod +x scripts/setup_unity.sh
+    echo -e "${BLUE}Setting up Unity test framework and yyjson...${NC}"
+    chmod +x scripts/setup_unity.sh scripts/setup_yyjson.sh
     ./scripts/setup_unity.sh
+    ./scripts/setup_yyjson.sh
 fi
 
 # Clean build directory (if needed)

@@ -54,17 +54,19 @@ jobs:
           mingw-w64-x86_64-gcc
           mingw-w64-x86_64-curl
 
-    - name: Setup Unity test framework (Linux)
+    - name: Setup test dependencies (Linux)
       if: runner.os == 'Linux'
       run: |
-        chmod +x scripts/setup_unity.sh
+        chmod +x scripts/setup_unity.sh scripts/setup_yyjson.sh
         ./scripts/setup_unity.sh
+        ./scripts/setup_yyjson.sh
 
-    - name: Setup Unity test framework (Windows)
+    - name: Setup test dependencies (Windows)
       if: runner.os == 'Windows'
       shell: msys2 {0}
       run: |
         bash scripts/setup_unity.sh
+        bash scripts/setup_yyjson.sh
 
     - name: Set reusable strings
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
@@ -137,10 +139,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y clang
-      - name: Setup Unity test framework
+      - name: Setup test dependencies
         run: |
-          chmod +x scripts/setup_unity.sh
+          chmod +x scripts/setup_unity.sh scripts/setup_yyjson.sh
           ./scripts/setup_unity.sh
+          ./scripts/setup_yyjson.sh
       - name: Configure CMake (Debug + ${{ matrix.sanitizers }})
         run: >
           cmake -B build
@@ -164,8 +167,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Clang
-        run: sudo apt-get update && sudo apt-get install -y clang
+      - name: Install Clang and setup yyjson
+        run: |
+          sudo apt-get update && sudo apt-get install -y clang
+          bash scripts/setup_yyjson.sh
       - name: Build and run libFuzzer targets
         env:
           ASAN_OPTIONS: "detect_leaks=1:halt_on_error=1"
@@ -257,8 +262,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Unity test framework
-        run: chmod +x scripts/setup_unity.sh && ./scripts/setup_unity.sh
+      - name: Setup test dependencies
+        run: |
+          chmod +x scripts/setup_unity.sh scripts/setup_yyjson.sh
+          ./scripts/setup_unity.sh
+          ./scripts/setup_yyjson.sh
       - name: Build Release benchmark suite
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_BENCHMARKS=ON -S .

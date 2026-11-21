@@ -115,7 +115,7 @@ This project uses `CMake` for cross-platform building and testing, with a conven
 
 ### Dependencies
 - **Core library (`libmongory-core.a`)**: Zero external runtime dependencies — only a C99 compiler (`gcc`/`clang`) and `CMake` (>= 3.12) (`-DBUILD_TESTS=OFF -DBUILD_BENCHMARKS=OFF`).
-- **Unit tests & benchmarks**: Use vendored `yyjson` (`third_party/yyjson`, no external JSON library needed) and the Unity test framework (`./build.sh --setup-unity`).
+- **Unit tests & benchmarks**: Require Unity and `yyjson` downloaded locally via `./build.sh --setup-unity` (or `./scripts/setup_unity.sh && ./scripts/setup_yyjson.sh`; zero external system JSON package needed).
 - **Cross-language `mongory-spec` conformance tests**: Additionally require `libpcre2-8` (`libpcre2-dev` on Ubuntu/Debian, `pcre2` on macOS) and `-DMONGORY_SPEC_DIR=/path/to/mongory-spec`.
 
 #### Installation by Platform

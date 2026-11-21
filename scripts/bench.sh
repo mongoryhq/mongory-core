@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-if [[ ! -d tests/unity ]]; then
+if [[ ! -d tests/unity || ! -f third_party/yyjson/yyjson.c ]]; then
   ./build.sh -u >/dev/null
 fi
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_BENCHMARKS=ON -S . >/dev/null

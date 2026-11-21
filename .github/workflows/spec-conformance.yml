@@ -55,17 +55,19 @@ jobs:
           mingw-w64-x86_64-curl
           mingw-w64-x86_64-pkgconf
 
-    - name: Setup Unity test framework (Linux)
+    - name: Setup test dependencies (Linux)
       if: runner.os == 'Linux'
       run: |
-        chmod +x scripts/setup_unity.sh
+        chmod +x scripts/setup_unity.sh scripts/setup_yyjson.sh
         ./scripts/setup_unity.sh
+        ./scripts/setup_yyjson.sh
 
-    - name: Setup Unity test framework (Windows)
+    - name: Setup test dependencies (Windows)
       if: runner.os == 'Windows'
       shell: msys2 {0}
       run: |
         bash scripts/setup_unity.sh
+        bash scripts/setup_yyjson.sh
 
     - name: Configure CMake (Linux)
       if: runner.os == 'Linux'
@@ -138,10 +140,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y clang libpcre2-dev
 
-      - name: Setup Unity test framework
+      - name: Setup test dependencies
         run: |
-          chmod +x scripts/setup_unity.sh
+          chmod +x scripts/setup_unity.sh scripts/setup_yyjson.sh
           ./scripts/setup_unity.sh
+          ./scripts/setup_yyjson.sh
 
       - name: Configure CMake (Debug + ${{ matrix.sanitizers }})
         run: >

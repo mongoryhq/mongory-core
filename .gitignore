@@ -1,5 +1,6 @@
-# Unity test framework
+# Unity test framework & yyjson test dependency
 tests/unity/
+third_party/yyjson/
 
 # Build artifacts
 *.o
