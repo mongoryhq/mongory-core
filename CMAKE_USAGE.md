@@ -6,32 +6,32 @@ This project has been migrated from Makefile to CMake, supporting cross-platform
 
 - CMake 3.12 or higher
 - C99 compatible compiler (GCC, Clang, MSVC)
-- cJSON library
+- Zero external dependencies for `libmongory-core` itself (tests/benchmarks and opt-in `-DMONGORY_WITH_JSON=ON` use `yyjson`, fetched on demand via `./scripts/setup_yyjson.sh` or CMake `FetchContent`)
 
 ## Dependency Installation
 
 ### macOS (Homebrew)
 ```bash
-brew install cmake cjson
+brew install cmake
 ```
 
 ### Ubuntu/Debian
 ```bash
 sudo apt update
-sudo apt install cmake libcjson-dev build-essential
+sudo apt install cmake build-essential
 ```
 
 ### CentOS/RHEL/Fedora
 ```bash
 # CentOS/RHEL
-sudo yum install cmake cjson-devel gcc
+sudo yum install cmake gcc
 # or Fedora
-sudo dnf install cmake cjson-devel gcc
+sudo dnf install cmake gcc
 ```
 
 ### Windows (MSYS2)
 ```bash
-pacman -S mingw-w64-x86_64-cmake mingw-w64-x86_64-cjson mingw-w64-x86_64-gcc
+pacman -S mingw-w64-x86_64-cmake mingw-w64-x86_64-gcc
 ```
 
 ## Quick Start
@@ -132,20 +132,17 @@ rm -rf build
 
 ## Cross-Platform Notes
 
-- **macOS**: Automatically detects Homebrew paths
+- **macOS**: Supports native arm64/x86_64 and Universal Binaries (`-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"`)
 - **Linux**: Uses standard system paths
-- **Windows**: Supports MSYS2/MinGW environment
-- cJSON library is automatically detected via pkg-config or manual path detection
+- **Windows**: Supports MSYS2/MinGW and MSVC environments
+- Optional `yyjson` (for tests/benchmarks or `-DMONGORY_WITH_JSON=ON`) is resolved via system `find_package(yyjson)`, local `third_party/yyjson` (`./scripts/setup_yyjson.sh`), or CMake `FetchContent`
 
 ## Troubleshooting
 
-### cJSON not found
+### yyjson not found (when building tests or `-DMONGORY_WITH_JSON=ON`)
 ```bash
-# Check if installed
-pkg-config --exists libcjson && echo "Installed" || echo "Not installed"
-
-# Manually specify path (if needed)
-cmake -DCJSON_INCLUDE_DIR=/path/to/cjson/include -DCJSON_LIBRARY=/path/to/libcjson.so ..
+# Fetch yyjson into untracked third_party/yyjson
+./scripts/setup_yyjson.sh
 ```
 
 ### Unity test framework issues

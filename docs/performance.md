@@ -8,7 +8,7 @@ Run the benchmark suite in `mongory-core`:
 bash scripts/bench.sh
 ```
 
-> Requires `cJSON` and the Unity test framework (`./build.sh --setup-unity`).
+> Core library has zero external dependencies. Tests/benchmarks fetch `yyjson` and Unity automatically (`./scripts/setup_yyjson.sh` and `./build.sh --setup-unity`).
 
 ### Measured Results (Apple M3, macOS arm64, `Release` build, 10,000 records x 200 rounds)
 

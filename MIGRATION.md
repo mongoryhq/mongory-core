@@ -14,7 +14,7 @@ The original Makefile configuration was primarily targeted for macOS environment
 
 ### New Features
 - **Cross-platform support**: Supports macOS, Linux, Windows (MSYS2)
-- **Automatic dependency detection**: Automatically locates cJSON through pkg-config and manual discovery
+- **Zero core dependencies**: Core library requires only standard C99; optional `yyjson` for tests/benchmarks is fetched via `scripts/setup_yyjson.sh` or `FetchContent`
 - **Convenient build script**: Provides `build.sh` script to simplify common operations
 - **Flexible configuration**: Supports Release/Debug modes, optional tests and benchmarks
 
@@ -56,10 +56,9 @@ cmake -DBUILD_BENCHMARKS=OFF ..         # Don't build benchmarks
 
 ## 🌍 Cross-Platform Support
 
-### Automatic Dependency Detection
-- **Prioritize pkg-config**: Automatically detects system-installed cJSON
-- **Fallback to manual search**: Searches in standard paths and Homebrew paths
-- **Clear error messages**: Provides clear installation guidance if dependencies are not found
+### Optional JSON Dependency (`yyjson`)
+- **Zero core dependencies**: Building `libmongory-core` itself requires no third-party JSON library
+- **On-demand `yyjson`**: Tests, benchmarks, and `-DMONGORY_WITH_JSON=ON` locate `yyjson` via `find_package`, `./scripts/setup_yyjson.sh`, or `FetchContent`
 
 ### Platform-Specific Handling
 - **macOS**: Automatically detects Homebrew paths
