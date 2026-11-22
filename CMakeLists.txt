@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-project(mongory-core VERSION 0.2.1 LANGUAGES C)
+project(mongory-core VERSION 0.3.0 LANGUAGES C)
 
 # Set C standard
 set(CMAKE_C_STANDARD 99)
