@@ -1,5 +1,11 @@
 # Mongory Core
 
+[![Release](https://img.shields.io/github/v/release/mongoryhq/mongory-core)](https://github.com/mongoryhq/mongory-core/releases)
+[![CI](https://github.com/mongoryhq/mongory-core/actions/workflows/cmake-multi-platform.yml/badge.svg)](https://github.com/mongoryhq/mongory-core/actions/workflows/cmake-multi-platform.yml)
+[![mongory-spec](https://github.com/mongoryhq/mongory-core/actions/workflows/spec-conformance.yml/badge.svg)](https://github.com/mongoryhq/mongory-core/actions/workflows/spec-conformance.yml)
+![C99](https://img.shields.io/badge/C-C99-555555)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 **Zero-dependency C99 core engine for Mongo-style in-memory query matching and rule evaluation** using arena memory pools — powering native language bindings and cross-checked against [`mongory-spec`](https://github.com/mongoryhq/mongory-spec).
 
 > **[Interactive Playground & Visual Debugger ↗](https://mongoryhq.github.io/mongory-central/)** · [`mongory-rb` (Ruby)](https://github.com/mongoryhq/mongory-rb) · [`mongory-go` (Go)](https://github.com/mongoryhq/mongory-go) · [`mongory-js` (TypeScript/JS)](https://github.com/mongoryhq/mongory-js) · [`mongory-spec`](https://github.com/mongoryhq/mongory-spec)
