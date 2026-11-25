@@ -7,7 +7,7 @@
 ![C99](https://img.shields.io/badge/C-C99-555555)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Zero-dependency C99 core engine for in-memory MongoDB-style query matching and rule evaluation** — built on arena memory pools with OOM NULL-safety, powering [`mongory-rb`](https://github.com/mongoryhq/mongory-rb) and [`mongory-py`](https://github.com/mongoryhq/mongory-py) and verified against [`mongory-spec`](https://github.com/mongoryhq/mongory-spec).
+**Zero-dependency C99 core engine for in-memory MongoDB-style query matching and rule evaluation.** Built on arena memory pools with OOM NULL-safety, it powers [`mongory-rb`](https://github.com/mongoryhq/mongory-rb) and [`mongory-py`](https://github.com/mongoryhq/mongory-py) and is verified against [`mongory-spec`](https://github.com/mongoryhq/mongory-spec).
 
 > **Ecosystem:** [Interactive Playground ↗](https://mongoryhq.github.io/mongory-central/) · [`mongory-rb` (Ruby)](https://github.com/mongoryhq/mongory-rb) · [`mongory-py` (Python)](https://github.com/mongoryhq/mongory-py) · [`mongory-go` (Go)](https://github.com/mongoryhq/mongory-go) · [`mongory-js` (TypeScript/JS)](https://github.com/mongoryhq/mongory-js) · [`mongory-spec`](https://github.com/mongoryhq/mongory-spec)
 
@@ -53,11 +53,11 @@ Build with `-DMONGORY_WITH_JSON=ON`, include `<mongory-core/adapters/json.h>`, a
 - **Zero runtime dependencies**: portable C99 (`gcc`/`clang`/`MSVC`), builds cleanly as a static or shared library with CMake and `pkg-config`.
 - **Arena memory pools**: all allocations live inside a `mongory_memory_pool` with configurable chunk/total byte caps (`mongory_memory_pool_set_limits`) and full OOM NULL-safety (verified under ASan/LSan/UBSan/TSan + libFuzzer).
 - **Performance**: priority-ordered short-circuiting, immutable type-bucketed O(1) hash lookup for `$in`/`$nin` (`>= 16` items), and shallow adapter interfaces so host runtimes (`PyObject*`, Ruby `VALUE`, `yyjson`) avoid deep copying.
-- **Limitations**: `mongory-core` is a pure predicate matcher (no aggregation pipeline, no storage engine) and is **regex-engine agnostic** — callers supply a regex callback (e.g., PCRE2, Oniguruma, RE2, or host-language regex) when `$regex` is needed.
+- **Limitations**: `mongory-core` is a pure predicate matcher (no aggregation pipeline, no storage engine) and is regex-engine agnostic: callers supply a regex callback (e.g., PCRE2, Oniguruma, RE2, or host-language regex) when `$regex` is needed.
 
 ## Performance Snapshot
 
-- **Raw JSON shallow adapter (`yyjson`)**: filters wide 20+ field JSON records in **`207.0 ns/rec`** — **`6.30x` faster** than eager full conversion (`deep_convert`).
+- **Raw JSON shallow adapter (`yyjson`)**: filters wide 20+ field JSON records in **`207.0 ns/rec`**, **`6.30x` faster** than eager full conversion (`deep_convert`).
 - **O(1) `$in` / `$nin` hash lookup (`v0.3.1`)**: accelerates 500-item `$in` in downstream C bindings by **~15x** (`115.8 ns/rec` in Ruby, `111.6 ns/rec` in Python).
 
 See [docs/performance.md](docs/performance.md) and [`scripts/bench.sh`](scripts/bench.sh) for full C99 benchmark results.
