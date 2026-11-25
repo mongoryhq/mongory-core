@@ -58,7 +58,7 @@ Build with `-DMONGORY_WITH_JSON=ON`, include `<mongory-core/adapters/json.h>`, a
 ## Performance Snapshot
 
 - **Raw JSON shallow adapter (`yyjson`)**: filters wide 20+ field JSON records in **`207.0 ns/rec`**, **`6.30x` faster** than eager full conversion (`deep_convert`).
-- **O(1) `$in` / `$nin` hash lookup (`v0.3.1`)**: accelerates 500-item `$in` in downstream C bindings by **~15x** (`115.8 ns/rec` in Ruby, `111.6 ns/rec` in Python).
+- **O(1) `$in` / `$nin` hash lookup (`v0.3.1`)**: runs 500-item `$in` in **`33.2 ns/rec`** in C99 (**`32.4x` faster** than a plain C `strcmp` linear scan, 20% hit rate), and accelerates downstream C bindings to `115.8 ns/rec` in Ruby and `111.6 ns/rec` in Python.
 
 See [docs/performance.md](docs/performance.md) and [`scripts/bench.sh`](scripts/bench.sh) for full C99 benchmark results.
 

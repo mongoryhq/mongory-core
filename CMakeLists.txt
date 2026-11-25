@@ -163,22 +163,20 @@ if(BUILD_TESTS)
     # Test helper library (for testing)
     add_library(test_helper STATIC src/test_helper/test_helper.c)
     target_include_directories(test_helper PUBLIC src/test_helper)
-    target_link_libraries(test_helper mongory-core yyjson)
+    target_link_libraries(test_helper PUBLIC mongory-core yyjson)
     
     foreach(test_source ${TEST_SOURCES})
         get_filename_component(test_name ${test_source} NAME_WE)
         add_executable(${test_name} ${test_source})
-        target_link_libraries(${test_name} 
-            mongory-core 
-            test_helper 
-            unity 
-            yyjson
+        target_link_libraries(${test_name} PRIVATE
+            test_helper
+            unity
         )
         if(MONGORY_WITH_JSON AND test_name STREQUAL "mongory_json_adapter_test")
-            target_link_libraries(${test_name} mongory-core-json)
+            target_link_libraries(${test_name} PRIVATE mongory-core-json)
         endif()
         if(MATH_LIBRARY)
-            target_link_libraries(${test_name} ${MATH_LIBRARY})
+            target_link_libraries(${test_name} PRIVATE ${MATH_LIBRARY})
         endif()
         target_include_directories(${test_name} PRIVATE 
             tests
@@ -211,15 +209,13 @@ if(BUILD_TESTS)
         add_executable(mongory_spec_conformance tests/conformance/mongory_spec_conformance.c)
         target_include_directories(mongory_spec_conformance PRIVATE ${PCRE2_INCLUDE_DIRS})
         target_link_directories(mongory_spec_conformance PRIVATE ${PCRE2_LIBRARY_DIRS})
-        target_link_libraries(mongory_spec_conformance
-            mongory-core
+        target_link_libraries(mongory_spec_conformance PRIVATE
             test_helper
             unity
-            yyjson
             ${PCRE2_LIBRARIES}
         )
         if(MATH_LIBRARY)
-            target_link_libraries(mongory_spec_conformance ${MATH_LIBRARY})
+            target_link_libraries(mongory_spec_conformance PRIVATE ${MATH_LIBRARY})
         endif()
 
         file(GLOB_RECURSE MONGORY_SPEC_FIXTURES ${MONGORY_SPEC_DIR}/fixtures/*.json)
@@ -283,17 +279,15 @@ if(BUILD_BENCHMARKS)
             get_filename_component(benchmark_name ${benchmark_source} NAME_WE)
             set(benchmark_target "benchmark_${benchmark_name}")
             add_executable(${benchmark_target} ${benchmark_source})
-            target_link_libraries(${benchmark_target} 
-                mongory-core 
-                test_helper 
-                unity 
-                yyjson
+            target_link_libraries(${benchmark_target} PRIVATE
+                test_helper
+                unity
             )
             if(MONGORY_WITH_JSON AND benchmark_name STREQUAL "json_filter")
-                target_link_libraries(${benchmark_target} mongory-core-json)
+                target_link_libraries(${benchmark_target} PRIVATE mongory-core-json)
             endif()
             if(MATH_LIBRARY)
-                target_link_libraries(${benchmark_target} ${MATH_LIBRARY})
+                target_link_libraries(${benchmark_target} PRIVATE ${MATH_LIBRARY})
             endif()
             target_include_directories(${benchmark_target} PRIVATE 
                 tests

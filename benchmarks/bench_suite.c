@@ -6,6 +6,18 @@
 
 #define BENCH_RECORDS 10000
 #define BENCH_ROUNDS 200
+#define BENCH_SAMPLES 7
+
+static int cmp_double(const void *a, const void *b) {
+  double da = *(const double *)a;
+  double db = *(const double *)b;
+  return (da > db) - (da < db);
+}
+
+static double median_double(double *vals, int n) {
+  qsort(vals, (size_t)n, sizeof(double), cmp_double);
+  return vals[n / 2];
+}
 
 typedef bool (*plain_pred_fn)(mongory_value *record, void *ctx);
 
@@ -96,7 +108,7 @@ int main(void) {
 
     char name_buf[32];
     if (i % 5 == 0) {
-      snprintf(name_buf, sizeof(name_buf), "user%c", "abcdef"[i % 6]);
+      snprintf(name_buf, sizeof(name_buf), "user_%d", (i / 5) % 500);
     } else {
       snprintf(name_buf, sizeof(name_buf), "other_%d", i);
     }
@@ -155,7 +167,8 @@ int main(void) {
     }
   };
 
-  printf("mongory-core benchmark: %d records x %d rounds\n", BENCH_RECORDS, BENCH_ROUNDS);
+  printf("mongory-core benchmark: %d records x %d rounds (median of %d samples)\n",
+         BENCH_RECORDS, BENCH_ROUNDS, BENCH_SAMPLES);
   int num_cases = (int)(sizeof(cases) / sizeof(cases[0]));
   for (int c = 0; c < num_cases; c++) {
     mongory_matcher *matcher = mongory_matcher_new(pool, cases[c].cond, NULL);
@@ -170,31 +183,39 @@ int main(void) {
       mongory_matcher_match(matcher, records[i]);
     }
 
-    struct timespec p0, p1, m0, m1;
-    clock_gettime(CLOCK_MONOTONIC, &p0);
+    double plain_samples[BENCH_SAMPLES];
+    double mongory_samples[BENCH_SAMPLES];
     int plain_matched = 0;
-    for (int r = 0; r < BENCH_ROUNDS; r++) {
-      int round_matched = 0;
-      for (int i = 0; i < BENCH_RECORDS; i++) {
-        if (cases[c].plain(records[i], large_in_arr)) round_matched++;
-      }
-      plain_matched = round_matched;
-    }
-    clock_gettime(CLOCK_MONOTONIC, &p1);
-
-    clock_gettime(CLOCK_MONOTONIC, &m0);
     int matched = 0;
-    for (int r = 0; r < BENCH_ROUNDS; r++) {
-      int round_matched = 0;
-      for (int i = 0; i < BENCH_RECORDS; i++) {
-        if (mongory_matcher_match(matcher, records[i])) round_matched++;
-      }
-      matched = round_matched;
-    }
-    clock_gettime(CLOCK_MONOTONIC, &m1);
 
-    double plain_ns = elapsed_ns(p0, p1) / ((double)BENCH_ROUNDS * BENCH_RECORDS);
-    double mongory_ns = elapsed_ns(m0, m1) / ((double)BENCH_ROUNDS * BENCH_RECORDS);
+    for (int s = 0; s < BENCH_SAMPLES; s++) {
+      struct timespec p0, p1, m0, m1;
+      clock_gettime(CLOCK_MONOTONIC, &p0);
+      for (int r = 0; r < BENCH_ROUNDS; r++) {
+        int round_matched = 0;
+        for (int i = 0; i < BENCH_RECORDS; i++) {
+          if (cases[c].plain(records[i], large_in_arr)) round_matched++;
+        }
+        plain_matched = round_matched;
+      }
+      clock_gettime(CLOCK_MONOTONIC, &p1);
+
+      clock_gettime(CLOCK_MONOTONIC, &m0);
+      for (int r = 0; r < BENCH_ROUNDS; r++) {
+        int round_matched = 0;
+        for (int i = 0; i < BENCH_RECORDS; i++) {
+          if (mongory_matcher_match(matcher, records[i])) round_matched++;
+        }
+        matched = round_matched;
+      }
+      clock_gettime(CLOCK_MONOTONIC, &m1);
+
+      plain_samples[s] = elapsed_ns(p0, p1) / ((double)BENCH_ROUNDS * BENCH_RECORDS);
+      mongory_samples[s] = elapsed_ns(m0, m1) / ((double)BENCH_ROUNDS * BENCH_RECORDS);
+    }
+
+    double plain_ns = median_double(plain_samples, BENCH_SAMPLES);
+    double mongory_ns = median_double(mongory_samples, BENCH_SAMPLES);
     printf("%-16s plain=%6.1f ns/rec  mongory=%6.1f ns/rec  (ratio=%.2fx, matched=%d/%d)\n",
            cases[c].name, plain_ns, mongory_ns, mongory_ns / plain_ns, matched, plain_matched);
   }
