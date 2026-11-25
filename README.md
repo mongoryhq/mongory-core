@@ -1,6 +1,7 @@
 # Mongory Core
 
 [![Release](https://img.shields.io/github/v/release/mongoryhq/mongory-core)](https://github.com/mongoryhq/mongory-core/releases)
+[![API Docs](https://img.shields.io/badge/API%20Docs-Doxygen-blue)](https://mongoryhq.github.io/mongory-core/)
 [![CI](https://github.com/mongoryhq/mongory-core/actions/workflows/cmake-multi-platform.yml/badge.svg)](https://github.com/mongoryhq/mongory-core/actions/workflows/cmake-multi-platform.yml)
 [![mongory-spec](https://github.com/mongoryhq/mongory-core/actions/workflows/spec-conformance.yml/badge.svg)](https://github.com/mongoryhq/mongory-core/actions/workflows/spec-conformance.yml)
 ![C99](https://img.shields.io/badge/C-C99-555555)
