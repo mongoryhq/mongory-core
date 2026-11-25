@@ -85,7 +85,7 @@ CITE_BIB_FILES         =
 #---------------------------------------------------------------------------
 # Input files related configuration options
 #---------------------------------------------------------------------------
-INPUT                  = include
+INPUT                  = README.md include
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          = *.h
 RECURSIVE              = YES
