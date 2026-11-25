@@ -6,220 +6,110 @@
 ![C99](https://img.shields.io/badge/C-C99-555555)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Zero-dependency C99 core engine for Mongo-style in-memory query matching and rule evaluation** using arena memory pools — powering native language bindings and cross-checked against [`mongory-spec`](https://github.com/mongoryhq/mongory-spec).
+**Zero-dependency C99 core engine for in-memory MongoDB-style query matching and rule evaluation** — built on arena memory pools with OOM NULL-safety, powering [`mongory-rb`](https://github.com/mongoryhq/mongory-rb) and [`mongory-py`](https://github.com/mongoryhq/mongory-py) and verified against [`mongory-spec`](https://github.com/mongoryhq/mongory-spec).
 
-> **[Interactive Playground & Visual Debugger ↗](https://mongoryhq.github.io/mongory-central/)** · [`mongory-rb` (Ruby)](https://github.com/mongoryhq/mongory-rb) · [`mongory-go` (Go)](https://github.com/mongoryhq/mongory-go) · [`mongory-js` (TypeScript/JS)](https://github.com/mongoryhq/mongory-js) · [`mongory-spec`](https://github.com/mongoryhq/mongory-spec)
+> **Ecosystem:** [Interactive Playground ↗](https://mongoryhq.github.io/mongory-central/) · [`mongory-rb` (Ruby)](https://github.com/mongoryhq/mongory-rb) · [`mongory-py` (Python)](https://github.com/mongoryhq/mongory-py) · [`mongory-go` (Go)](https://github.com/mongoryhq/mongory-go) · [`mongory-js` (TypeScript/JS)](https://github.com/mongoryhq/mongory-js) · [`mongory-spec`](https://github.com/mongoryhq/mongory-spec)
 
-## ✨ Features
+## Quick Start
 
-- **MongoDB-like Queries**: Use familiar operators like `$eq`, `$gt`, `$lt`, `$in`, `$and`, `$or`, etc., to build complex queries.
-- **Memory Pool**: All memory is managed through a simple memory pool, making resource management straightforward and helping to prevent memory leaks.
-- **Generic Data Types**: Data is represented using a generic `mongory_value` type, which can encapsulate integers, doubles, strings, arrays, and tables (hash maps).
-- **Extensible**: Provides interfaces to define your own custom value converters and regex engines, allowing `mongory-core` to work seamlessly with your existing data structures.
-- **Well-Documented**: The public API is thoroughly documented with Doxygen-style comments in the header files.
-
-## 🚀 Quick Start
-
-Here is a simple example of how to use `mongory-core` to match a document against a query.
-
-First, let's define a C data structure we want to query. Imagine we have a "document" representing a user:
-
-```c
-// Document to be queried
-// {
-//   "name": "Jules",
-//   "language": "C",
-//   "year": 2024
-// }
-```
-
-And we want to see if it matches the following query:
-
-```json
-// Query
-// {
-//   "language": "C",
-//   "year": { "$gt": 2020 }
-// }
-```
-
-Here's the C code to perform this match using `mongory-core`:
+### Option A: Pure C99 API (zero dependencies)
 
 ```c
 #include <stdio.h>
 #include <mongory-core.h>
 
-int main() {
-    // 1. Initialize the Mongory library
+int main(void) {
     mongory_init();
-
-    // 2. Create a memory pool for all allocations
     mongory_memory_pool *pool = mongory_memory_pool_new();
 
-    // 3. Create the document to be queried as a mongory_table
     mongory_value *doc = MG_TABLE_WRAP(pool, 3,
-        "name", mongory_value_wrap_s(pool, "Jules"),
+        "name",     mongory_value_wrap_s(pool, "Jules"),
         "language", mongory_value_wrap_s(pool, "C"),
-        "year", mongory_value_wrap_i(pool, 2024)
+        "year",     mongory_value_wrap_i(pool, 2024)
     );
 
-    // 4. Create the query condition
-    // { "language": "C", "year": { "$gt": 2020 } }
     mongory_value *query = MG_TABLE_WRAP(pool, 2,
         "language", mongory_value_wrap_s(pool, "C"),
-        "year", MG_TABLE_WRAP(pool, 1,
-            "$gt", mongory_value_wrap_i(pool, 2020)
-        )
+        "year", MG_TABLE_WRAP(pool, 1, "$gt", mongory_value_wrap_i(pool, 2020))
     );
 
-    // 5. Create a matcher with the query condition
     mongory_matcher *matcher = mongory_matcher_new(pool, query, NULL);
-
-    // 6. Perform the match
     bool is_match = mongory_matcher_match(matcher, doc);
+    printf("%s\n", is_match ? "match" : "no match");
 
-    // 7. Print the result
-    if (is_match) {
-        printf("The document matches the query!\\n");
-    } else {
-        printf("The document does not match the query.\\n");
-    }
-
-    // 8. Clean up
     pool->free(pool);
     mongory_cleanup();
-
     return 0;
 }
 ```
-*(Note: For a runnable version of this example, see `benchmarks/basic_test.c`)*
 
-## 🔍 Explain & Trace
+### Option B: Direct Raw JSON Filtering (`-DMONGORY_WITH_JSON=ON`)
 
-`mongory-core` provides both structured tree APIs (returning `mongory_value *` Table/Array trees allocated in your arena pool) and stdout helpers that print those trees:
+Build with `-DMONGORY_WITH_JSON=ON`, include `<mongory-core/adapters/json.h>`, and link `mongory-core::json` (backed by vendored `yyjson`) to compile JSON conditions and match raw JSON strings via shallow adapters without full `mongory_table` materialization (`mongory_matcher_new_from_json`, `mongory_matcher_match_json`, `mongory_matcher_match_json_with_ctx`).
+
+## Why Mongory Core? (and Limitations)
+
+- **Zero runtime dependencies**: portable C99 (`gcc`/`clang`/`MSVC`), builds cleanly as a static or shared library with CMake and `pkg-config`.
+- **Arena memory pools**: all allocations live inside a `mongory_memory_pool` with configurable chunk/total byte caps (`mongory_memory_pool_set_limits`) and full OOM NULL-safety (verified under ASan/LSan/UBSan/TSan + libFuzzer).
+- **Performance**: priority-ordered short-circuiting, immutable type-bucketed O(1) hash lookup for `$in`/`$nin` (`>= 16` items), and shallow adapter interfaces so host runtimes (`PyObject*`, Ruby `VALUE`, `yyjson`) avoid deep copying.
+- **Limitations**: `mongory-core` is a pure predicate matcher (no aggregation pipeline, no storage engine) and is **regex-engine agnostic** — callers supply a regex callback (e.g., PCRE2, Oniguruma, RE2, or host-language regex) when `$regex` is needed.
+
+## Performance Snapshot
+
+- **Raw JSON shallow adapter (`yyjson`)**: filters wide 20+ field JSON records in **`207.0 ns/rec`** — **`6.30x` faster** than eager full conversion (`deep_convert`).
+- **O(1) `$in` / `$nin` hash lookup (`v0.3.1`)**: accelerates 500-item `$in` in downstream C bindings by **~15x** (`115.8 ns/rec` in Ruby, `111.6 ns/rec` in Python).
+
+See [docs/performance.md](docs/performance.md) and [`scripts/bench.sh`](scripts/bench.sh) for full C99 benchmark results.
+
+## Explain & Trace
+
+`mongory-core` provides both structured tree APIs (returning `mongory_value *` trees allocated in your arena pool) and stdout helpers:
 
 ```c
-// Structured explain tree:
-// { "name", "condition", "priority", "children", ["field"] }
+// Structured explain tree: { "name", "condition", "priority", "children", ["field"] }
 mongory_value *explain_node = mongory_matcher_explain_tree(matcher, pool);
-
-// Print explain tree to stdout
 mongory_matcher_explain(matcher, pool);
 
-// Structured trace tree:
-// { "name", "condition", "priority", "result": "pass"|"fail"|"skip", "children", ["field"], ["record"] }
-// Short-circuited branches are recursively expanded with "result": "skip".
+// Structured trace tree: { ..., "result": "pass"|"fail"|"skip", "children", ["record"] }
 mongory_value *trace_node = mongory_matcher_trace_tree(matcher, doc);
-
-// Print trace tree to stdout and return bool match result
 bool matched = mongory_matcher_trace(matcher, doc);
 ```
 
-## 🛠️ Building and Testing
+## Building, Installing & Testing
 
-This project uses `CMake` for cross-platform building and testing, with a convenient build script for easy usage.
-
-### Dependencies
-- **Core library (`libmongory-core.a`)**: Zero external runtime dependencies — only a C99 compiler (`gcc`/`clang`) and `CMake` (>= 3.12) (`-DBUILD_TESTS=OFF -DBUILD_BENCHMARKS=OFF`).
-- **Unit tests & benchmarks**: Require Unity and `yyjson` downloaded locally via `./build.sh --setup-unity` (or `./scripts/setup_unity.sh && ./scripts/setup_yyjson.sh`; zero external system JSON package needed).
-- **Cross-language `mongory-spec` conformance tests**: Additionally require `libpcre2-8` (`libpcre2-dev` on Ubuntu/Debian, `pcre2` on macOS) and `-DMONGORY_SPEC_DIR=/path/to/mongory-spec`.
-
-#### Installation by Platform
-
-**macOS (Homebrew):**
-```bash
-# Library & unit tests
-brew install cmake
-
-# Full tests + mongory-spec conformance
-brew install cmake pcre2
-```
-
-**Ubuntu/Debian:**
-```bash
-# Library & unit tests
-sudo apt update && sudo apt install -y cmake build-essential
-
-# Full tests + mongory-spec conformance
-sudo apt update && sudo apt install -y cmake build-essential libpcre2-dev pkg-config
-```
-
-**CentOS/RHEL/Fedora:**
-```bash
-# CentOS/RHEL
-sudo yum install cmake pcre2-devel gcc
-# Fedora
-sudo dnf install cmake pcre2-devel gcc
-```
-
-### Quick Build (Recommended)
-
-Use the provided build script for the easiest experience:
+### Quick Build
 
 ```bash
-# Basic build
+# Core library only (zero external dependencies: C99 compiler + CMake >= 3.12)
 ./build.sh
 
-# First-time setup for Unity test framework and run unit tests
+# First-time setup for Unity + yyjson and run unit tests
 ./build.sh --setup-unity --test
 
-# Run unit tests + mongory-spec conformance
+# Full unit tests + mongory-spec conformance (requires libpcre2)
 ./build.sh --setup-unity
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_BENCHMARKS=OFF -DMONGORY_SPEC_DIR=../mongory-spec
 cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-### Manual CMake Build
+### Build Options & Consuming via CMake / `pkg-config`
 
 ```bash
-# 1. Setup Unity test framework (first time only)
-./build.sh --setup-unity
-
-# 2. Create build directory
-mkdir build && cd build
-
-# 3. Configure project
-cmake ..
-
-# 4. Build
-cmake --build .
-
-# 5. Run tests
-ctest
-
-# 6. Install (optional)
-sudo cmake --install .
-```
-
-### Build Options
-
-```bash
-# Release build (optimized)
-cmake -DCMAKE_BUILD_TYPE=Release ..
-
-# Debug build (with debug symbols)
-cmake -DCMAKE_BUILD_TYPE=Debug ..
-
-# Disable tests or benchmarks
-cmake -DBUILD_TESTS=OFF -DBUILD_BENCHMARKS=OFF ..
-
-# Build shared library with SOVERSION and install CMake config + pkg-config
+# Shared library + CMake config + pkg-config install
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DBUILD_TESTS=OFF -DBUILD_BENCHMARKS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local -S .
-cmake --build build
-sudo cmake --install build
+cmake --build build && sudo cmake --install build
 
-# Optional: build raw JSON shallow-wrapper adapter (mongory-core-json, backed by yyjson)
+# Optional raw JSON shallow-wrapper adapter (mongory-core::json)
 cmake -B build -DCMAKE_BUILD_TYPE=Release -DMONGORY_WITH_JSON=ON -S .
 cmake --build build
+
+# Sanitizers (GCC/Clang)
+cmake -B build-san -DMONGORY_SANITIZERS=address,undefined -S .
 ```
 
-With `-DMONGORY_WITH_JSON=ON`, include `<mongory-core/adapters/json.h>` and link `mongory-core::json` to match raw JSON strings directly without full `mongory_table` materialization (`mongory_matcher_new_from_json`, `mongory_matcher_match_json`, `mongory_matcher_match_json_with_ctx`).
-
-Downstream projects can consume `mongory-core` via CMake or `pkg-config`:
-
 ```cmake
-find_package(mongory-core 0.2 REQUIRED)
+find_package(mongory-core 0.3 REQUIRED)
 target_link_libraries(my_app PRIVATE mongory-core::mongory-core)
 ```
 
@@ -227,35 +117,22 @@ target_link_libraries(my_app PRIVATE mongory-core::mongory-core)
 cc main.c $(pkg-config --cflags --libs mongory-core)
 ```
 
-### Code Formatting
-The project uses `clang-format` for code formatting:
-```bash
-cmake --build build --target format
-# or
-./build.sh && cmake --build build --target format
-```
+<details>
+<summary>Platform prerequisites &amp; formatting</summary>
 
-### Legacy Makefile
-The original Makefile is still available but deprecated. For cross-platform compatibility, please use the CMake build system.
+- **macOS (Homebrew)**: `brew install cmake pcre2`
+- **Ubuntu/Debian**: `sudo apt install -y cmake build-essential libpcre2-dev pkg-config`
+- **Fedora/RHEL**: `sudo dnf install cmake pcre2-devel gcc`
+- **Code formatting**: `cmake --build build --target format` (`clang-format`). Public headers in `include/` carry Doxygen API comments. See `CMAKE_USAGE.md` for additional CMake options.
 
-> 📝 **Migration Note**: This project was migrated from Makefile to CMake for better cross-platform support. See `CMAKE_USAGE.md` for detailed CMake usage instructions.
+</details>
 
-## 📚 API Documentation
+## Safety, Limits & ReDoS Protection
 
-The public API is documented in the header files in the `include/` directory. The comments are compatible with Doxygen. You can generate HTML documentation if you have Doxygen installed.
+- **Memory Pool Limits**: Geometric chunk growth is capped at `MONGORY_DEFAULT_MAX_CHUNK_SIZE` (4 MiB). Use `mongory_memory_pool_set_limits(pool, max_chunk_size, max_total_bytes)` to enforce a per-pool memory budget, or provide a custom `mongory_memory_pool` vtable (`alloc`/`trace`/`reset`/`free`). Allocation failures report `MONGORY_ERROR_MEMORY` via `&MONGORY_ALLOC_ERROR` without dereferencing `NULL`.
+- **Compile Limits (`MaxDepth` / `MaxNodes`)**: Defaults `64` / `4096` (configurable via `mongory_max_depth_set` / `mongory_max_nodes_set`; `0` = unlimited). Exceeding either limit fails cleanly with `MONGORY_ERROR_LIMIT_EXCEEDED`.
+- **External Regex Adapter ReDoS Guidance**: When evaluating untrusted patterns with a backtracking engine, configure match/backtrack limits (e.g., `pcre2_set_match_limit` + `pcre2_set_depth_limit` as in [`tests/conformance/mongory_spec_conformance.c`](tests/conformance/mongory_spec_conformance.c), or `onig_set_retry_limit_in_match`), or prefer linear-time RE2.
 
-## ⚡ Performance
+## License
 
-See [docs/performance.md](docs/performance.md) and [`scripts/bench.sh`](scripts/bench.sh) for C99 benchmark results.
-
-## 🛡️ Safety, Limits & ReDoS Protection
-
-- **Memory Pool Limits**:
-  - Geometric chunk growth is capped at `MONGORY_DEFAULT_MAX_CHUNK_SIZE` (4 MiB).
-  - Use `mongory_memory_pool_set_limits(pool, max_chunk_size, max_total_bytes)` to enforce a per-pool memory budget, or provide a custom `mongory_memory_pool` vtable (`alloc`/`trace`/`reset`/`free`) for host-runtime integration.
-  - Allocation failures report `MONGORY_ERROR_MEMORY` via the static `&MONGORY_ALLOC_ERROR` without dereferencing `NULL`.
-- **Compile Limits (`MaxDepth` / `MaxNodes`)**:
-  - Defaults: `MONGORY_DEFAULT_MAX_DEPTH = 64`, `MONGORY_DEFAULT_MAX_NODES = 4096`.
-  - Configurable via `mongory_max_depth_set` / `mongory_max_nodes_set` (`0` = unlimited). Exceeding either limit fails cleanly with `MONGORY_ERROR_LIMIT_EXCEEDED` (`&MONGORY_DEPTH_LIMIT_ERROR` / `&MONGORY_NODE_LIMIT_ERROR`).
-- **External Regex Adapter ReDoS Guidance**:
-  - `mongory-core` is regex-engine agnostic. When evaluating untrusted patterns or inputs with a backtracking engine, always configure match/backtrack limits — e.g. for PCRE2 call `pcre2_set_match_limit` and `pcre2_set_depth_limit` on a `pcre2_match_context` (see [`tests/conformance/mongory_spec_conformance.c`](tests/conformance/mongory_spec_conformance.c)), for Oniguruma call `onig_set_retry_limit_in_match`, or prefer a linear-time engine such as RE2.
+MIT
