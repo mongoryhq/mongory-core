@@ -209,20 +209,4 @@ void teardown_test_environment(void) {
 
 mongory_memory_pool *get_test_pool(void) { return test_pool; }
 
-void assert_value_equals(mongory_value *expected, mongory_value *actual) {
-  TEST_ASSERT_NOT_NULL(expected);
-  TEST_ASSERT_NOT_NULL(actual);
-  TEST_ASSERT_EQUAL_INT(0, actual->comp(actual, expected));
-}
-
-void assert_value_not_equals(mongory_value *expected, mongory_value *actual) {
-  TEST_ASSERT_NOT_NULL(expected);
-  TEST_ASSERT_NOT_NULL(actual);
-  TEST_ASSERT_NOT_EQUAL(0, actual->comp(actual, expected));
-}
-
-void assert_value_is_null(mongory_value *value) { TEST_ASSERT_NULL(value); }
-
-void assert_value_is_not_null(mongory_value *value) { TEST_ASSERT_NOT_NULL(value); }
-
 #endif // MONGORY_TEST_HELPER_C

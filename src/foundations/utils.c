@@ -105,10 +105,6 @@ char *mongory_string_cpyf(mongory_memory_pool *pool, char *format, ...) {
   return new_str;
 }
 
-double mongory_log(double x, double base) {
-  return log(x) / log(base);
-}
-
 void mongory_error_set(mongory_memory_pool *pool, mongory_error_type type, const char *message) {
   if (!pool || pool->error != NULL) {
     return;
@@ -186,19 +182,6 @@ bool mongory_validate_string(mongory_memory_pool *pool, char *name, mongory_valu
   }
   if (value->type != MONGORY_TYPE_STRING) {
     return mongory_validate_type_error(pool, name, "String", value, file, line);
-  }
-  return true;
-}
-
-bool mongory_validate_number(mongory_memory_pool *pool, char *name, mongory_value *value, char *file, int line) {
-  if (!pool || pool->error != NULL) {
-    return false;
-  }
-  if (!mongory_validate_ptr(pool, name, value, file, line)) {
-    return false;
-  }
-  if (value->type != MONGORY_TYPE_INT && value->type != MONGORY_TYPE_DOUBLE) {
-    return mongory_validate_type_error(pool, name, "Number", value, file, line);
   }
   return true;
 }

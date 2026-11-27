@@ -35,7 +35,6 @@ typedef enum mongory_in_num_kind {
 typedef struct mongory_in_num_slot {
   mongory_in_num_kind kind;
   uint64_t key_bits; // int64_t bits (for INT) or IEEE-754 double bits (for DOUBLE)
-  uint64_t hash;
   mongory_value *val;
 } mongory_in_num_slot;
 
@@ -259,7 +258,6 @@ static mongory_in_set *mongory_in_set_build(mongory_memory_pool *pool, mongory_a
         if (set->num_slots[idx].kind == MONGORY_IN_NUM_EMPTY) {
           set->num_slots[idx].kind = kind;
           set->num_slots[idx].key_bits = bits;
-          set->num_slots[idx].hash = h;
           set->num_slots[idx].val = elem;
         }
       } else if (!is_nan) {
@@ -424,7 +422,6 @@ static mongory_inclusion_matcher *mongory_inclusion_matcher_alloc(mongory_memory
   }
 
   inc->base.original_match = match_fn;
-  inc->base.sub_count = 0;
   inc->base.pool = pool;
   inc->base.condition = condition;
   inc->base.name = mongory_string_cpy(pool, (char *)name);
@@ -432,7 +429,6 @@ static mongory_inclusion_matcher *mongory_inclusion_matcher_alloc(mongory_memory
     return NULL;
   }
   inc->base.match = match_fn;
-  inc->base.explain = mongory_matcher_base_explain;
   inc->base.traverse = mongory_matcher_leaf_traverse;
   inc->base.trace_stack = NULL;
   inc->base.trace_level = 0;

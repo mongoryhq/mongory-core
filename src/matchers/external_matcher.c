@@ -11,7 +11,6 @@
 #include "mongory-core/foundations/error.h"  // For MONGORY_ERROR_INVALID_ARGUMENT
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
-#include "matcher_explainable.h"
 #include "matcher_traversable.h"
 
 typedef struct mongory_regex_matcher {
@@ -117,10 +116,8 @@ mongory_matcher *mongory_matcher_regex_with_options_new(mongory_memory_pool *poo
   }
   matcher->base.pool = pool;
   matcher->base.condition = condition;
-  matcher->base.sub_count = 0;
   matcher->base.match = mongory_matcher_regex_match;
   matcher->base.original_match = mongory_matcher_regex_match;
-  matcher->base.explain = mongory_matcher_base_explain;
   matcher->base.traverse = mongory_matcher_leaf_traverse;
   matcher->base.extern_ctx = extern_ctx;
   matcher->base.name = mongory_string_cpy(pool, "Regex");
@@ -189,7 +186,6 @@ mongory_matcher *mongory_matcher_custom_new(mongory_memory_pool *pool, char *key
   matcher->base.name = context->name;
   matcher->base.match = mongory_matcher_custom_match;
   matcher->base.original_match = mongory_matcher_custom_match;
-  matcher->base.explain = mongory_matcher_base_explain;
   matcher->base.traverse = mongory_matcher_leaf_traverse;
   matcher->base.extern_ctx = extern_ctx;
   matcher->external_matcher = context->external_matcher;

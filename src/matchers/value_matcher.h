@@ -15,7 +15,6 @@
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/value.h"
 #include "mongory-core/matchers/matcher.h" // For mongory_matcher structure
-#include "matcher_explainable.h"
 #include "composite_matcher.h"
 
 typedef struct mongory_value_matcher {
@@ -78,20 +77,5 @@ mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool, mongory_valu
  * @return A new $size matcher, or NULL on failure.
  */
 mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
-
-/**
- * @brief Creates a "literal" matcher (deprecated or internal use).
- *
- * This function seems to be a more generic entry point that delegates to
- * `mongory_matcher_value_delegate` and potentially `implicit_array_matcher`.
- * Its direct public use might be limited compared to `field_new` or specific
- * operator matchers. It appears to be part of the internal logic for how field
- * values are matched.
- *
- * @param pool Memory pool for allocation.
- * @param condition The literal `mongory_value` or condition table.
- * @return A new literal matcher, or NULL on failure.
- */
-mongory_matcher *mongory_matcher_value_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 #endif /* MONGORY_MATCHER_VALUE_H */

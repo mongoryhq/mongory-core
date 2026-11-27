@@ -50,8 +50,6 @@ char *mongory_string_cpy(mongory_memory_pool *pool, char *str);
  */
 char *mongory_string_cpyf(mongory_memory_pool *pool, char *format, ...);
 
-double mongory_log(double x, double base);
-
 /**
  * @brief Sets `pool->error` safely without dereferencing NULL on OOM.
  * If allocating `mongory_error` from `pool` fails, falls back to the static
@@ -70,8 +68,5 @@ bool mongory_validate_array(mongory_memory_pool *pool, char *name, mongory_value
 
 bool mongory_validate_string(mongory_memory_pool *pool, char *name, mongory_value *value, char *file, int line);
 #define MONGORY_VALIDATE_STRING(pool, value) mongory_validate_string(pool, #value, value, __FILE__, __LINE__)
-
-bool mongory_validate_number(mongory_memory_pool *pool, char *name, mongory_value *value, char *file, int line);
-#define MONGORY_VALIDATE_NUMBER(pool, value) mongory_validate_number(pool, #value, value, __FILE__, __LINE__)
 
 #endif // MONGORY_UTILS_H

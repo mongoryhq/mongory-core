@@ -55,7 +55,6 @@ int main() {
   srand((unsigned int)time(NULL));
   mongory_init();
   mongory_value_converter_shallow_convert_set((mongory_shallow_convert_func)yyjson_to_mongory_value_shallow_convert);
-  mongory_value_converter_deep_convert_set((mongory_deep_convert_func)yyjson_to_mongory_value_deep_convert);
 
   mongory_memory_pool *matcher_pool = mongory_memory_pool_new();
   mongory_value *condition =

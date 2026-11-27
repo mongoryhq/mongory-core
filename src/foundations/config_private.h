@@ -12,9 +12,7 @@ typedef struct mongory_regex_adapter {
 } mongory_regex_adapter;
 
 typedef struct mongory_value_converter {
-  mongory_deep_convert_func deep_convert;
   mongory_shallow_convert_func shallow_convert;
-  mongory_recover_func recover;
 } mongory_value_converter;
 
 /**

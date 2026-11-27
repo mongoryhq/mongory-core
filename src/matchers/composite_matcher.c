@@ -16,7 +16,6 @@
 #include "mongory-core/foundations/memory_pool.h"
 #include "mongory-core/foundations/table.h" // For mongory_table operations
 #include "mongory-core/foundations/value.h"
-#include "matcher_explainable.h"
 #include "matcher_traversable.h"
 #include "../foundations/utils.h"
 #include <mongory-core.h> // General include
@@ -69,9 +68,7 @@ mongory_composite_matcher *mongory_matcher_composite_new(mongory_memory_pool *po
   composite->base.pool = pool;
   composite->base.name = NULL;                                 // Specific name to be set by derived type if any
   composite->base.match = NULL;                                // Specific match fn to be set by derived type
-  composite->base.explain = mongory_matcher_composite_explain; // Specific explain fn to be set by derived type
   composite->base.original_match = NULL;
-  composite->base.sub_count = 0;
   composite->base.condition = condition;
   composite->base.traverse = mongory_matcher_composite_traverse;
   composite->base.extern_ctx = extern_ctx;
@@ -305,7 +302,6 @@ mongory_matcher *mongory_matcher_condition_new(mongory_memory_pool *pool, mongor
   mongory_matcher_attach_children_parent(final_matcher, final_matcher->children);
   final_matcher->base.match = mongory_matcher_and_match;
   final_matcher->base.original_match = mongory_matcher_and_match;
-  final_matcher->base.sub_count = sub_matchers->count;
   final_matcher->base.name = mongory_string_cpy(pool, "And");
   if (final_matcher->base.name == NULL) {
     mongory_compile_budget_leave_depth();
@@ -414,7 +410,6 @@ mongory_matcher *mongory_matcher_and_new(mongory_memory_pool *pool, mongory_valu
   mongory_matcher_attach_children_parent(final_matcher, final_matcher->children);
   final_matcher->base.match = mongory_matcher_and_match;
   final_matcher->base.original_match = mongory_matcher_and_match;
-  final_matcher->base.sub_count = sub_matchers->count;
   final_matcher->base.name = mongory_string_cpy(pool, "And");
   if (final_matcher->base.name == NULL) {
     mongory_compile_budget_leave_depth();
@@ -519,7 +514,6 @@ mongory_matcher *mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value
   mongory_matcher_attach_children_parent(final_matcher, final_matcher->children);
   final_matcher->base.match = mongory_matcher_or_match;
   final_matcher->base.original_match = mongory_matcher_or_match;
-  final_matcher->base.sub_count = sub_matchers->count;
   final_matcher->base.name = mongory_string_cpy(pool, "Or");
   if (final_matcher->base.name == NULL) {
     mongory_compile_budget_leave_depth();
@@ -578,7 +572,6 @@ mongory_matcher *mongory_matcher_nor_new(mongory_memory_pool *pool, mongory_valu
   mongory_matcher_attach_children_parent(final_matcher, final_matcher->children);
   final_matcher->base.match = mongory_matcher_nor_match;
   final_matcher->base.original_match = mongory_matcher_nor_match;
-  final_matcher->base.sub_count = sub_matchers->count;
   final_matcher->base.name = mongory_string_cpy(pool, "Nor");
   if (final_matcher->base.name == NULL) {
     mongory_compile_budget_leave_depth();
@@ -659,7 +652,6 @@ mongory_matcher *mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongo
   mongory_matcher_attach_children_parent(composite, composite->children);
   composite->base.match = mongory_matcher_elem_match_match;
   composite->base.original_match = mongory_matcher_elem_match_match;
-  composite->base.sub_count = sub_matchers->count;
   composite->base.name = mongory_string_cpy(pool, "ElemMatch");
   if (composite->base.name == NULL) {
     mongory_compile_budget_leave_depth();
@@ -737,7 +729,6 @@ mongory_matcher *mongory_matcher_every_new(mongory_memory_pool *pool, mongory_va
   mongory_matcher_attach_children_parent(composite, composite->children);
   composite->base.match = mongory_matcher_every_match;
   composite->base.original_match = mongory_matcher_every_match;
-  composite->base.sub_count = sub_matchers->count;
   composite->base.name = mongory_string_cpy(pool, "Every");
   if (composite->base.name == NULL) {
     mongory_compile_budget_leave_depth();

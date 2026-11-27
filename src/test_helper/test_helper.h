@@ -25,10 +25,4 @@ typedef struct mongory_test_context {
 
 void execute_test_case(char *file_name, mongory_test_context *context);
 
-// Assertion helper functions
-void assert_value_equals(mongory_value *expected, mongory_value *actual);
-void assert_value_not_equals(mongory_value *expected, mongory_value *actual);
-void assert_value_is_null(mongory_value *value);
-void assert_value_is_not_null(mongory_value *value);
-
 #endif // MONGORY_TEST_HELPER_H

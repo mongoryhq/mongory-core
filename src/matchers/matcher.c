@@ -224,10 +224,7 @@ static bool mongory_matcher_enable_trace_cb(mongory_matcher *matcher, mongory_ma
     mongory_value_matcher *literal = (mongory_value_matcher *)matcher;
     if (literal->implicit_array_matcher && literal->delegate_matcher) {
       mongory_matcher_traverse_context delegate_ctx = {
-          .pool = ctx->pool,
           .level = ctx->level + 1,
-          .count = 0,
-          .total = 1,
           .acc = ctx->acc,
           .callback = ctx->callback,
       };
@@ -245,8 +242,6 @@ static bool mongory_matcher_disable_trace_cb(mongory_matcher *matcher, mongory_m
     if (literal->implicit_array_matcher && literal->delegate_matcher) {
       mongory_matcher_traverse_context delegate_ctx = {
           .level = ctx->level + 1,
-          .count = 0,
-          .total = 1,
           .callback = ctx->callback,
       };
       literal->delegate_matcher->traverse(literal->delegate_matcher, &delegate_ctx);
@@ -378,10 +373,7 @@ void mongory_matcher_enable_trace_at(mongory_matcher *matcher, mongory_array *tr
     return;
   }
   mongory_matcher_traverse_context ctx = {
-      .pool = trace_stack->pool,
       .level = level,
-      .count = 0,
-      .total = 0,
       .acc = (void *)trace_stack,
       .callback = mongory_matcher_enable_trace_cb,
   };
@@ -407,8 +399,6 @@ void mongory_matcher_disable_trace(mongory_matcher *matcher) {
   }
   mongory_matcher_traverse_context ctx = {
       .level = 0,
-      .count = 0,
-      .total = 0,
       .callback = mongory_matcher_disable_trace_cb,
   };
   matcher->traverse(matcher, &ctx);

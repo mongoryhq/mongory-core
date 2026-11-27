@@ -11,7 +11,6 @@
 #include <stdbool.h>
 #include <stdio.h>  // For printf
 #include <stdlib.h> // For strtol
-#include "matcher_explainable.h"
 #include "matcher_traversable.h"
 #include "../foundations/utils.h"
 
@@ -106,12 +105,10 @@ mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool, mongory_val
 
   // Initialize common fields
   matcher->original_match = NULL;
-  matcher->sub_count = 0;
   matcher->pool = pool;
   matcher->condition = condition;
   matcher->name = NULL;                            // Name is not set by base_new.
   matcher->match = NULL;                           // Specific match function must be set by derived type.
-  matcher->explain = mongory_matcher_base_explain; // Specific explain function must be set by derived type.
   matcher->traverse = mongory_matcher_leaf_traverse;
   matcher->trace_stack = NULL;
   matcher->trace_level = 0;
@@ -151,9 +148,6 @@ mongory_matcher *mongory_matcher_always_true_new(mongory_memory_pool *pool, mong
   if (!matcher->name) {
     return NULL;
   }
-  matcher->explain = mongory_matcher_base_explain;
-  // Optionally set original_match as well if it's a strict policy
-  // matcher->context.original_match = mongory_matcher_always_true_match;
   return matcher;
 }
 
@@ -187,7 +181,5 @@ mongory_matcher *mongory_matcher_always_false_new(mongory_memory_pool *pool, mon
   if (!matcher->name) {
     return NULL;
   }
-  matcher->explain = mongory_matcher_base_explain;
-  // matcher->context.original_match = mongory_matcher_always_false_match;
   return matcher;
 }

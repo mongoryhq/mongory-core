@@ -21,7 +21,6 @@ typedef struct mongory_memory_pool mongory_memory_pool;
 
 #define MG_ALLOC(p, n) (p->alloc(p, n))
 #define MG_ALLOC_PTR(p, t) ((t*)MG_ALLOC(p, sizeof(t)))
-#define MG_ALLOC_OBJ(p, t) ((t)MG_ALLOC(p, sizeof(t)))
 #define MG_ALLOC_ARY(p, t, n) ((t*)MG_ALLOC(p, sizeof(t) * (n)))
 /**
  * @struct mongory_memory_pool

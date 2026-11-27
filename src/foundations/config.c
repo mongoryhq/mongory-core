@@ -54,9 +54,7 @@ mongory_regex_adapter mongory_internal_regex_adapter = {
 mongory_table *mongory_matcher_mapping = NULL;
 // Global converter for handling external data types.
 mongory_value_converter mongory_internal_value_converter = {
-  .deep_convert = NULL,
   .shallow_convert = NULL,
-  .recover = NULL,
 };
 // Global adapter for custom matchers.
 mongory_matcher_custom_adapter mongory_custom_matcher_adapter = {
@@ -204,15 +202,6 @@ mongory_matcher_build_func mongory_matcher_build_func_get(char *name) {
 }
 
 /**
- * @brief Sets the function for deep conversion of external values.
- * Initializes the value converter if necessary.
- * @param deep_convert The deep conversion function.
- */
-void mongory_value_converter_deep_convert_set(mongory_deep_convert_func deep_convert) {
-  mongory_internal_value_converter.deep_convert = deep_convert;
-}
-
-/**
  * @brief Sets the function for shallow conversion of external values.
  * Initializes the value converter if necessary.
  * @param shallow_convert The shallow conversion function.
@@ -220,16 +209,6 @@ void mongory_value_converter_deep_convert_set(mongory_deep_convert_func deep_con
 void mongory_value_converter_shallow_convert_set(mongory_shallow_convert_func shallow_convert) {
   mongory_internal_value_converter.shallow_convert = shallow_convert;
 }
-
-/**
- * @brief Sets the function for recovering external values from mongory_value.
- * Initializes the value converter if necessary.
- * @param recover The recovery function.
- */
-void mongory_value_converter_recover_set(mongory_recover_func recover) {
-  mongory_internal_value_converter.recover = recover;
-}
-
 
 void mongory_custom_matcher_match_func_set(bool (*match)(void *external_matcher, mongory_value *value)) {
   mongory_custom_matcher_adapter.match = match;

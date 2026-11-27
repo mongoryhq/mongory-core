@@ -21,7 +21,6 @@
 #include "compare_matcher.h"                // For mongory_matcher_equal_new
 #include "composite_matcher.h"              // For mongory_matcher_composite_new, mongory_matcher_condition_new
 #include "existence_matcher.h"              // For mongory_matcher_exists_new (used by null_new)
-#include "matcher_explainable.h"
 #include "matcher_traversable.h"
 #include "mongory-core/foundations/array.h" // For mongory_array access
 #include "mongory-core/foundations/table.h" // For mongory_table access
@@ -269,9 +268,7 @@ mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *fiel
   }
   field_m->literal.base.match = mongory_matcher_field_match;
   field_m->literal.base.original_match = mongory_matcher_field_match;
-  field_m->literal.base.sub_count = 1;
   field_m->literal.base.condition = condition_for_field; // Original condition for the field
-  field_m->literal.base.explain = mongory_matcher_field_explain;
   field_m->literal.base.traverse = mongory_matcher_value_traverse;
   field_m->literal.base.extern_ctx = extern_ctx;
   // The 'left' child of the composite is the actual matcher for the field's value,
@@ -337,9 +334,7 @@ mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool, mongory_valu
     mongory_compile_budget_leave_depth();
     return NULL;
   }
-  literal->base.explain = mongory_matcher_value_explain;
   literal->base.traverse = mongory_matcher_value_traverse;
-  literal->base.sub_count = 1;
   literal->base.extern_ctx = extern_ctx;
   literal->base.priority = 2.0 + literal->delegate_matcher->priority;
   literal->base.parent = NULL;
@@ -405,9 +400,7 @@ mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool, mongory_val
     mongory_compile_budget_leave_depth();
     return NULL;
   }
-  literal->base.explain = mongory_matcher_value_explain;
   literal->base.traverse = mongory_matcher_value_traverse;
-  literal->base.sub_count = 1;
   literal->base.extern_ctx = extern_ctx;
   literal->base.priority = 1.0 + (literal->delegate_matcher->priority / 2.0);
   literal->base.parent = NULL;
