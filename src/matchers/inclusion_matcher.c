@@ -446,13 +446,9 @@ static mongory_inclusion_matcher *mongory_inclusion_matcher_alloc(mongory_memory
     if (!inc->set) {
       return NULL;
     }
-    if (inc->set->fallback_count == 0) {
-      inc->base.priority = 2.5;
-    } else {
-      inc->base.priority = 2.5 + mongory_log((double)inc->set->fallback_count + 1.0, 1.5);
-    }
+    inc->base.priority = 3.0 + (double)(inc->set->fallback_count / 8);
   } else {
-    inc->base.priority = 1.0 + mongory_log((double)cond_arr->count + 1.0, 1.5);
+    inc->base.priority = 2.0 + (double)(cond_arr->count / 8);
   }
 
   return inc;
@@ -479,5 +475,8 @@ mongory_matcher *mongory_matcher_not_in_new(mongory_memory_pool *pool, mongory_v
   }
   mongory_inclusion_matcher *inc =
       mongory_inclusion_matcher_alloc(pool, condition, extern_ctx, "Nin", mongory_matcher_not_in_match);
+  if (inc) {
+    inc->base.priority += 1.0;
+  }
   return inc ? &inc->base : NULL;
 }

@@ -123,7 +123,7 @@ mongory_matcher *mongory_matcher_not_equal_new(mongory_memory_pool *pool, mongor
     return NULL;
   }
   matcher->name = mongory_string_cpy(pool, "Ne");
-  matcher->priority = 1.0;
+  matcher->priority = 2.0;
   return matcher;
 }
 

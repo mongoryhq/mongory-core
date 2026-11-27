@@ -11,6 +11,7 @@
  * - $size checks the number of elements in an array against a condition.
  */
 #include "value_matcher.h"
+#include <string.h>
 #include "../foundations/config_private.h"      // For mongory_internal_value_converter
 #include "../foundations/memory_pool_private.h" // For atomic & lock helpers
 #include "../foundations/utils.h"               // For mongory_try_parse_int, mongory_string_cpy
@@ -93,7 +94,8 @@ static inline bool mongory_matcher_value_match(mongory_matcher *matcher, mongory
         }
         if (arm != NULL) {
           arm->parent = &literal->base;
-          double delta = (1.0 + arm->priority) - literal->base.priority;
+          double base_offset = (literal->base.name && strcmp(literal->base.name, "Not") == 0) ? 2.0 : 1.0;
+          double delta = (base_offset + arm->priority) - literal->base.priority;
           if (delta != 0.0) {
             for (mongory_matcher *cur = &literal->base; cur != NULL; cur = cur->parent) {
               cur->priority += delta;
@@ -339,7 +341,7 @@ mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool, mongory_valu
   literal->base.traverse = mongory_matcher_value_traverse;
   literal->base.sub_count = 1;
   literal->base.extern_ctx = extern_ctx;
-  literal->base.priority = 1.0 + literal->delegate_matcher->priority;
+  literal->base.priority = 2.0 + literal->delegate_matcher->priority;
   literal->base.parent = NULL;
   literal->delegate_matcher->parent = (mongory_matcher *)literal;
   mongory_compile_budget_leave_depth();
@@ -407,7 +409,7 @@ mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool, mongory_val
   literal->base.traverse = mongory_matcher_value_traverse;
   literal->base.sub_count = 1;
   literal->base.extern_ctx = extern_ctx;
-  literal->base.priority = 1.0 + literal->delegate_matcher->priority;
+  literal->base.priority = 1.0 + (literal->delegate_matcher->priority / 2.0);
   literal->base.parent = NULL;
   literal->delegate_matcher->parent = (mongory_matcher *)literal;
   mongory_compile_budget_leave_depth();

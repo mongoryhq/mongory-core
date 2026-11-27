@@ -379,11 +379,12 @@ void test_lazy_implicit_array_matcher_resorts_composite_children(void) {
   mongory_value *condition = MG_TABLE_WRAP(pool, 3,
     "tags", mongory_value_wrap_s(pool, "ts"),
     "age", MG_TABLE_WRAP(pool, 1, "$gte", mongory_value_wrap_i(pool, 18)),
-    "items", MG_TABLE_WRAP(pool, 1, "$size", MG_TABLE_WRAP(pool, 1, "$gte", mongory_value_wrap_i(pool, 1)))
+    "items", MG_TABLE_WRAP(pool, 1, "$size", MG_TABLE_WRAP(pool, 2, "$gte", mongory_value_wrap_i(pool, 1), "$lte", mongory_value_wrap_i(pool, 5)))
   );
   mongory_matcher *root = mongory_matcher_new(pool, condition, NULL);
   TEST_ASSERT_NOT_NULL(root);
 
+  // Initial strictly distinct priorities: tags (2.0) < age (3.0) < items (5.0).
   mongory_composite_matcher *comp = (mongory_composite_matcher *)root;
   TEST_ASSERT_EQUAL_INT(3, (int)comp->children->count);
   TEST_ASSERT_EQUAL_STRING("tags", ((mongory_field_matcher *)comp->children->get(comp->children, 0))->field);
@@ -397,7 +398,7 @@ void test_lazy_implicit_array_matcher_resorts_composite_children(void) {
   );
   TEST_ASSERT_TRUE(mongory_matcher_match(root, record));
 
-  // After matching an array on tags, tags priority rises (2 -> 5) above age (3) and items (4).
+  // After matching an array on tags, tags priority rises (2.0 -> 11.0) above age (3.0) and items (5.0).
   TEST_ASSERT_EQUAL_STRING("age", ((mongory_field_matcher *)comp->children->get(comp->children, 0))->field);
   TEST_ASSERT_EQUAL_STRING("items", ((mongory_field_matcher *)comp->children->get(comp->children, 1))->field);
   TEST_ASSERT_EQUAL_STRING("tags", ((mongory_field_matcher *)comp->children->get(comp->children, 2))->field);

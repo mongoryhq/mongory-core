@@ -593,7 +593,7 @@ mongory_matcher *mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongo
     mongory_compile_budget_leave_depth();
     return NULL;
   }
-  composite->base.priority = 3.0 + mongory_matcher_calculate_priority(sub_matchers);
+  composite->base.priority = 8.0 + 2.0 * mongory_matcher_calculate_priority(sub_matchers);
   mongory_compile_budget_leave_depth();
   return (mongory_matcher *)composite;
 }
@@ -671,7 +671,7 @@ mongory_matcher *mongory_matcher_every_new(mongory_memory_pool *pool, mongory_va
     mongory_compile_budget_leave_depth();
     return NULL;
   }
-  composite->base.priority = 3.0 + mongory_matcher_calculate_priority(sub_matchers);
+  composite->base.priority = 8.0 + 2.0 * mongory_matcher_calculate_priority(sub_matchers);
   mongory_compile_budget_leave_depth();
   return (mongory_matcher *)composite;
 }
