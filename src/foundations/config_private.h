@@ -30,7 +30,7 @@ typedef struct mongory_value_converter {
 typedef struct mongory_matcher_custom_adapter {
   bool (*match)(void *external_matcher, mongory_value *value); // Match a value against an external matcher.
   mongory_matcher_custom_context *(*build)(char *key, mongory_value *condition, void *extern_ctx); // Build an external matcher reference.
-  bool (*lookup)(char *key); // Lookup a matcher reference by key.
+  bool (*lookup)(char *key, void *extern_ctx); // Lookup a matcher reference by key.
 } mongory_matcher_custom_adapter;
 
 extern mongory_memory_pool *mongory_internal_pool;

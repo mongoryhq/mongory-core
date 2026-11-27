@@ -17,8 +17,10 @@ void test_condition_matcher(void) {
 }
 
 static void *captured_extern_ctx = NULL;
+static void *captured_lookup_extern_ctx = NULL;
 
-static bool custom_ctx_lookup(char *key) {
+static bool custom_ctx_lookup(char *key, void *extern_ctx) {
+  captured_lookup_extern_ctx = extern_ctx;
   return strcmp(key, "$ctxCheck") == 0;
 }
 
@@ -40,6 +42,7 @@ void test_field_matcher_propagates_extern_ctx_to_lazy_array_matcher(void) {
   mongory_memory_pool *pool = get_test_pool();
   int dummy_ctx = 12345;
   captured_extern_ctx = NULL;
+  captured_lookup_extern_ctx = NULL;
 
   mongory_custom_matcher_lookup_func_set(custom_ctx_lookup);
   mongory_custom_matcher_build_func_set(custom_ctx_build);
@@ -50,8 +53,10 @@ void test_field_matcher_propagates_extern_ctx_to_lazy_array_matcher(void) {
   );
   mongory_matcher *matcher = mongory_matcher_new(pool, condition, &dummy_ctx);
   TEST_ASSERT_NOT_NULL(matcher);
+  TEST_ASSERT_EQUAL_PTR(&dummy_ctx, captured_lookup_extern_ctx);
 
   captured_extern_ctx = NULL;
+  captured_lookup_extern_ctx = NULL;
   mongory_value *array_record = MG_TABLE_WRAP(pool, 1,
     "tags", MG_ARRAY_WRAP(pool, 1, mongory_value_wrap_s(pool, "ruby"))
   );

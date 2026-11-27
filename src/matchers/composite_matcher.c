@@ -225,7 +225,7 @@ static inline mongory_matcher *mongory_matcher_build_sub_matcher(char *key, mong
     build_func = mongory_matcher_build_func_get(key);
     if (build_func != NULL) {
       return build_func(pool, value, ctx->extern_ctx);
-    } else if (mongory_custom_matcher_adapter.lookup != NULL && mongory_custom_matcher_adapter.lookup(key)) {
+    } else if (mongory_custom_matcher_adapter.lookup != NULL && mongory_custom_matcher_adapter.lookup(key, ctx->extern_ctx)) {
       return mongory_matcher_custom_new(pool, key, value, ctx->extern_ctx);
     }
     mongory_matcher_build_error_set(pool, mongory_string_cpyf(pool, "Unknown operator: %s", key));

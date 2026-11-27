@@ -239,7 +239,7 @@ void mongory_custom_matcher_build_func_set(mongory_matcher_custom_context *(*bui
   mongory_custom_matcher_adapter.build = build;
 }
 
-void mongory_custom_matcher_lookup_func_set(bool (*lookup)(char *key)) {
+void mongory_custom_matcher_lookup_func_set(bool (*lookup)(char *key, void *extern_ctx)) {
   mongory_custom_matcher_adapter.lookup = lookup;
 }
 
