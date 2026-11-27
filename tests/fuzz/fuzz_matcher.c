@@ -74,7 +74,7 @@ static const char *fs_key(fuzz_stream_t *s, bool allow_ops) {
   };
   static const char *const ops[] = {
     "$eq", "$ne", "$gt", "$gte", "$lt", "$lte",
-    "$in", "$nin", "$and", "$or", "$not",
+    "$in", "$nin", "$and", "$or", "$nor", "$not",
     "$elemMatch", "$every", "$size", "$exists", "$present",
     "$regex", "$options", "$unknown"
   };

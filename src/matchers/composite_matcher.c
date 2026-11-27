@@ -131,6 +131,19 @@ bool mongory_matcher_or_match(mongory_matcher *matcher, mongory_value *value) {
   return false; // Neither matched (or children didn't exist).
 }
 
+static inline bool mongory_matcher_nor_match(mongory_matcher *matcher, mongory_value *value) {
+  mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
+  mongory_array *children = mongory_atomic_load_ptr_acquire(&composite->children);
+  int total = (int)children->count;
+  for (int i = 0; i < total; i++) {
+    mongory_matcher *child = (mongory_matcher *)children->get(children, i);
+    if (child->match(child, value)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /**
  * @brief Context structure for building sub-matchers from a table.
  */
@@ -508,6 +521,65 @@ mongory_matcher *mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value
   final_matcher->base.original_match = mongory_matcher_or_match;
   final_matcher->base.sub_count = sub_matchers->count;
   final_matcher->base.name = mongory_string_cpy(pool, "Or");
+  if (final_matcher->base.name == NULL) {
+    mongory_compile_budget_leave_depth();
+    return NULL;
+  }
+  final_matcher->base.priority += mongory_matcher_calculate_priority(sub_matchers);
+  mongory_compile_budget_leave_depth();
+  return (mongory_matcher *)final_matcher;
+}
+
+mongory_matcher *mongory_matcher_nor_new(mongory_memory_pool *pool, mongory_value *nor_condition, void *extern_ctx) {
+  if (!MONGORY_VALIDATE_ARRAY(pool, nor_condition)) {
+    return NULL;
+  }
+  if (!mongory_compile_budget_enter_depth(pool)) {
+    return NULL;
+  }
+  mongory_array *array_of_tables = nor_condition->data.a;
+  if (array_of_tables->count == 0) {
+    mongory_matcher *res = mongory_matcher_always_true_new(pool, nor_condition, extern_ctx); // $nor:[] is true
+    mongory_compile_budget_leave_depth();
+    return res;
+  }
+  mongory_value *first = array_of_tables->get(array_of_tables, 0);
+  if (!MONGORY_VALIDATE_TABLE(pool, first)) {
+    mongory_compile_budget_leave_depth();
+    return NULL;
+  }
+
+  mongory_array *sub_matchers = mongory_array_new(pool);
+  if (sub_matchers == NULL) {
+    mongory_compile_budget_leave_depth();
+    return NULL;
+  }
+
+  mongory_matcher_table_build_sub_matcher_context build_ctx = {pool, sub_matchers, extern_ctx, NULL};
+  int total = (int)array_of_tables->count;
+  for (int i = 0; i < total; i++) {
+    mongory_value *table = array_of_tables->get(array_of_tables, i);
+    if (!mongory_matcher_build_or_sub_matcher(table, &build_ctx)) {
+      mongory_compile_budget_leave_depth();
+      return NULL;
+    }
+  }
+
+  mongory_composite_matcher *final_matcher = mongory_matcher_composite_new(pool, nor_condition, extern_ctx);
+  if (final_matcher == NULL) {
+    mongory_compile_budget_leave_depth();
+    return NULL;
+  }
+  final_matcher->children = mongory_matcher_sort_matchers(sub_matchers);
+  if (final_matcher->children == NULL) {
+    mongory_compile_budget_leave_depth();
+    return NULL;
+  }
+  mongory_matcher_attach_children_parent(final_matcher, final_matcher->children);
+  final_matcher->base.match = mongory_matcher_nor_match;
+  final_matcher->base.original_match = mongory_matcher_nor_match;
+  final_matcher->base.sub_count = sub_matchers->count;
+  final_matcher->base.name = mongory_string_cpy(pool, "Nor");
   if (final_matcher->base.name == NULL) {
     mongory_compile_budget_leave_depth();
     return NULL;

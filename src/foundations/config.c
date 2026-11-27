@@ -304,6 +304,7 @@ void mongory_init() {
   mongory_matcher_register_unlocked("$regex", mongory_matcher_regex_new);
   mongory_matcher_register_unlocked("$and", mongory_matcher_and_new);
   mongory_matcher_register_unlocked("$or", mongory_matcher_or_new);
+  mongory_matcher_register_unlocked("$nor", mongory_matcher_nor_new);
   mongory_matcher_register_unlocked("$elemMatch", mongory_matcher_elem_match_new);
   mongory_matcher_register_unlocked("$every", mongory_matcher_every_new);
   mongory_matcher_register_unlocked("$not", mongory_matcher_not_new);

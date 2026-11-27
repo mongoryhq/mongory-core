@@ -56,6 +56,16 @@ mongory_matcher *mongory_matcher_and_new(mongory_memory_pool *pool, mongory_valu
 mongory_matcher *mongory_matcher_or_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
 
 /**
+ * @brief Creates a "NOR" ($nor) matcher.
+ * Matches if none of the conditions specified in an array of condition tables are met.
+ * @param pool Memory pool for allocation.
+ * @param condition A `mongory_value` of type `MONGORY_TYPE_ARRAY`, where each
+ * element is a `MONGORY_TYPE_TABLE` representing a sub-condition.
+ * @return A new `$nor` matcher, or NULL on failure or if condition is invalid.
+ */
+mongory_matcher *mongory_matcher_nor_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx);
+
+/**
  * @brief Creates an "element match" ($elemMatch) matcher.
  * Matches an array field if at least one element in the array matches the given
  * condition table.
