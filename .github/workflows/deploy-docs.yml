@@ -1,4 +1,4 @@
-name: Deploy Doxygen API Docs
+name: Deploy API Docs
 
 on:
   push:
