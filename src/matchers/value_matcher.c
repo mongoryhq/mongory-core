@@ -187,7 +187,7 @@ static inline mongory_matcher *mongory_matcher_value_delegate(mongory_memory_poo
  * @return True if the field's value matches the condition, false otherwise.
  */
 static inline bool mongory_matcher_field_match(mongory_matcher *matcher, mongory_value *value) {
-  if (value == NULL) { // Cannot extract field from NULL.
+  if (!matcher || value == NULL) { // Cannot extract field from NULL.
     return false;
   }
   mongory_field_matcher *field_matcher = (mongory_field_matcher *)matcher;
@@ -244,7 +244,7 @@ static inline bool mongory_matcher_field_match(mongory_matcher *matcher, mongory
 
 mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *field_name,
                                            mongory_value *condition_for_field, void *extern_ctx) {
-  if (!pool || !pool->alloc) {
+  if (!pool || !pool->alloc || !MONGORY_VALIDATE_PTR(pool, field_name)) {
     return NULL;
   }
   if (!mongory_compile_budget_count_node(pool)) {
@@ -295,6 +295,9 @@ mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *fiel
  * @return True if the literal match is false, false if it's true.
  */
 static inline bool mongory_matcher_not_match(mongory_matcher *matcher, mongory_value *value) {
+  if (!matcher) {
+    return false;
+  }
   // literal_match uses composite.left (and sometimes .right for arrays)
   return !mongory_matcher_value_match(matcher, value);
 }
@@ -352,11 +355,12 @@ mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool, mongory_valu
  * @return True if array size matches condition, false otherwise.
  */
 static inline bool mongory_matcher_size_match(mongory_matcher *matcher, mongory_value *value) {
-  if (!value || value->type != MONGORY_TYPE_ARRAY || !value->data.a) {
+  if (!matcher || !value || value->type != MONGORY_TYPE_ARRAY || !value->data.a) {
     return false; // $size only applies to valid arrays.
   }
   mongory_array *array = value->data.a;
-  mongory_value *size_val = mongory_value_wrap_i(value->pool, (int64_t)array->count);
+  mongory_memory_pool *size_pool = value->pool ? value->pool : matcher->pool;
+  mongory_value *size_val = mongory_value_wrap_i(size_pool, (int64_t)array->count);
   if (!size_val) {
     return false;
   }

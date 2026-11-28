@@ -15,6 +15,7 @@
 #include <mongory-core/foundations/memory_pool.h>
 #include <stdarg.h>
 #include <mongory-core/foundations/value.h>
+#include "utils.h"
 
 /**
  * @def MONGORY_ARRAY_INIT_SIZE
@@ -36,6 +37,9 @@
  * allocation failure).
  */
 bool mongory_array_resize(mongory_array *self, size_t size) {
+  if (!self || !self->pool || !self->pool->alloc) {
+    return false;
+  }
   mongory_array_private *internal = (mongory_array_private *)self;
   if (size > SIZE_MAX / sizeof(mongory_value *)) {
     self->pool->error = &MONGORY_ALLOC_ERROR;
@@ -104,6 +108,9 @@ static inline bool mongory_array_grow_if_needed(mongory_array *self, size_t size
  * @return true if iteration completed, false if callback stopped it.
  */
 static inline bool mongory_array_each(mongory_array *self, void *acc, mongory_array_callback_func func) {
+  if (!self || !func) {
+    return false;
+  }
   mongory_array_private *internal = (mongory_array_private *)self;
   for (size_t i = 0; i < self->count; i++) {
     mongory_value *item = internal->items[i];
@@ -122,6 +129,9 @@ static inline bool mongory_array_each(mongory_array *self, void *acc, mongory_ar
  * @return true if successful, false on failure (e.g., memory allocation).
  */
 static inline bool mongory_array_push(mongory_array *self, mongory_value *value) {
+  if (!self || !self->pool) {
+    return false;
+  }
   mongory_array_private *internal = (mongory_array_private *)self;
   // Ensure there's space for one more element (current count).
   if (!mongory_array_grow_if_needed(self, self->count)) {
@@ -139,10 +149,10 @@ static inline bool mongory_array_push(mongory_array *self, mongory_value *value)
  * @return Pointer to the mongory_value, or NULL if index is out of bounds.
  */
 static inline mongory_value *mongory_array_get(mongory_array *self, size_t index) {
-  mongory_array_private *internal = (mongory_array_private *)self;
-  if (index >= self->count) {
-    return NULL; // Index out of bounds.
+  if (!self || index >= self->count) {
+    return NULL; // Invalid array or index out of bounds.
   }
+  mongory_array_private *internal = (mongory_array_private *)self;
   return internal->items[index];
 }
 
@@ -158,6 +168,9 @@ static inline mongory_value *mongory_array_get(mongory_array *self, size_t index
  * @return true if successful, false on failure (e.g., memory allocation).
  */
 static inline bool mongory_array_set(mongory_array *self, size_t index, mongory_value *value) {
+  if (!self || !self->pool) {
+    return false;
+  }
   mongory_array_private *internal = (mongory_array_private *)self;
   // Ensure capacity for the given 0-based index.
   if (!mongory_array_grow_if_needed(self, index)) {
@@ -177,8 +190,15 @@ static inline bool mongory_array_set(mongory_array *self, size_t index, mongory_
 }
 
 mongory_array *mongory_array_new_with_capacity(mongory_memory_pool *pool, size_t capacity) {
+  if (!pool || !pool->alloc) {
+    return NULL;
+  }
   if (capacity == 0) {
     capacity = MONGORY_ARRAY_INIT_SIZE;
+  }
+  if (capacity > SIZE_MAX / sizeof(mongory_value *)) {
+    pool->error = &MONGORY_ALLOC_ERROR;
+    return NULL;
   }
   // First, allocate the private structure that holds all array metadata.
   mongory_array_private *internal = MG_ALLOC_PTR(pool, mongory_array_private);
@@ -248,7 +268,7 @@ mongory_array *mongory_array_nested_wrap(mongory_memory_pool *pool, int argc, ..
   bool ok = true;
   for (int i = 0; i < argc; i++) {
     mongory_value *value = va_arg(args, mongory_value *);
-    if (ok && (!value || !array->push(array, value))) {
+    if (ok && (!MONGORY_VALIDATE_PTR(pool, value) || !array->push(array, value))) {
       ok = false;
     }
   }
@@ -326,9 +346,12 @@ mongory_array *mongory_array_sort_by(mongory_array *self, mongory_memory_pool *t
 }
 
 bool mongory_array_includes(mongory_array *self, mongory_value *value) {
+  if (!self || !value) {
+    return false;
+  }
   for (size_t i = 0; i < self->count; i++) {
     mongory_value *item = self->get(self, i);
-    if (item->comp(item, value) == 0) {
+    if (item && item->comp && item->comp(item, value) == 0) {
       return true;
     }
   }

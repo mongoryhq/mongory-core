@@ -155,6 +155,9 @@ static inline void mongory_matcher_mapping_init() {
  * @param build_func A function pointer to the matcher's constructor.
  */
 static void mongory_matcher_register_unlocked(char *name, mongory_matcher_build_func build_func) {
+  if (!name || !build_func) {
+    return;
+  }
   // Ensure mapping is initialized.
   if (mongory_matcher_mapping == NULL) {
     mongory_matcher_mapping_init();
@@ -189,6 +192,9 @@ void mongory_matcher_register(char *name, mongory_matcher_build_func build_func)
  * constructor, or NULL if not found.
  */
 mongory_matcher_build_func mongory_matcher_build_func_get(char *name) {
+  if (!name) {
+    return NULL;
+  }
   mongory_config_lock();
   mongory_matcher_build_func result = NULL;
   if (mongory_matcher_mapping != NULL) {

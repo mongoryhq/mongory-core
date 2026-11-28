@@ -33,12 +33,15 @@ typedef struct mongory_regex_matcher {
  * input is not a string.
  */
 static inline bool mongory_matcher_regex_match(mongory_matcher *matcher, mongory_value *value) {
-  if (!value || value->type != MONGORY_TYPE_STRING) {
+  if (!matcher || !value || value->type != MONGORY_TYPE_STRING) {
     return false; // Regex matching applies only to strings.
   }
   char *options = ((mongory_regex_matcher *)matcher)->options;
   mongory_memory_pool *match_pool = value->pool ? value->pool : matcher->pool;
   if (options) {
+    if (!mongory_internal_regex_adapter.options_match_func) {
+      return false;
+    }
     return mongory_internal_regex_adapter.options_match_func(match_pool, matcher->condition, options, value);
   }
   if (!mongory_internal_regex_adapter.match_func) {
@@ -85,6 +88,9 @@ static inline bool mongory_matcher_regex_options_validate(mongory_memory_pool *p
 
 mongory_matcher *mongory_matcher_regex_with_options_new(mongory_memory_pool *pool, mongory_value *condition,
                                                         mongory_value *options, void *extern_ctx) {
+  if (!pool || !pool->alloc) {
+    return NULL;
+  }
   if (!mongory_matcher_regex_condition_validate(condition)) {
     mongory_matcher_regex_error_set(pool, MONGORY_ERROR_INVALID_ARGUMENT, "$regex condition must be a string or a regex object.");
     return NULL;
@@ -149,7 +155,7 @@ typedef struct mongory_custom_matcher {
  * @return True if the value matches the matcher, false otherwise.
  */
 bool mongory_matcher_custom_match(mongory_matcher *matcher, mongory_value *value) {
-  if (mongory_custom_matcher_adapter.match == NULL) {
+  if (!matcher || mongory_custom_matcher_adapter.match == NULL) {
     return false; // Custom matcher adapter not initialized.
   }
   mongory_custom_matcher *custom_matcher = (mongory_custom_matcher *)matcher;
@@ -167,6 +173,9 @@ bool mongory_matcher_custom_match(mongory_matcher *matcher, mongory_value *value
  * NULL on failure.
  */
 mongory_matcher *mongory_matcher_custom_new(mongory_memory_pool *pool, char *key, mongory_value *condition, void *extern_ctx) {
+  if (!pool || !pool->alloc || !MONGORY_VALIDATE_PTR(pool, key)) {
+    return NULL;
+  }
   if (mongory_custom_matcher_adapter.build == NULL)
     return NULL; // Custom matcher adapter not initialized.
   if (!mongory_compile_budget_count_node(pool))

@@ -67,7 +67,7 @@ bool mongory_try_parse_int(const char *key, int *out) {
  * allocation fails.
  */
 char *mongory_string_cpy(mongory_memory_pool *pool, char *str) {
-  if (str == NULL) {
+  if (!pool || !pool->alloc || str == NULL) {
     return NULL;
   }
 
@@ -83,7 +83,7 @@ char *mongory_string_cpy(mongory_memory_pool *pool, char *str) {
 }
 
 char *mongory_string_cpyf(mongory_memory_pool *pool, char *format, ...) {
-  if (!pool || !format) {
+  if (!pool || !pool->alloc || !format) {
     return NULL;
   }
   va_list args;
@@ -107,6 +107,10 @@ char *mongory_string_cpyf(mongory_memory_pool *pool, char *format, ...) {
 
 void mongory_error_set(mongory_memory_pool *pool, mongory_error_type type, const char *message) {
   if (!pool || pool->error != NULL) {
+    return;
+  }
+  if (!pool->alloc) {
+    pool->error = &MONGORY_ALLOC_ERROR;
     return;
   }
   mongory_error *error = MG_ALLOC_PTR(pool, mongory_error);
@@ -157,7 +161,7 @@ bool mongory_validate_table(mongory_memory_pool *pool, char *name, mongory_value
   if (value->type != MONGORY_TYPE_TABLE) {
     return mongory_validate_type_error(pool, name, "Table", value, file, line);
   }
-  return true;
+  return mongory_validate_ptr(pool, name, value->data.t, file, line);
 }
 
 bool mongory_validate_array(mongory_memory_pool *pool, char *name, mongory_value *value, char *file, int line) {
@@ -170,7 +174,7 @@ bool mongory_validate_array(mongory_memory_pool *pool, char *name, mongory_value
   if (value->type != MONGORY_TYPE_ARRAY) {
     return mongory_validate_type_error(pool, name, "Array", value, file, line);
   }
-  return true;
+  return mongory_validate_ptr(pool, name, value->data.a, file, line);
 }
 
 bool mongory_validate_string(mongory_memory_pool *pool, char *name, mongory_value *value, char *file, int line) {
@@ -183,7 +187,7 @@ bool mongory_validate_string(mongory_memory_pool *pool, char *name, mongory_valu
   if (value->type != MONGORY_TYPE_STRING) {
     return mongory_validate_type_error(pool, name, "String", value, file, line);
   }
-  return true;
+  return mongory_validate_ptr(pool, name, value->data.s, file, line);
 }
 
 #endif // MONGORY_UTILS_C

@@ -241,6 +241,9 @@ static inline bool mongory_table_get_on_node(mongory_table_node *node, void *acc
  * @return Pointer to the mongory_value, or NULL if not found.
  */
 mongory_value *mongory_table_get(mongory_table *self, char *key) {
+  if (!self || !key) {
+    return NULL;
+  }
   mongory_table_internal *internal = (mongory_table_internal *)self;
   mongory_array *bucket_array = internal->array;
   size_t index = hash_string(key) % internal->capacity;
@@ -281,6 +284,9 @@ static inline bool mongory_table_set_on_node(mongory_table_node *node, void *acc
  * @return true if successful, false on failure (e.g., memory allocation).
  */
 bool mongory_table_set(mongory_table *self, char *key, mongory_value *value) {
+  if (!self || !self->pool || !MONGORY_VALIDATE_PTR(self->pool, key)) {
+    return false;
+  }
   mongory_table_internal *internal = (mongory_table_internal *)self;
   mongory_array *bucket_array = internal->array;
   size_t index = hash_string(key) % internal->capacity;
@@ -331,6 +337,9 @@ bool mongory_table_set(mongory_table *self, char *key, mongory_value *value) {
  * @return true if key was found and deleted, false otherwise.
  */
 bool mongory_table_del(mongory_table *self, char *key) {
+  if (!self || !key) {
+    return false;
+  }
   mongory_table_internal *internal = (mongory_table_internal *)self;
   mongory_array *bucket_array = internal->array;
   size_t index = hash_string(key) % internal->capacity;
@@ -403,6 +412,9 @@ static inline bool mongory_table_each_pair_on_root(mongory_value *value, void *a
  * @return true if iteration completed, false if callback stopped it.
  */
 bool mongory_table_each_pair(mongory_table *self, void *acc, mongory_table_each_pair_callback_func callback) {
+  if (!self || !callback) {
+    return false;
+  }
   mongory_table_internal *internal = (mongory_table_internal *)self;
   mongory_table_each_pair_context each_ctx = {acc, callback};
   // Iterate over the array of buckets. Each element in this array is the head
@@ -418,7 +430,7 @@ bool mongory_table_each_pair(mongory_table *self, void *acc, mongory_table_each_
  * @return Pointer to the new mongory_table, or NULL on failure.
  */
 mongory_table *mongory_table_new(mongory_memory_pool *pool) {
-  if (!pool)
+  if (!pool || !pool->alloc)
     return NULL; // Must have a valid pool.
 
   size_t init_capacity = MONGORY_TABLE_INIT_SIZE;
@@ -486,17 +498,17 @@ mongory_table *mongory_table_nested_wrap(mongory_memory_pool *pool, int argc, ..
 
 static inline bool mongory_table_merge_cb(char *key, mongory_value *value, void *acc) {
   mongory_table *table = (mongory_table *)acc;
-  table->set(table, key, value);
-  return true;
+  return table->set(table, key, value);
 }
 
 mongory_table *mongory_table_merge(mongory_table *table, mongory_table *other) {
-  mongory_memory_pool *pool = other->pool;
-  MONGORY_VALIDATE_PTR(pool, other->each);
-  MONGORY_VALIDATE_PTR(pool, table->set);
-  if (pool->error != NULL) {
+  mongory_memory_pool *pool = (table && table->pool) ? table->pool : (other ? other->pool : NULL);
+  if (!MONGORY_VALIDATE_PTR(pool, table) || !MONGORY_VALIDATE_PTR(pool, other) ||
+      !MONGORY_VALIDATE_PTR(pool, other->each) || !MONGORY_VALIDATE_PTR(pool, table->set)) {
     return NULL;
   }
-  other->each(other, table, mongory_table_merge_cb);
+  if (!other->each(other, table, mongory_table_merge_cb) || pool->error != NULL) {
+    return NULL;
+  }
   return table;
 }

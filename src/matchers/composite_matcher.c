@@ -92,12 +92,18 @@ mongory_composite_matcher *mongory_matcher_composite_new(mongory_memory_pool *po
 // Logical Operator Match Functions (AND, OR)
 // ============================================================================
 static inline bool mongory_matcher_and_match(mongory_matcher *matcher, mongory_value *value) {
+  if (!matcher) {
+    return false;
+  }
   mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
   mongory_array *children = mongory_atomic_load_ptr_acquire(&composite->children);
+  if (!children) {
+    return false;
+  }
   int total = (int)children->count;
   for (int i = 0; i < total; i++) {
     mongory_matcher *child = (mongory_matcher *)children->get(children, i);
-    if (!child->match(child, value)) {
+    if (!child || !child->match || !child->match(child, value)) {
       return false;
     }
   }
@@ -116,12 +122,18 @@ static inline bool mongory_matcher_and_match(mongory_matcher *matcher, mongory_v
  * @return True if any child condition is met, false otherwise.
  */
 bool mongory_matcher_or_match(mongory_matcher *matcher, mongory_value *value) {
+  if (!matcher) {
+    return false;
+  }
   mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
   mongory_array *children = mongory_atomic_load_ptr_acquire(&composite->children);
+  if (!children) {
+    return false;
+  }
   int total = (int)children->count;
   for (int i = 0; i < total; i++) {
     mongory_matcher *child = (mongory_matcher *)children->get(children, i);
-    if (child->match(child, value)) {
+    if (child && child->match && child->match(child, value)) {
       return true;
     }
   }
@@ -129,12 +141,18 @@ bool mongory_matcher_or_match(mongory_matcher *matcher, mongory_value *value) {
 }
 
 static inline bool mongory_matcher_nor_match(mongory_matcher *matcher, mongory_value *value) {
+  if (!matcher) {
+    return false;
+  }
   mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
   mongory_array *children = mongory_atomic_load_ptr_acquire(&composite->children);
+  if (!children) {
+    return false;
+  }
   int total = (int)children->count;
   for (int i = 0; i < total; i++) {
     mongory_matcher *child = (mongory_matcher *)children->get(children, i);
-    if (child->match(child, value)) {
+    if (child && child->match && child->match(child, value)) {
       return false;
     }
   }
@@ -595,8 +613,9 @@ mongory_matcher *mongory_matcher_nor_new(mongory_memory_pool *pool, mongory_valu
 // Array-based Match Functions ($elemMatch, $every)
 // ============================================================================
 static inline bool mongory_matcher_elem_match_match(mongory_matcher *matcher, mongory_value *elem_match_target) {
-  if (elem_match_target == NULL || elem_match_target->type != MONGORY_TYPE_ARRAY) {
-    return false; // $elemMatch applies to arrays.
+  if (!matcher || elem_match_target == NULL || elem_match_target->type != MONGORY_TYPE_ARRAY ||
+      elem_match_target->data.a == NULL) {
+    return false; // $elemMatch applies to valid arrays.
   }
   mongory_array *target_array = elem_match_target->data.a;
   if (target_array->count == 0)
@@ -672,7 +691,8 @@ mongory_matcher *mongory_matcher_elem_match_new(mongory_memory_pool *pool, mongo
  * if array is empty).
  */
 static inline bool mongory_matcher_every_match(mongory_matcher *matcher, mongory_value *every_match_target) {
-  if (every_match_target == NULL || every_match_target->type != MONGORY_TYPE_ARRAY) {
+  if (!matcher || every_match_target == NULL || every_match_target->type != MONGORY_TYPE_ARRAY ||
+      every_match_target->data.a == NULL) {
     return false;
   }
   mongory_array *target_array = every_match_target->data.a;
@@ -749,6 +769,9 @@ mongory_matcher *mongory_matcher_every_new(mongory_memory_pool *pool, mongory_va
  * @return The priority of the composite matcher.
  */
 double mongory_matcher_calculate_priority(mongory_array *sub_matchers) {
+  if (!sub_matchers) {
+    return 0.0;
+  }
   double priority = 0.0;
   for (size_t i = 0; i < sub_matchers->count; i++) {
     priority += ((mongory_matcher *)sub_matchers->get(sub_matchers, i))->priority;
@@ -768,6 +791,9 @@ static inline size_t mongory_matcher_calc_priority(mongory_value *matcher_value,
  * @return The sorted array of sub-matchers.
  */
 mongory_array *mongory_matcher_sort_matchers(mongory_array *sub_matchers) {
+  if (!sub_matchers || !sub_matchers->pool) {
+    return NULL;
+  }
   mongory_memory_pool *temp_pool = mongory_memory_pool_new();
   if (temp_pool == NULL) {
     sub_matchers->pool->error = &MONGORY_ALLOC_ERROR;

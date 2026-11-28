@@ -76,7 +76,7 @@ static inline bool mongory_matcher_implicit_array_parse_table_foreach(char *key,
   mongory_table *parsed_table_for_operators = context->parsed_table;
   mongory_table *table_for_elem_match_conditions = context->elem_match_table;
 
-  if (strcmp(key, "$elemMatch") == 0 && value->type == MONGORY_TYPE_TABLE && value->data.t != NULL) {
+  if (strcmp(key, "$elemMatch") == 0 && value != NULL && value->type == MONGORY_TYPE_TABLE && value->data.t != NULL) {
     // Explicit $elemMatch: iterate its sub-table and add to elem_match_table
     mongory_table_merge(table_for_elem_match_conditions, value->data.t);
   } else if (mongory_is_elem_match_operator(key, value)) {
@@ -106,11 +106,7 @@ static inline bool mongory_matcher_implicit_array_parse_table_foreach(char *key,
  * condition. Returns NULL if input is not a table or on allocation failure.
  */
 static inline mongory_value *mongory_matcher_implicit_array_parse_table(mongory_memory_pool *pool, mongory_value *condition) {
-  if (!pool) {
-    return NULL;
-  }
-  if (!condition || !condition->data.t) {
-    mongory_error_set(pool, MONGORY_ERROR_INVALID_TYPE, "Expected condition to be a table, got a non-table value");
+  if (!MONGORY_VALIDATE_TABLE(pool, condition)) {
     return NULL; // Invalid input
   }
   mongory_table *parsed_table = mongory_table_new(pool);
@@ -160,8 +156,9 @@ static inline mongory_value *mongory_matcher_implicit_array_parse_table(mongory_
  * @return The constructed implicit_array_matcher, or NULL on failure.
  */
 mongory_matcher *mongory_matcher_implicit_array_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
-  if (!condition || !pool)
+  if (!pool || !pool->alloc || !MONGORY_VALIDATE_PTR(pool, condition)) {
     return NULL;
+  }
   mongory_compile_budget saved = mongory_compile_budget_begin();
   mongory_matcher *result = NULL;
   switch (condition->type) {

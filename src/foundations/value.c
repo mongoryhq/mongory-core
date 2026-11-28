@@ -385,6 +385,9 @@ mongory_value *mongory_value_wrap_u(mongory_memory_pool *pool, void *u_val) {
 }
 
 static char *mongory_value_regex_to_str(mongory_value *value, mongory_memory_pool *pool) {
+  if (!MONGORY_VALIDATE_PTR(pool, value) || !mongory_internal_regex_adapter.stringify_func) {
+    return NULL;
+  }
   char *str = mongory_internal_regex_adapter.stringify_func(pool, value);
   if (!str)
     return NULL;
@@ -429,28 +432,28 @@ static char *mongory_value_null_to_str(mongory_value *value, mongory_memory_pool
 }
 
 static char *mongory_value_bool_to_str(mongory_value *value, mongory_memory_pool *pool) {
-  if (!MONGORY_VALIDATE_PTR(pool, &value->data.b)) {
+  if (!MONGORY_VALIDATE_PTR(pool, value)) {
     return NULL;
   }
   return mongory_string_cpy(pool, value->data.b ? "true" : "false");
 }
 
 static char *mongory_value_int_to_str(mongory_value *value, mongory_memory_pool *pool) {
-  if (!MONGORY_VALIDATE_PTR(pool, &value->data.i)) {
+  if (!MONGORY_VALIDATE_PTR(pool, value)) {
     return NULL;
   }
   return mongory_string_cpyf(pool, "%lld", (long long)value->data.i);
 }
 
 static char *mongory_value_double_to_str(mongory_value *value, mongory_memory_pool *pool) {
-  if (!MONGORY_VALIDATE_PTR(pool, &value->data.d)) {
+  if (!MONGORY_VALIDATE_PTR(pool, value)) {
     return NULL;
   }
   return mongory_string_cpyf(pool, "%f", value->data.d);
 }
 
 static char *mongory_value_string_to_str(mongory_value *value, mongory_memory_pool *pool) {
-  if (!MONGORY_VALIDATE_PTR(pool, value->data.s)) {
+  if (!MONGORY_VALIDATE_STRING(pool, value)) {
     return NULL;
   }
   return mongory_string_cpyf(pool, "\"%s\"", value->data.s);
@@ -466,9 +469,7 @@ static bool mongory_value_array_to_str_each(mongory_value *value, void *ctx) {
   mongory_value_container_to_str_ctx *context = (mongory_value_container_to_str_ctx *)ctx;
   mongory_string_buffer *buffer = context->buffer;
   mongory_memory_pool *pool = buffer->pool;
-  MONGORY_VALIDATE_PTR(pool, value);
-  MONGORY_VALIDATE_PTR(pool, value->to_str);
-  if (pool->error != NULL) {
+  if (!MONGORY_VALIDATE_PTR(pool, value) || !MONGORY_VALIDATE_PTR(pool, value->to_str)) {
     return false;
   }
   char *str = value->to_str(value, pool);
@@ -483,16 +484,13 @@ static bool mongory_value_array_to_str_each(mongory_value *value, void *ctx) {
 }
 
 static char *mongory_value_array_to_str(mongory_value *value, mongory_memory_pool *pool) {
+  if (!MONGORY_VALIDATE_ARRAY(pool, value) || !MONGORY_VALIDATE_PTR(pool, value->data.a->each)) {
+    return NULL;
+  }
   mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
   if (!buffer)
     return NULL;
   mongory_array *array = value->data.a;
-  MONGORY_VALIDATE_PTR(pool, array);
-  MONGORY_VALIDATE_PTR(pool, array->each);
-  MONGORY_VALIDATE_PTR(pool, &array->count);
-  if (pool->error != NULL) {
-    return NULL;
-  }
   mongory_string_buffer_append(buffer, "[");
   mongory_value_container_to_str_ctx ctx = {.count = 0, .total = array->count, .buffer = buffer};
   array->each(array, &ctx, mongory_value_array_to_str_each);
@@ -504,10 +502,8 @@ static bool mongory_value_table_to_str_each(char *key, mongory_value *value, voi
   mongory_value_container_to_str_ctx *context = (mongory_value_container_to_str_ctx *)ctx;
   mongory_string_buffer *buffer = context->buffer;
   mongory_memory_pool *pool = buffer->pool;
-  MONGORY_VALIDATE_PTR(pool, key);
-  MONGORY_VALIDATE_PTR(pool, value);
-  MONGORY_VALIDATE_PTR(pool, value->to_str);
-  if (pool->error != NULL) {
+  if (!MONGORY_VALIDATE_PTR(pool, key) || !MONGORY_VALIDATE_PTR(pool, value) ||
+      !MONGORY_VALIDATE_PTR(pool, value->to_str)) {
     return false;
   }
   mongory_string_buffer_appendf(buffer, "\"%s\":", key);
@@ -523,17 +519,13 @@ static bool mongory_value_table_to_str_each(char *key, mongory_value *value, voi
 }
 
 static char *mongory_value_table_to_str(mongory_value *value, mongory_memory_pool *pool) {
+  if (!MONGORY_VALIDATE_TABLE(pool, value) || !MONGORY_VALIDATE_PTR(pool, value->data.t->each)) {
+    return NULL;
+  }
   mongory_string_buffer *buffer = mongory_string_buffer_new(pool);
   if (!buffer)
     return NULL;
   mongory_table *table = value->data.t;
-  if (!MONGORY_VALIDATE_PTR(pool, table) || !MONGORY_VALIDATE_PTR(pool, table->each) ||
-      !MONGORY_VALIDATE_PTR(pool, &table->count)) {
-    return NULL;
-  }
-  if (pool->error != NULL) {
-    return NULL;
-  }
   mongory_string_buffer_append(buffer, "{");
   mongory_value_container_to_str_ctx ctx = {.count = 0, .total = table->count, .buffer = buffer};
   table->each(table, &ctx, mongory_value_table_to_str_each);
@@ -542,7 +534,7 @@ static char *mongory_value_table_to_str(mongory_value *value, mongory_memory_poo
 }
 
 static char *mongory_value_generic_ptr_to_str(mongory_value *value, mongory_memory_pool *pool) {
-  if (!MONGORY_VALIDATE_PTR(pool, value->data.ptr))
+  if (!MONGORY_VALIDATE_PTR(pool, value) || !MONGORY_VALIDATE_PTR(pool, value->data.ptr))
     return NULL;
   return mongory_string_cpyf(pool, "%p", value->data.ptr);
 }

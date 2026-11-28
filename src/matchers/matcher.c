@@ -300,7 +300,7 @@ static bool mongory_table_needs_dot_expansion(mongory_value *value, size_t depth
 }
 
 mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
-  if (!pool || !MONGORY_VALIDATE_TABLE(pool, condition)) {
+  if (!pool || !pool->alloc || !MONGORY_VALIDATE_TABLE(pool, condition)) {
     return NULL;
   }
   mongory_compile_budget saved = mongory_compile_budget_begin();
@@ -326,15 +326,19 @@ mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *c
  * @param value The value to check against the matcher's condition.
  * @return True if the value satisfies the matcher's condition, false otherwise.
  */
-bool mongory_matcher_match(mongory_matcher *matcher, mongory_value *value) { return matcher->match(matcher, value); }
+bool mongory_matcher_match(mongory_matcher *matcher, mongory_value *value) {
+  if (!matcher || !matcher->match) {
+    return false;
+  }
+  return matcher->match(matcher, value);
+}
 
 static mongory_value *mongory_matcher_build_explain_node(
     mongory_matcher *matcher,
     mongory_memory_pool *pool,
     bool as_skip
 ) {
-  MONGORY_VALIDATE_PTR(pool, matcher);
-  if (pool->error != NULL) {
+  if (!pool || !pool->alloc || !MONGORY_VALIDATE_PTR(pool, matcher)) {
     return NULL;
   }
   mongory_table *node = mongory_table_new(pool);
@@ -434,8 +438,7 @@ static void mongory_explain_tree_print_node(
 }
 
 mongory_value *mongory_matcher_explain_tree(mongory_matcher *matcher, mongory_memory_pool *temp_pool) {
-  MONGORY_VALIDATE_PTR(temp_pool, matcher);
-  if (temp_pool->error != NULL) {
+  if (!temp_pool || !temp_pool->alloc || !MONGORY_VALIDATE_PTR(temp_pool, matcher)) {
     return NULL;
   }
   return mongory_matcher_build_explain_node(matcher, temp_pool, false);
@@ -456,13 +459,15 @@ typedef struct mongory_matcher_traced_match_context {
 } mongory_matcher_traced_match_context;
 
 static bool mongory_matcher_traced_match(mongory_matcher *matcher, mongory_value *value) {
-  bool matched = matcher->original_match(matcher, value);
-  mongory_array *trace_stack = matcher->trace_stack;
-  mongory_memory_pool *pool = trace_stack->pool;
-  MONGORY_VALIDATE_PTR(pool, matcher->name);
-  if (pool->error != NULL) {
+  if (!matcher || !matcher->original_match) {
     return false;
   }
+  bool matched = matcher->original_match(matcher, value);
+  mongory_array *trace_stack = matcher->trace_stack;
+  if (!trace_stack || !trace_stack->pool || !trace_stack->pool->alloc) {
+    return matched;
+  }
+  mongory_memory_pool *pool = trace_stack->pool;
 
   mongory_matcher_traced_match_context *trace_result = MG_ALLOC_PTR(pool, mongory_matcher_traced_match_context);
   if (!trace_result) {
@@ -472,7 +477,10 @@ static bool mongory_matcher_traced_match(mongory_matcher *matcher, mongory_value
   trace_result->record = value;
   trace_result->matched = matched;
   trace_result->level = matcher->trace_level;
-  trace_stack->push(trace_stack, mongory_value_wrap_ptr(pool, (void *)trace_result));
+  mongory_value *wrapped = mongory_value_wrap_ptr(pool, (void *)trace_result);
+  if (wrapped) {
+    trace_stack->push(trace_stack, wrapped);
+  }
 
   return matched;
 }
@@ -528,8 +536,7 @@ static mongory_array *mongory_matcher_build_trace_nodes(
     mongory_memory_pool *pool,
     mongory_array *executed_matchers_out
 ) {
-  MONGORY_VALIDATE_PTR(pool, traces) && MONGORY_VALIDATE_PTR(pool, traces->get);
-  if (pool->error != NULL) {
+  if (!pool || !pool->alloc || !MONGORY_VALIDATE_PTR(pool, traces) || !MONGORY_VALIDATE_PTR(pool, traces->get)) {
     return NULL;
   }
   mongory_array *nodes = mongory_array_new(pool);
@@ -540,8 +547,7 @@ static mongory_array *mongory_matcher_build_trace_nodes(
   int total = (int)traces->count;
   for (int i = 0; i < total; i++) {
     mongory_value *item = traces->get(traces, i);
-    MONGORY_VALIDATE_PTR(pool, item) && MONGORY_VALIDATE_PTR(pool, item->data.ptr);
-    if (pool->error != NULL) {
+    if (!MONGORY_VALIDATE_PTR(pool, item) || !MONGORY_VALIDATE_PTR(pool, item->data.ptr)) {
       return NULL;
     }
     mongory_matcher_traced_match_context *entry = (mongory_matcher_traced_match_context *)item->data.ptr;
@@ -626,11 +632,10 @@ static mongory_array *mongory_matcher_build_trace_nodes(
 }
 
 void mongory_matcher_enable_trace_at(mongory_matcher *matcher, mongory_array *trace_stack, int level) {
-  if (!matcher || !trace_stack) {
+  if (!matcher || !trace_stack || !trace_stack->pool) {
     return;
   }
-  MONGORY_VALIDATE_PTR(trace_stack->pool, matcher->traverse);
-  if (trace_stack->pool->error != NULL) {
+  if (!MONGORY_VALIDATE_PTR(trace_stack->pool, matcher->traverse)) {
     return;
   }
   mongory_matcher_traverse_context ctx = {
@@ -642,8 +647,8 @@ void mongory_matcher_enable_trace_at(mongory_matcher *matcher, mongory_array *tr
 }
 
 void mongory_matcher_enable_trace(mongory_matcher *matcher, mongory_memory_pool *temp_pool) {
-  MONGORY_VALIDATE_PTR(temp_pool, matcher) && MONGORY_VALIDATE_PTR(temp_pool, matcher->traverse);
-  if (temp_pool->error != NULL) {
+  if (!temp_pool || !temp_pool->alloc || !MONGORY_VALIDATE_PTR(temp_pool, matcher) ||
+      !MONGORY_VALIDATE_PTR(temp_pool, matcher->traverse)) {
     return;
   }
   mongory_array *trace_stack = mongory_array_new(temp_pool);
@@ -654,8 +659,10 @@ void mongory_matcher_enable_trace(mongory_matcher *matcher, mongory_memory_pool 
 }
 
 void mongory_matcher_disable_trace(mongory_matcher *matcher) {
-  MONGORY_VALIDATE_PTR(matcher->pool, matcher) && MONGORY_VALIDATE_PTR(matcher->pool, matcher->traverse);
-  if (matcher->pool->error != NULL) {
+  if (!matcher || !matcher->pool) {
+    return;
+  }
+  if (!MONGORY_VALIDATE_PTR(matcher->pool, matcher->traverse)) {
     return;
   }
   mongory_matcher_traverse_context ctx = {
@@ -730,7 +737,7 @@ static void mongory_matcher_print_trace_node(mongory_value *node_val, mongory_me
 }
 
 void mongory_matcher_print_trace(mongory_matcher *matcher) {
-  if (!matcher || matcher->trace_stack == NULL) {
+  if (!matcher || matcher->trace_stack == NULL || matcher->trace_stack->pool == NULL) {
     return;
   }
   mongory_memory_pool *pool = matcher->trace_stack->pool;
@@ -745,9 +752,8 @@ void mongory_matcher_print_trace(mongory_matcher *matcher) {
 }
 
 mongory_value *mongory_matcher_trace_tree(mongory_matcher *matcher, mongory_value *value) {
-  mongory_memory_pool *pool = value ? value->pool : (matcher ? matcher->pool : NULL);
-  MONGORY_VALIDATE_PTR(pool, matcher) && MONGORY_VALIDATE_PTR(pool, matcher->match);
-  if (!pool || pool->error != NULL) {
+  mongory_memory_pool *pool = (value && value->pool) ? value->pool : (matcher ? matcher->pool : NULL);
+  if (!pool || !pool->alloc || !MONGORY_VALIDATE_PTR(pool, matcher) || !MONGORY_VALIDATE_PTR(pool, matcher->match)) {
     return NULL;
   }
   mongory_matcher_enable_trace(matcher, pool);
@@ -765,9 +771,8 @@ mongory_value *mongory_matcher_trace_tree(mongory_matcher *matcher, mongory_valu
 }
 
 bool mongory_matcher_trace(mongory_matcher *matcher, mongory_value *value) {
-  mongory_memory_pool *pool = value ? value->pool : (matcher ? matcher->pool : NULL);
-  MONGORY_VALIDATE_PTR(pool, matcher) && MONGORY_VALIDATE_PTR(pool, matcher->match);
-  if (!pool || pool->error != NULL) {
+  mongory_memory_pool *pool = (value && value->pool) ? value->pool : (matcher ? matcher->pool : NULL);
+  if (!pool || !pool->alloc || !MONGORY_VALIDATE_PTR(pool, matcher) || !MONGORY_VALIDATE_PTR(pool, matcher->match)) {
     return false;
   }
   mongory_value *tree = mongory_matcher_trace_tree(matcher, value);

@@ -82,6 +82,9 @@ mongory_matcher *mongory_matcher_equal_new(mongory_memory_pool *pool, mongory_va
     return NULL;
   }
   matcher->name = mongory_string_cpy(pool, "Eq");
+  if (!matcher->name) {
+    return NULL;
+  }
   matcher->priority = 1.0;
   return matcher;
 }
@@ -123,6 +126,9 @@ mongory_matcher *mongory_matcher_not_equal_new(mongory_memory_pool *pool, mongor
     return NULL;
   }
   matcher->name = mongory_string_cpy(pool, "Ne");
+  if (!matcher->name) {
+    return NULL;
+  }
   matcher->priority = 2.0;
   return matcher;
 }
@@ -155,6 +161,9 @@ mongory_matcher *mongory_matcher_greater_than_new(mongory_memory_pool *pool, mon
     return NULL;
   }
   matcher->name = mongory_string_cpy(pool, "Gt");
+  if (!matcher->name) {
+    return NULL;
+  }
   matcher->priority = 2.0;
   return matcher;
 }
@@ -182,6 +191,9 @@ mongory_matcher *mongory_matcher_less_than_new(mongory_memory_pool *pool, mongor
     return NULL;
   }
   matcher->name = mongory_string_cpy(pool, "Lt");
+  if (!matcher->name) {
+    return NULL;
+  }
   matcher->priority = 2.0;
   return matcher;
 }
@@ -209,6 +221,9 @@ mongory_matcher *mongory_matcher_greater_than_or_equal_new(mongory_memory_pool *
     return NULL;
   }
   matcher->name = mongory_string_cpy(pool, "Gte");
+  if (!matcher->name) {
+    return NULL;
+  }
   matcher->priority = 2.0;
   return matcher;
 }
@@ -236,6 +251,9 @@ mongory_matcher *mongory_matcher_less_than_or_equal_new(mongory_memory_pool *poo
     return NULL;
   }
   matcher->name = mongory_string_cpy(pool, "Lte");
+  if (!matcher->name) {
+    return NULL;
+  }
   matcher->priority = 2.0;
   return matcher;
 }

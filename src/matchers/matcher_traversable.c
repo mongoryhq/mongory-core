@@ -8,15 +8,25 @@
 #include "value_matcher.h"
 
 bool mongory_matcher_leaf_traverse(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx) {
+  if (!matcher || !ctx || !ctx->callback) {
+    return false;
+  }
   return ctx->callback(matcher, ctx);
 }
 
 bool mongory_matcher_composite_traverse(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx) {
+  if (!matcher || !ctx) {
+    return false;
+  }
   void *prev_acc = ctx->acc;
   if (!mongory_matcher_leaf_traverse(matcher, ctx))
     return false;
   mongory_composite_matcher *composite = (mongory_composite_matcher *)matcher;
   mongory_array *children = mongory_atomic_load_ptr_acquire(&composite->children);
+  if (!children) {
+    ctx->acc = prev_acc;
+    return true;
+  }
   int total = (int)children->count;
   mongory_matcher_traverse_context child_ctx = {
       .level = ctx->level + 1,
@@ -26,7 +36,7 @@ bool mongory_matcher_composite_traverse(mongory_matcher *matcher, mongory_matche
 
   for (int i = 0; i < total; i++) {
     mongory_matcher *child = (mongory_matcher *)children->get(children, i);
-    if (!child->traverse(child, &child_ctx))
+    if (!child || !child->traverse || !child->traverse(child, &child_ctx))
       return false;
   }
   ctx->acc = prev_acc;
@@ -34,11 +44,18 @@ bool mongory_matcher_composite_traverse(mongory_matcher *matcher, mongory_matche
 }
 
 bool mongory_matcher_value_traverse(mongory_matcher *matcher, mongory_matcher_traverse_context *ctx) {
+  if (!matcher || !ctx) {
+    return false;
+  }
   void *prev_acc = ctx->acc;
   if (!mongory_matcher_leaf_traverse(matcher, ctx))
     return false;
   mongory_value_matcher *literal = (mongory_value_matcher *)matcher;
   mongory_matcher *next_matcher = literal->implicit_array_matcher ? literal->implicit_array_matcher : literal->delegate_matcher;
+  if (!next_matcher || !next_matcher->traverse) {
+    ctx->acc = prev_acc;
+    return true;
+  }
   mongory_matcher_traverse_context child_ctx = {
       .level = ctx->level + 1,
       .acc = ctx->acc,
