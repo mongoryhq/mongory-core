@@ -451,6 +451,9 @@ static mongory_inclusion_matcher *mongory_inclusion_matcher_alloc(mongory_memory
 }
 
 mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
+  if (!MONGORY_VALIDATE_POOL(pool)) {
+    return NULL;
+  }
   if (!mongory_matcher_validate_array_condition(condition)) {
     mongory_error_set(pool, MONGORY_ERROR_INVALID_ARGUMENT, "$in condition must be a valid array.");
     return NULL;
@@ -465,6 +468,9 @@ static inline bool mongory_matcher_not_in_match(mongory_matcher *matcher, mongor
 }
 
 mongory_matcher *mongory_matcher_not_in_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
+  if (!MONGORY_VALIDATE_POOL(pool)) {
+    return NULL;
+  }
   if (!mongory_matcher_validate_array_condition(condition)) {
     mongory_error_set(pool, MONGORY_ERROR_INVALID_ARGUMENT, "$nin condition must be a valid array.");
     return NULL;
