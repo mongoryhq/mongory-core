@@ -19,10 +19,9 @@ typedef struct mongory_matcher mongory_matcher;
 /**
  * @brief Creates a new generic matcher instance.
  *
- * This function typically serves as a high-level entry point for creating
- * matchers. In the current implementation, it delegates to
- * `mongory_matcher_condition_new`, implying that conditions are often
- * table-based (similar to query documents).
+ * Expands unescaped dotted field paths (e.g. `"a.b.c": 1` -> `{"a": {"b": {"c": 1}}}`),
+ * unescapes `\.` into literal `.`, and preserves leaf collisions via `$and` before
+ * building the matcher tree.
  *
  * @param pool The memory pool to use for the matcher's allocations.
  * @param condition A `mongory_value` representing the condition for this

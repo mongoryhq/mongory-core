@@ -22,34 +22,234 @@
 #include <mongory-core.h> // General include, might not be strictly necessary here
 
 
-/**
- * @brief Creates a new matcher based on the provided condition.
- *
- * This is the primary public entry point for creating a matcher. The library
- * uses a factory pattern where this function determines the appropriate
- * specific matcher to create based on the structure of the `condition` value.
- *
- * Currently, it always delegates to `mongory_matcher_condition_new`,
- * which handles query documents (tables). This is the most common use case,
- * where the condition is a table like `{ "field": { "$op": "value" } }`.
- *
- * @param pool The memory pool to be used for allocating the matcher.
- * @param condition A `mongory_value` defining the matching criteria. This is
- *                  typically a `mongory_table`.
- * @return mongory_matcher* A pointer to the newly constructed matcher, or NULL
- * if allocation fails or the condition is invalid.
- */
-mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
-  // The core logic is delegated to a more specific constructor.
-  // This design allows for easy extension; for example, a different constructor
-  // could be chosen here based on the `condition->type`.
-  mongory_compile_budget saved = mongory_compile_budget_begin();
-  mongory_matcher *matcher = mongory_matcher_condition_new(pool, condition, extern_ctx);
-  mongory_compile_budget_end(saved);
-  if (matcher == NULL) {
-    return NULL;
+// ============================================================================
+// Dotted-Key Condition Expansion
+// ============================================================================
+
+static mongory_value *mongory_expand_table(mongory_memory_pool *pool, mongory_value *value, size_t depth);
+
+static bool mongory_expand_deep_merge_set(mongory_memory_pool *pool, mongory_table *table, char *key,
+                                          mongory_value *value);
+
+typedef struct mongory_expand_merge_ctx {
+  mongory_memory_pool *pool;
+  mongory_table *target;
+} mongory_expand_merge_ctx;
+
+static bool mongory_expand_merge_each(char *key, mongory_value *value, void *acc) {
+  mongory_expand_merge_ctx *ctx = (mongory_expand_merge_ctx *)acc;
+  return mongory_expand_deep_merge_set(ctx->pool, ctx->target, key, value);
+}
+
+static bool mongory_expand_deep_merge_set(mongory_memory_pool *pool, mongory_table *table, char *key,
+                                          mongory_value *value) {
+  mongory_value *existing = table->get(table, key);
+  if (!existing) {
+    return table->set(table, key, value);
+  }
+  if (existing->type == MONGORY_TYPE_TABLE && existing->data.t &&
+      value && value->type == MONGORY_TYPE_TABLE && value->data.t &&
+      key[0] != '$') {
+    mongory_expand_merge_ctx ctx = {pool, existing->data.t};
+    return value->data.t->each(value->data.t, &ctx, mongory_expand_merge_each);
+  }
+  // Leaf collision: preserve both conditions in `$and`.
+  table->del(table, key);
+  mongory_table *left_branch = mongory_table_new(pool);
+  mongory_table *right_branch = mongory_table_new(pool);
+  if (!left_branch || !right_branch) {
+    return false;
+  }
+  if (!left_branch->set(left_branch, key, existing) || !right_branch->set(right_branch, key, value)) {
+    return false;
+  }
+  mongory_value *left_val = mongory_value_wrap_t(pool, left_branch);
+  mongory_value *right_val = mongory_value_wrap_t(pool, right_branch);
+  if (!left_val || !right_val) {
+    return false;
   }
 
+  mongory_value *and_val = table->get(table, "$and");
+  mongory_array *and_arr = NULL;
+  if (and_val && and_val->type == MONGORY_TYPE_ARRAY && and_val->data.a) {
+    and_arr = and_val->data.a;
+  } else {
+    and_arr = mongory_array_new(pool);
+    if (!and_arr) {
+      return false;
+    }
+    if (and_val) {
+      mongory_table *prev_and = mongory_table_new(pool);
+      if (!prev_and || !prev_and->set(prev_and, "$and", and_val)) {
+        return false;
+      }
+      mongory_value *prev_and_val = mongory_value_wrap_t(pool, prev_and);
+      if (!prev_and_val || !and_arr->push(and_arr, prev_and_val)) {
+        return false;
+      }
+    }
+    mongory_value *and_arr_val = mongory_value_wrap_a(pool, and_arr);
+    if (!and_arr_val || !table->set(table, "$and", and_arr_val)) {
+      return false;
+    }
+  }
+  return and_arr->push(and_arr, left_val) && and_arr->push(and_arr, right_val);
+}
+
+static char *mongory_split_dotted_key(mongory_memory_pool *pool, const char *key, size_t *count_out) {
+  size_t len = strlen(key);
+  char *buf = (char *)MG_ALLOC(pool, len + 1);
+  if (!buf) {
+    pool->error = &MONGORY_ALLOC_ERROR;
+    return NULL;
+  }
+  size_t out = 0;
+  size_t segments = 1;
+  for (size_t i = 0; i < len; i++) {
+    if (key[i] == '\\' && key[i + 1] == '.') {
+      buf[out++] = '.';
+      i++;
+    } else if (key[i] == '.') {
+      buf[out++] = '\0';
+      segments++;
+    } else {
+      buf[out++] = key[i];
+    }
+  }
+  buf[out] = '\0';
+  while (segments > 1 && out > 0 && buf[out - 1] == '\0') {
+    out--;
+    segments--;
+  }
+  *count_out = segments;
+  return buf;
+}
+
+static mongory_value *mongory_expand_value_for_key(mongory_memory_pool *pool, const char *key, mongory_value *value,
+                                                   size_t depth) {
+  if (!value) {
+    return value;
+  }
+  if (key[0] == '$') {
+    if (strcmp(key, "$and") == 0 || strcmp(key, "$or") == 0 || strcmp(key, "$nor") == 0) {
+      if (value->type != MONGORY_TYPE_ARRAY || !value->data.a) {
+        return value;
+      }
+      mongory_array *src = value->data.a;
+      mongory_array *dst = mongory_array_new(pool);
+      if (!dst) {
+        return NULL;
+      }
+      for (size_t i = 0; i < src->count; i++) {
+        mongory_value *elem = src->get(src, i);
+        mongory_value *norm = (elem && elem->type == MONGORY_TYPE_TABLE)
+                                  ? mongory_expand_table(pool, elem, depth + 1)
+                                  : elem;
+        if (pool->error != NULL || !dst->push(dst, norm)) {
+          return NULL;
+        }
+      }
+      return mongory_value_wrap_a(pool, dst);
+    }
+    if (strcmp(key, "$elemMatch") == 0 || strcmp(key, "$every") == 0 ||
+        strcmp(key, "$not") == 0 || strcmp(key, "$size") == 0) {
+      if (value->type == MONGORY_TYPE_TABLE && value->data.t) {
+        return mongory_expand_table(pool, value, depth + 1);
+      }
+    }
+    // Literal comparison/inclusion/existence/regex and custom operators keep raw operands verbatim.
+    return value;
+  }
+  if (value->type == MONGORY_TYPE_TABLE && value->data.t) {
+    return mongory_expand_table(pool, value, depth + 1);
+  }
+  return value;
+}
+
+typedef struct mongory_expand_table_ctx {
+  mongory_memory_pool *pool;
+  mongory_table *result;
+  size_t depth;
+} mongory_expand_table_ctx;
+
+static bool mongory_expand_table_pair(char *key, mongory_value *value, void *acc) {
+  mongory_expand_table_ctx *ctx = (mongory_expand_table_ctx *)acc;
+  mongory_memory_pool *pool = ctx->pool;
+  size_t count = 0;
+  char *segments = mongory_split_dotted_key(pool, key, &count);
+  if (!segments) {
+    return false;
+  }
+
+  size_t max_depth = mongory_max_depth_get();
+  if (max_depth > 0 && ctx->depth + (count - 1) > max_depth) {
+    pool->error = &MONGORY_DEPTH_LIMIT_ERROR;
+    return false;
+  }
+
+  char **parts = MG_ALLOC_ARY(pool, char *, count);
+  if (!parts) {
+    pool->error = &MONGORY_ALLOC_ERROR;
+    return false;
+  }
+  char *cursor = segments;
+  for (size_t i = 0; i < count; i++) {
+    parts[i] = cursor;
+    cursor += strlen(cursor) + 1;
+  }
+
+  mongory_value *nested = mongory_expand_value_for_key(pool, parts[count - 1], value, ctx->depth + (count - 1));
+  if (pool->error != NULL) {
+    return false;
+  }
+  for (size_t i = count - 1; i >= 1; i--) {
+    mongory_table *wrapper = mongory_table_new(pool);
+    if (!wrapper || !wrapper->set(wrapper, parts[i], nested)) {
+      return false;
+    }
+    nested = mongory_value_wrap_t(pool, wrapper);
+    if (!nested) {
+      return false;
+    }
+  }
+  return mongory_expand_deep_merge_set(pool, ctx->result, parts[0], nested);
+}
+
+static mongory_value *mongory_expand_table(mongory_memory_pool *pool, mongory_value *value, size_t depth) {
+  size_t max_depth = mongory_max_depth_get();
+  if (max_depth > 0 && depth > max_depth) {
+    pool->error = &MONGORY_DEPTH_LIMIT_ERROR;
+    return NULL;
+  }
+  mongory_table *result = mongory_table_new(pool);
+  if (!result) {
+    return NULL;
+  }
+  mongory_expand_table_ctx ctx = {pool, result, depth};
+  if (!value->data.t->each(value->data.t, &ctx, mongory_expand_table_pair) || pool->error != NULL) {
+    return NULL;
+  }
+  mongory_value *wrapped = mongory_value_wrap_t(pool, result);
+  if (wrapped) {
+    wrapped->origin = value->origin;
+  }
+  return wrapped;
+}
+
+static mongory_value *mongory_condition_expand_dots(mongory_memory_pool *pool, mongory_value *condition) {
+  if (!pool || !condition || condition->type != MONGORY_TYPE_TABLE || !condition->data.t) {
+    return condition;
+  }
+  return mongory_expand_table(pool, condition, 1);
+}
+
+mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
+  mongory_compile_budget saved = mongory_compile_budget_begin();
+  mongory_value *expanded = mongory_condition_expand_dots(pool, condition);
+  mongory_matcher *matcher = (expanded && (!pool || pool->error == NULL))
+                                 ? mongory_matcher_condition_new(pool, expanded, extern_ctx)
+                                 : NULL;
+  mongory_compile_budget_end(saved);
   return matcher;
 }
 
