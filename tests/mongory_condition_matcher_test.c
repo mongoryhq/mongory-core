@@ -460,6 +460,17 @@ void test_explain_tree_and_trace_tree_return_structured_values(void) {
   trace_pool->free(trace_pool);
 }
 
+void test_matcher_new_rejects_null_pool_and_null_condition(void) {
+  mongory_memory_pool *pool = get_test_pool();
+  mongory_value *condition = MG_TABLE_WRAP(pool, 1, "a.b", mongory_value_wrap_i(pool, 1));
+  TEST_ASSERT_NULL(mongory_matcher_new(NULL, condition, NULL));
+  TEST_ASSERT_NULL(mongory_matcher_new(NULL, NULL, NULL));
+
+  mongory_matcher *null_cond = mongory_matcher_new(pool, NULL, NULL);
+  TEST_ASSERT_NULL(null_cond);
+  TEST_ASSERT_NOT_NULL(pool->error);
+}
+
 int main(void) {
   UNITY_BEGIN();
   RUN_TEST(test_condition_matcher);
@@ -472,5 +483,6 @@ int main(void) {
   RUN_TEST(test_lazy_implicit_array_matcher_updates_ancestor_priorities);
   RUN_TEST(test_lazy_implicit_array_matcher_resorts_composite_children);
   RUN_TEST(test_explain_tree_and_trace_tree_return_structured_values);
+  RUN_TEST(test_matcher_new_rejects_null_pool_and_null_condition);
   return UNITY_END();
 }

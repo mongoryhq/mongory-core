@@ -142,14 +142,18 @@ static mongory_value *mongory_expand_value_for_key(mongory_memory_pool *pool, co
       }
       for (size_t i = 0; i < src->count; i++) {
         mongory_value *elem = src->get(src, i);
-        mongory_value *norm = (elem && elem->type == MONGORY_TYPE_TABLE)
+        mongory_value *norm = (elem && elem->type == MONGORY_TYPE_TABLE && elem->data.t)
                                   ? mongory_expand_table(pool, elem, depth + 1)
                                   : elem;
         if (pool->error != NULL || !dst->push(dst, norm)) {
           return NULL;
         }
       }
-      return mongory_value_wrap_a(pool, dst);
+      mongory_value *wrapped = mongory_value_wrap_a(pool, dst);
+      if (wrapped) {
+        wrapped->origin = value->origin;
+      }
+      return wrapped;
     }
     if (strcmp(key, "$elemMatch") == 0 || strcmp(key, "$every") == 0 ||
         strcmp(key, "$not") == 0 || strcmp(key, "$size") == 0) {
@@ -199,7 +203,7 @@ static bool mongory_expand_table_pair(char *key, mongory_value *value, void *acc
   }
 
   mongory_value *nested = mongory_expand_value_for_key(pool, parts[count - 1], value, ctx->depth + (count - 1));
-  if (pool->error != NULL) {
+  if (pool->error != NULL || (value != NULL && nested == NULL)) {
     return false;
   }
   for (size_t i = count - 1; i >= 1; i--) {
@@ -236,17 +240,13 @@ static mongory_value *mongory_expand_table(mongory_memory_pool *pool, mongory_va
   return wrapped;
 }
 
-static mongory_value *mongory_condition_expand_dots(mongory_memory_pool *pool, mongory_value *condition) {
-  if (!pool || !condition || condition->type != MONGORY_TYPE_TABLE || !condition->data.t) {
-    return condition;
-  }
-  return mongory_expand_table(pool, condition, 1);
-}
-
 mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
+  if (!pool || !MONGORY_VALIDATE_TABLE(pool, condition)) {
+    return NULL;
+  }
   mongory_compile_budget saved = mongory_compile_budget_begin();
-  mongory_value *expanded = mongory_condition_expand_dots(pool, condition);
-  mongory_matcher *matcher = (expanded && (!pool || pool->error == NULL))
+  mongory_value *expanded = mongory_expand_table(pool, condition, 1);
+  mongory_matcher *matcher = (expanded && pool->error == NULL)
                                  ? mongory_matcher_condition_new(pool, expanded, extern_ctx)
                                  : NULL;
   mongory_compile_budget_end(saved);
