@@ -241,12 +241,72 @@ static mongory_value *mongory_expand_table(mongory_memory_pool *pool, mongory_va
   return wrapped;
 }
 
+typedef struct mongory_dot_scan_ctx {
+  size_t depth;
+  bool found;
+} mongory_dot_scan_ctx;
+
+static bool mongory_table_needs_dot_expansion(mongory_value *value, size_t depth);
+
+static bool mongory_dot_scan_pair(char *key, mongory_value *value, void *acc) {
+  mongory_dot_scan_ctx *ctx = (mongory_dot_scan_ctx *)acc;
+  if (strchr(key, '.') != NULL) {
+    ctx->found = true;
+    return false;
+  }
+  if (!value) {
+    return true;
+  }
+  if (key[0] == '$') {
+    if (strcmp(key, "$and") == 0 || strcmp(key, "$or") == 0 || strcmp(key, "$nor") == 0) {
+      if (value->type == MONGORY_TYPE_ARRAY && value->data.a) {
+        mongory_array *arr = value->data.a;
+        for (size_t i = 0; i < arr->count; i++) {
+          mongory_value *elem = arr->get(arr, i);
+          if (elem && elem->type == MONGORY_TYPE_TABLE && elem->data.t &&
+              mongory_table_needs_dot_expansion(elem, ctx->depth + 1)) {
+            ctx->found = true;
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+    if ((strcmp(key, "$elemMatch") == 0 || strcmp(key, "$every") == 0 ||
+         strcmp(key, "$not") == 0 || strcmp(key, "$size") == 0) &&
+        value->type == MONGORY_TYPE_TABLE && value->data.t &&
+        mongory_table_needs_dot_expansion(value, ctx->depth + 1)) {
+      ctx->found = true;
+      return false;
+    }
+    return true;
+  }
+  if (value->type == MONGORY_TYPE_TABLE && value->data.t &&
+      mongory_table_needs_dot_expansion(value, ctx->depth + 1)) {
+    ctx->found = true;
+    return false;
+  }
+  return true;
+}
+
+static bool mongory_table_needs_dot_expansion(mongory_value *value, size_t depth) {
+  size_t max_depth = mongory_max_depth_get();
+  if (max_depth > 0 && depth > max_depth) {
+    return false;
+  }
+  mongory_dot_scan_ctx ctx = {depth, false};
+  value->data.t->each(value->data.t, &ctx, mongory_dot_scan_pair);
+  return ctx.found;
+}
+
 mongory_matcher *mongory_matcher_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
   if (!pool || !MONGORY_VALIDATE_TABLE(pool, condition)) {
     return NULL;
   }
   mongory_compile_budget saved = mongory_compile_budget_begin();
-  mongory_value *expanded = mongory_expand_table(pool, condition, 1);
+  mongory_value *expanded = mongory_table_needs_dot_expansion(condition, 1)
+                                ? mongory_expand_table(pool, condition, 1)
+                                : condition;
   mongory_matcher *matcher = (expanded && pool->error == NULL)
                                  ? mongory_matcher_condition_new(pool, expanded, extern_ctx)
                                  : NULL;
