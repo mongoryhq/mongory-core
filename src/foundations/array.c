@@ -37,7 +37,7 @@
  * allocation failure).
  */
 bool mongory_array_resize(mongory_array *self, size_t size) {
-  if (!self || !self->pool || !self->pool->alloc) {
+  if (!self || !MONGORY_VALIDATE_POOL(self->pool)) {
     return false;
   }
   mongory_array_private *internal = (mongory_array_private *)self;
@@ -190,7 +190,7 @@ static inline bool mongory_array_set(mongory_array *self, size_t index, mongory_
 }
 
 mongory_array *mongory_array_new_with_capacity(mongory_memory_pool *pool, size_t capacity) {
-  if (!pool || !pool->alloc) {
+  if (!MONGORY_VALIDATE_POOL(pool)) {
     return NULL;
   }
   if (capacity == 0) {

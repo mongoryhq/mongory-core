@@ -67,7 +67,7 @@ bool mongory_try_parse_int(const char *key, int *out) {
  * allocation fails.
  */
 char *mongory_string_cpy(mongory_memory_pool *pool, char *str) {
-  if (!pool || !pool->alloc || str == NULL) {
+  if (!mongory_validate_pool(pool) || str == NULL) {
     return NULL;
   }
 
@@ -83,7 +83,7 @@ char *mongory_string_cpy(mongory_memory_pool *pool, char *str) {
 }
 
 char *mongory_string_cpyf(mongory_memory_pool *pool, char *format, ...) {
-  if (!pool || !pool->alloc || !format) {
+  if (!mongory_validate_pool(pool) || !format) {
     return NULL;
   }
   va_list args;
@@ -123,8 +123,19 @@ void mongory_error_set(mongory_memory_pool *pool, mongory_error_type type, const
   pool->error = error;
 }
 
+bool mongory_validate_pool(mongory_memory_pool *pool) {
+  if (pool == NULL || pool->error != NULL) {
+    return false;
+  }
+  if (pool->alloc == NULL) {
+    pool->error = &MONGORY_ALLOC_ERROR;
+    return false;
+  }
+  return true;
+}
+
 bool mongory_validate_ptr(mongory_memory_pool *pool, char *name, void *ptr, char *file, int line) {
-  if (!pool || pool->error != NULL) {
+  if (!mongory_validate_pool(pool)) {
     return false;
   }
   if (ptr == NULL) {
@@ -152,7 +163,7 @@ static bool mongory_validate_type_error(mongory_memory_pool *pool, char *name, c
 }
 
 bool mongory_validate_table(mongory_memory_pool *pool, char *name, mongory_value *value, char *file, int line) {
-  if (!pool || pool->error != NULL) {
+  if (!mongory_validate_pool(pool)) {
     return false;
   }
   if (!mongory_validate_ptr(pool, name, value, file, line)) {
@@ -165,7 +176,7 @@ bool mongory_validate_table(mongory_memory_pool *pool, char *name, mongory_value
 }
 
 bool mongory_validate_array(mongory_memory_pool *pool, char *name, mongory_value *value, char *file, int line) {
-  if (!pool || pool->error != NULL) {
+  if (!mongory_validate_pool(pool)) {
     return false;
   }
   if (!mongory_validate_ptr(pool, name, value, file, line)) {
@@ -178,7 +189,7 @@ bool mongory_validate_array(mongory_memory_pool *pool, char *name, mongory_value
 }
 
 bool mongory_validate_string(mongory_memory_pool *pool, char *name, mongory_value *value, char *file, int line) {
-  if (!pool || pool->error != NULL) {
+  if (!mongory_validate_pool(pool)) {
     return false;
   }
   if (!mongory_validate_ptr(pool, name, value, file, line)) {

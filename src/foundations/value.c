@@ -77,7 +77,7 @@ static char *mongory_value_generic_ptr_to_str(mongory_value *value, mongory_memo
  * @return A pointer to the new mongory_value, or NULL on allocation failure.
  */
 static inline mongory_value *mongory_value_new(mongory_memory_pool *pool) {
-  if (!pool || !pool->alloc)
+  if (!MONGORY_VALIDATE_POOL(pool))
     return NULL; // Invalid pool.
   mongory_value *value = MG_ALLOC_PTR(pool, mongory_value);
   if (!value) {

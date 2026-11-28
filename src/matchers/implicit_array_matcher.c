@@ -156,7 +156,7 @@ static inline mongory_value *mongory_matcher_implicit_array_parse_table(mongory_
  * @return The constructed implicit_array_matcher, or NULL on failure.
  */
 mongory_matcher *mongory_matcher_implicit_array_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
-  if (!pool || !pool->alloc || !MONGORY_VALIDATE_PTR(pool, condition)) {
+  if (!MONGORY_VALIDATE_PTR(pool, condition)) {
     return NULL;
   }
   mongory_compile_budget saved = mongory_compile_budget_begin();

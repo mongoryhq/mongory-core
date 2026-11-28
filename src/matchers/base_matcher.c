@@ -90,7 +90,7 @@ bool mongory_compile_budget_count_node(mongory_memory_pool *pool) {
  * initialized matcher, or NULL if allocation fails.
  */
 mongory_matcher *mongory_matcher_base_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
-  if (!pool || !pool->alloc) {
+  if (!MONGORY_VALIDATE_POOL(pool)) {
     return NULL; // Invalid memory pool.
   }
   if (!mongory_compile_budget_count_node(pool)) {

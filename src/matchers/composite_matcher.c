@@ -54,7 +54,7 @@ static inline void mongory_matcher_attach_children_parent(mongory_composite_matc
 // Core Composite Matcher Functions
 // ============================================================================
 mongory_composite_matcher *mongory_matcher_composite_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
-  if (!pool || !pool->alloc)
+  if (!MONGORY_VALIDATE_POOL(pool))
     return NULL;
   if (!mongory_compile_budget_count_node(pool))
     return NULL;

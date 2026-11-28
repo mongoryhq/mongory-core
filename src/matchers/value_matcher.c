@@ -244,7 +244,7 @@ static inline bool mongory_matcher_field_match(mongory_matcher *matcher, mongory
 
 mongory_matcher *mongory_matcher_field_new(mongory_memory_pool *pool, char *field_name,
                                            mongory_value *condition_for_field, void *extern_ctx) {
-  if (!pool || !pool->alloc || !MONGORY_VALIDATE_PTR(pool, field_name)) {
+  if (!MONGORY_VALIDATE_PTR(pool, field_name)) {
     return NULL;
   }
   if (!mongory_compile_budget_count_node(pool)) {
@@ -303,7 +303,7 @@ static inline bool mongory_matcher_not_match(mongory_matcher *matcher, mongory_v
 }
 
 mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool, mongory_value *condition_to_negate, void *extern_ctx) {
-  if (!pool || !pool->alloc) {
+  if (!MONGORY_VALIDATE_POOL(pool)) {
     return NULL;
   }
   if (!mongory_compile_budget_enter_depth(pool)) {
@@ -368,7 +368,7 @@ static inline bool mongory_matcher_size_match(mongory_matcher *matcher, mongory_
 }
 
 mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool, mongory_value *size_condition, void *extern_ctx) {
-  if (!pool || !pool->alloc) {
+  if (!MONGORY_VALIDATE_POOL(pool)) {
     return NULL;
   }
   if (!mongory_compile_budget_enter_depth(pool)) {

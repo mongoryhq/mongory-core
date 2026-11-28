@@ -88,7 +88,7 @@ static inline bool mongory_matcher_regex_options_validate(mongory_memory_pool *p
 
 mongory_matcher *mongory_matcher_regex_with_options_new(mongory_memory_pool *pool, mongory_value *condition,
                                                         mongory_value *options, void *extern_ctx) {
-  if (!pool || !pool->alloc) {
+  if (!MONGORY_VALIDATE_POOL(pool)) {
     return NULL;
   }
   if (!mongory_matcher_regex_condition_validate(condition)) {
@@ -173,7 +173,7 @@ bool mongory_matcher_custom_match(mongory_matcher *matcher, mongory_value *value
  * NULL on failure.
  */
 mongory_matcher *mongory_matcher_custom_new(mongory_memory_pool *pool, char *key, mongory_value *condition, void *extern_ctx) {
-  if (!pool || !pool->alloc || !MONGORY_VALIDATE_PTR(pool, key)) {
+  if (!MONGORY_VALIDATE_PTR(pool, key)) {
     return NULL;
   }
   if (mongory_custom_matcher_adapter.build == NULL)
