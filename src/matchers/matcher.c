@@ -96,7 +96,8 @@ static bool mongory_expand_deep_merge_set(mongory_memory_pool *pool, mongory_tab
   return and_arr->push(and_arr, left_val) && and_arr->push(and_arr, right_val);
 }
 
-static char *mongory_split_dotted_key(mongory_memory_pool *pool, const char *key, size_t *count_out) {
+static char **mongory_split_dotted_key(mongory_memory_pool *pool, const char *key, size_t base_depth,
+                                       size_t *count_out) {
   size_t len = strlen(key);
   char *buf = (char *)MG_ALLOC(pool, len + 1);
   if (!buf) {
@@ -121,8 +122,25 @@ static char *mongory_split_dotted_key(mongory_memory_pool *pool, const char *key
     out--;
     segments--;
   }
+
+  size_t max_depth = mongory_max_depth_get();
+  if (max_depth > 0 && base_depth + (segments - 1) > max_depth) {
+    pool->error = &MONGORY_DEPTH_LIMIT_ERROR;
+    return NULL;
+  }
+
+  char **parts = MG_ALLOC_ARY(pool, char *, segments);
+  if (!parts) {
+    pool->error = &MONGORY_ALLOC_ERROR;
+    return NULL;
+  }
+  char *cursor = buf;
+  for (size_t i = 0; i < segments; i++) {
+    parts[i] = cursor;
+    cursor += strlen(cursor) + 1;
+  }
   *count_out = segments;
-  return buf;
+  return parts;
 }
 
 static mongory_value *mongory_expand_value_for_key(mongory_memory_pool *pool, const char *key, mongory_value *value,
@@ -180,26 +198,9 @@ static bool mongory_expand_table_pair(char *key, mongory_value *value, void *acc
   mongory_expand_table_ctx *ctx = (mongory_expand_table_ctx *)acc;
   mongory_memory_pool *pool = ctx->pool;
   size_t count = 0;
-  char *segments = mongory_split_dotted_key(pool, key, &count);
-  if (!segments) {
-    return false;
-  }
-
-  size_t max_depth = mongory_max_depth_get();
-  if (max_depth > 0 && ctx->depth + (count - 1) > max_depth) {
-    pool->error = &MONGORY_DEPTH_LIMIT_ERROR;
-    return false;
-  }
-
-  char **parts = MG_ALLOC_ARY(pool, char *, count);
+  char **parts = mongory_split_dotted_key(pool, key, ctx->depth, &count);
   if (!parts) {
-    pool->error = &MONGORY_ALLOC_ERROR;
     return false;
-  }
-  char *cursor = segments;
-  for (size_t i = 0; i < count; i++) {
-    parts[i] = cursor;
-    cursor += strlen(cursor) + 1;
   }
 
   mongory_value *nested = mongory_expand_value_for_key(pool, parts[count - 1], value, ctx->depth + (count - 1));
