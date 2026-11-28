@@ -88,7 +88,7 @@ static inline bool mongory_matcher_regex_options_validate(mongory_memory_pool *p
 
 mongory_matcher *mongory_matcher_regex_with_options_new(mongory_memory_pool *pool, mongory_value *condition,
                                                         mongory_value *options, void *extern_ctx) {
-  if (!MONGORY_VALIDATE_POOL(pool)) {
+  if (!mongory_validate_pool(pool)) {
     return NULL;
   }
   if (!mongory_matcher_regex_condition_validate(condition)) {

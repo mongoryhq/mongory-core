@@ -409,7 +409,7 @@ static inline bool mongory_matcher_in_match(mongory_matcher *matcher, mongory_va
 static mongory_inclusion_matcher *mongory_inclusion_matcher_alloc(mongory_memory_pool *pool, mongory_value *condition,
                                                                   void *extern_ctx, const char *name,
                                                                   mongory_matcher_match_func match_fn) {
-  if (!MONGORY_VALIDATE_POOL(pool)) {
+  if (!mongory_validate_pool(pool)) {
     return NULL;
   }
   if (!mongory_compile_budget_count_node(pool)) {
@@ -451,7 +451,7 @@ static mongory_inclusion_matcher *mongory_inclusion_matcher_alloc(mongory_memory
 }
 
 mongory_matcher *mongory_matcher_in_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
-  if (!MONGORY_VALIDATE_POOL(pool)) {
+  if (!mongory_validate_pool(pool)) {
     return NULL;
   }
   if (!mongory_matcher_validate_array_condition(condition)) {
@@ -468,7 +468,7 @@ static inline bool mongory_matcher_not_in_match(mongory_matcher *matcher, mongor
 }
 
 mongory_matcher *mongory_matcher_not_in_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
-  if (!MONGORY_VALIDATE_POOL(pool)) {
+  if (!mongory_validate_pool(pool)) {
     return NULL;
   }
   if (!mongory_matcher_validate_array_condition(condition)) {

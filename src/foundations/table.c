@@ -430,7 +430,7 @@ bool mongory_table_each_pair(mongory_table *self, void *acc, mongory_table_each_
  * @return Pointer to the new mongory_table, or NULL on failure.
  */
 mongory_table *mongory_table_new(mongory_memory_pool *pool) {
-  if (!MONGORY_VALIDATE_POOL(pool))
+  if (!mongory_validate_pool(pool))
     return NULL; // Must have a valid pool.
 
   size_t init_capacity = MONGORY_TABLE_INIT_SIZE;

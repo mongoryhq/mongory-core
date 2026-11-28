@@ -303,7 +303,7 @@ static inline bool mongory_matcher_not_match(mongory_matcher *matcher, mongory_v
 }
 
 mongory_matcher *mongory_matcher_not_new(mongory_memory_pool *pool, mongory_value *condition_to_negate, void *extern_ctx) {
-  if (!MONGORY_VALIDATE_POOL(pool)) {
+  if (!mongory_validate_pool(pool)) {
     return NULL;
   }
   if (!mongory_compile_budget_enter_depth(pool)) {
@@ -368,7 +368,7 @@ static inline bool mongory_matcher_size_match(mongory_matcher *matcher, mongory_
 }
 
 mongory_matcher *mongory_matcher_size_new(mongory_memory_pool *pool, mongory_value *size_condition, void *extern_ctx) {
-  if (!MONGORY_VALIDATE_POOL(pool)) {
+  if (!mongory_validate_pool(pool)) {
     return NULL;
   }
   if (!mongory_compile_budget_enter_depth(pool)) {

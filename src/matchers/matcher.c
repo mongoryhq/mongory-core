@@ -464,7 +464,7 @@ static bool mongory_matcher_traced_match(mongory_matcher *matcher, mongory_value
   }
   bool matched = matcher->original_match(matcher, value);
   mongory_array *trace_stack = matcher->trace_stack;
-  if (!trace_stack || !MONGORY_VALIDATE_POOL(trace_stack->pool)) {
+  if (!trace_stack || !mongory_validate_pool(trace_stack->pool)) {
     return matched;
   }
   mongory_memory_pool *pool = trace_stack->pool;

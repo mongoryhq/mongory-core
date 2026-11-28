@@ -51,7 +51,7 @@ static inline bool mongory_matcher_exists_match(mongory_matcher *matcher, mongor
 }
 
 mongory_matcher *mongory_matcher_exists_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
-  if (!MONGORY_VALIDATE_POOL(pool)) {
+  if (!mongory_validate_pool(pool)) {
     return NULL;
   }
   if (!mongory_matcher_validate_bool_condition(condition)) {
@@ -142,7 +142,7 @@ static inline bool mongory_matcher_present_match(mongory_matcher *matcher, mongo
 }
 
 mongory_matcher *mongory_matcher_present_new(mongory_memory_pool *pool, mongory_value *condition, void *extern_ctx) {
-  if (!MONGORY_VALIDATE_POOL(pool)) {
+  if (!mongory_validate_pool(pool)) {
     return NULL;
   }
   if (!mongory_matcher_validate_bool_condition(condition)) {

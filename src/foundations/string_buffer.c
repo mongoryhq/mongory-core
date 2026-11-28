@@ -9,7 +9,7 @@
 #define MONGORY_STRING_BUFFER_INITIAL_CAPACITY 16
 
 mongory_string_buffer *mongory_string_buffer_new(mongory_memory_pool *pool) {
-  if (!MONGORY_VALIDATE_POOL(pool)) {
+  if (!mongory_validate_pool(pool)) {
     return NULL;
   }
   mongory_string_buffer *buffer = MG_ALLOC_PTR(pool, mongory_string_buffer);
@@ -31,7 +31,7 @@ mongory_string_buffer *mongory_string_buffer_new(mongory_memory_pool *pool) {
 }
 
 static inline bool mongory_string_buffer_grow(mongory_string_buffer *buffer, size_t additional_size) {
-  if (!buffer || !MONGORY_VALIDATE_POOL(buffer->pool)) {
+  if (!buffer || !mongory_validate_pool(buffer->pool)) {
     return false;
   }
   if (additional_size > SIZE_MAX - 1 || buffer->size > SIZE_MAX - 1 - additional_size) {
@@ -103,7 +103,7 @@ char *mongory_string_buffer_cstr(mongory_string_buffer *buffer) {
 }
 
 void mongory_string_buffer_clear(mongory_string_buffer *buffer) {
-  if (!buffer || !MONGORY_VALIDATE_POOL(buffer->pool)) {
+  if (!buffer || !mongory_validate_pool(buffer->pool)) {
     return;
   }
   char *new_buffer = (char *)MG_ALLOC(buffer->pool, MONGORY_STRING_BUFFER_INITIAL_CAPACITY);
